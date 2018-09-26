@@ -12,7 +12,7 @@ setuptools.setup(
     keywords = 'DMX, Art-Net, ArtNet',
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/pypa/sampleproject",
+    url="https://github.com/spacemanspiff2007/PyArtNet",
     packages=setuptools.find_packages(),
     classifiers=[
         "Development Status :: 4 - Beta",
