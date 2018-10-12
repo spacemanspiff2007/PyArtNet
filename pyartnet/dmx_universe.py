@@ -16,6 +16,10 @@ class DmxUniverse:
 
         self.__fade_running = False
 
+    @property
+    def fade_running(self) -> bool:
+        return self.__fade_running
+
     def get_channel(self, channel_name : str) -> pyartnet.DmxChannel:
         assert isinstance(channel_name, str), type(channel_name)
         return self.__channel_names[channel_name]
@@ -51,7 +55,7 @@ class DmxUniverse:
             running = True
 
             # get new universe Data
-            new_val = c.get_channel_vals()
+            new_val = c.get_channel_values()
             for k, val in enumerate(new_val):
                 self.data[c.start + k - 1] = val
 

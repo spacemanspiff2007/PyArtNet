@@ -31,21 +31,21 @@ class TestConfig(unittest.TestCase):
             soll = [0, 130, 0]
             channel.add_fade(soll, 1000, __fade_type)
             await channel.wait_till_fade_complete()
-            self.assertListEqual(channel.get_channel_vals(), soll)
+            self.assertListEqual(channel.get_channel_values(), soll)
             for i in range(3):
                 self.assertEqual(self.univ.data[128 + i], soll[i])
 
             soll = [255, 0, 255]
             channel.add_fade(soll, 2000, __fade_type)
             await channel.wait_till_fade_complete()
-            self.assertListEqual(channel.get_channel_vals(), soll)
+            self.assertListEqual(channel.get_channel_values(), soll)
             for i in range(3):
                 self.assertEqual(self.univ.data[128 + i], soll[i])
 
             soll = [0, 0, 0]
             channel.add_fade(soll, 2000, __fade_type)
             await channel.wait_till_fade_complete()
-            self.assertListEqual(channel.get_channel_vals(), soll)
+            self.assertListEqual(channel.get_channel_values(), soll)
             for i in range(3):
                 self.assertEqual(self.univ.data[128 + i], soll[i])
 
@@ -56,3 +56,10 @@ class TestConfig(unittest.TestCase):
 
     def test_quadratic(self):
         self.__run_fades(fades.FadeQuadratic)
+
+    def test_wait(self):
+        channel = self.univ.add_channel(129, 3)
+        async def run_test():
+            await asyncio.sleep(10)
+        
+        asyncio.get_event_loop().run_until_complete(run_test())

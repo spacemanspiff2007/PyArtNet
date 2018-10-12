@@ -10,7 +10,7 @@ from .dmx_universe import DmxUniverse
 log = logging.getLogger('PyArtnet.ArtNetNode')
 
 class ArtNetNode:
-    def __init__(self, host, port = 0x1936, max_refresh = 30, sequence_counter = True):
+    def __init__(self, host, port = 0x1936, max_fps = 25, refresh_every = 2, sequence_counter = True):
         #target
         self.__host = host
         self.__port = port
@@ -30,8 +30,10 @@ class ArtNetNode:
 
         self.__task = None
 
-        max_refresh = max(1, min(max_refresh, 40))
-        self.sleep_time_ms = 1 / max_refresh
+        max_fps = max(1, min(max_fps, 40))
+        self.sleep_time_ms = 1 / max_fps
+        
+        self.refresh_every = refresh_every
 
     def get_universe(self, nr : int) -> DmxUniverse:
         return self.__universe[nr]
@@ -58,10 +60,11 @@ class ArtNetNode:
                 self.update()
                 last_update = time.time()
             else:
-                # refresh data all 2 secs
-                if time.time() - last_update > 2:
-                    self.update()
-                    last_update = time.time()
+                if self.refresh_every > 0:
+                    # refresh data all 2 secs
+                    if time.time() - last_update > self.refresh_every:
+                        self.update()
+                        last_update = time.time()
 
 
     def start(self):

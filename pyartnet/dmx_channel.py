@@ -26,8 +26,11 @@ class DmxChannel:
         assert isinstance(universe, pyartnet.DmxUniverse)
         self.__universe : pyartnet.DmxUniverse = universe
 
+    @property
+    def fade_running(self) -> bool:
+        return self.__fade_running
 
-    def get_channel_vals(self) -> list:
+    def get_channel_values(self) -> list:
         return self.__val_act_i
 
     def add_fade(self, fade_list : list, duration_ms, fade_class = None):
@@ -96,6 +99,7 @@ class DmxChannel:
                 self.__val_act_i[i] = fade.val_current
 
             running = True
+        self.__fade_running = running
 
         # catch implementation errors
         if self.__step_is > self.__step_max:
@@ -103,5 +107,5 @@ class DmxChannel:
             running = False
         self.__step_is += 1
 
-        self.__fade_running = running
+        
         return self.__fade_running
