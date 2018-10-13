@@ -9,10 +9,8 @@ class DmxUniverse:
         self.__channels = []    # type: typing.List[pyartnet.DmxChannel]
         self.__channel_names = {}
 
-        #import here to prevent cyclic imports
-        from pyartnet import ArtNetNode
-        assert isinstance(parent, ArtNetNode)
-        self.artnet_node : ArtNetNode = parent
+        assert isinstance(parent, pyartnet.ArtNetNode)
+        self.artnet_node : pyartnet.ArtNetNode = parent
 
         self.__fade_running = False
 

@@ -11,7 +11,13 @@ log = logging.getLogger('PyArtnet.ArtNetNode')
 
 class ArtNetNode:
     def __init__(self, host, port = 0x1936, max_fps = 25, refresh_every = 2, sequence_counter = True):
-        #target
+        """
+        :param host: IP of the Art-Net Node
+        :param port: Port of the Art-Net Node
+        :param max_fps: How many packets per sec shall max be send
+        :param refresh_every: Resend the data every x secibds
+        :param sequence_counter: activate the sequence counter in the packages
+        """
         self.__host = host
         self.__port = port
 
