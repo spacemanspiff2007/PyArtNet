@@ -3,16 +3,18 @@ import typing, asyncio
 import pyartnet
 
 class DmxUniverse:
-    def __init__(self, parent):
+    def __init__(self, artnet_node):
         self.highest_channel = 0
         self.data = bytearray()
         self.__channels = []    # type: typing.List[pyartnet.DmxChannel]
         self.__channel_names = {}
 
-        assert isinstance(parent, pyartnet.ArtNetNode)
-        self.artnet_node : pyartnet.ArtNetNode = parent
+        assert isinstance(artnet_node, pyartnet.ArtNetNode)
+        self.artnet_node : pyartnet.ArtNetNode = artnet_node
 
         self.__fade_running = False
+
+        self.output_correction = None
 
     @property
     def fade_running(self) -> bool:

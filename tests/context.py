@@ -9,7 +9,7 @@ assert os.path.isdir(path), 'Folder not found: {:s}'.format(path)
 if not path in sys.path:
     sys.path.insert(0, path)
 
-from pyartnet import ArtNetNode, DmxChannel, DmxUniverse, fades
+from pyartnet import ArtNetNode, DmxChannel, DmxUniverse, output_correction
 
 if __name__ == "__main__":
     # create formatter

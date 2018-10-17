@@ -1,6 +1,6 @@
 import unittest, asyncio, time
 
-from .context import ArtNetNode, DmxChannel, DmxUniverse, fades
+from .context import ArtNetNode, DmxChannel, DmxUniverse, output_correction
 
 class TestConfig(unittest.TestCase):
 
@@ -24,26 +24,26 @@ class TestConfig(unittest.TestCase):
         self.node = None
         self.univ = None
 
-    def __run_fades(self, __fade_type):
+    def __run_fades(self):
         async def run_test():
             channel = self.univ.add_channel(129, 3)
 
-            soll = [0, 130, 0]
-            channel.add_fade(soll, 1000, __fade_type)
+            soll = [0, 255, 0]
+            channel.add_fade(soll, 1000)
             await channel.wait_till_fade_complete()
             self.assertListEqual(channel.get_channel_values(), soll)
             for i in range(3):
                 self.assertEqual(self.univ.data[128 + i], soll[i])
 
             soll = [255, 0, 255]
-            channel.add_fade(soll, 2000, __fade_type)
+            channel.add_fade(soll, 2000)
             await channel.wait_till_fade_complete()
             self.assertListEqual(channel.get_channel_values(), soll)
             for i in range(3):
                 self.assertEqual(self.univ.data[128 + i], soll[i])
 
             soll = [0, 0, 0]
-            channel.add_fade(soll, 2000, __fade_type)
+            channel.add_fade(soll, 2000)
             await channel.wait_till_fade_complete()
             self.assertListEqual(channel.get_channel_values(), soll)
             for i in range(3):
@@ -52,10 +52,19 @@ class TestConfig(unittest.TestCase):
         asyncio.get_event_loop().run_until_complete(run_test())
 
     def test_linear(self):
-        self.__run_fades(fades.LinearFade)
+        self.__run_fades()
 
     def test_quadratic(self):
-        self.__run_fades(fades.FadeQuadratic)
+        self.univ.output_correction = output_correction.quadratic
+        self.__run_fades()
+
+    def test_cubic(self):
+        self.univ.output_correction = output_correction.cubic
+        self.__run_fades()
+
+    def test_quadrouple(self):
+        self.univ.output_correction = output_correction.quadruple
+        self.__run_fades()
 
     def test_wait(self):
         channel = self.univ.add_channel(129, 3)

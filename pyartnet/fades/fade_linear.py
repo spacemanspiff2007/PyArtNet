@@ -1,7 +1,6 @@
 from .fade_base import FadeBase
 
 
-
 class LinearFade(FadeBase):
 
     def __init__(self, target: int):
@@ -18,7 +17,7 @@ class LinearFade(FadeBase):
         self.val_current += self.factor
 
     def is_done(self) -> bool:
-        curr = int(round(self.val_current, 0))
+        curr = round(self.val_current)
         if self.factor <= 0 and curr <= self.val_target:
             return True
         if self.factor >= 0 and curr >= self.val_target:

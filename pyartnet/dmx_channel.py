@@ -2,7 +2,6 @@ import logging, asyncio, math
 
 import pyartnet
 
-
 log = logging.getLogger('PyArtnet.DmxChannel')
 
 
@@ -26,6 +25,17 @@ class DmxChannel:
         assert isinstance(universe, pyartnet.DmxUniverse)
         self.__universe : pyartnet.DmxUniverse = universe
 
+        self.output_correction = None
+
+    def __apply_output_correction(self, channel_val):
+        if self.output_correction is not None:
+            return self.output_correction(channel_val)
+        
+        if self.__universe.output_correction is not None:
+            return self.__universe.output_correction(channel_val)
+        
+        return channel_val
+
     @property
     def fade_running(self) -> bool:
         return self.__fade_running
@@ -33,7 +43,7 @@ class DmxChannel:
     def get_channel_values(self) -> list:
         return self.__val_act_i
 
-    def add_fade(self, fade_list : list, duration_ms, fade_class = None):
+    def add_fade(self, fade_list : list, duration_ms, fade_class = pyartnet.fades.LinearFade):
         fade_list = fade_list[:]
         assert isinstance(fade_list, list)
         assert len(fade_list) == self.width
@@ -92,11 +102,7 @@ class DmxChannel:
 
             # get next value
             fade.calc_next_value()
-            if isinstance(fade.val_current, float):
-                self.__val_act_i[i] = int(round(fade.val_current, 0))
-            else:
-                assert isinstance(fade.val_current, int)
-                self.__val_act_i[i] = fade.val_current
+            self.__val_act_i[i] = round(self.__apply_output_correction(fade.val_current))
 
             running = True
         self.__fade_running = running
