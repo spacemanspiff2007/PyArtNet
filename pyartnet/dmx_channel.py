@@ -4,7 +4,6 @@ import pyartnet
 
 log = logging.getLogger('PyArtnet.DmxChannel')
 
-
 class DmxChannel:
     def __init__(self, universe, start : int, width : int):
         assert 1 <= start <= 512
@@ -25,7 +24,12 @@ class DmxChannel:
         assert isinstance(universe, pyartnet.DmxUniverse)
         self.__universe : pyartnet.DmxUniverse = universe
 
+        # Output correction function
         self.output_correction = None
+        
+        # Callbacks
+        self.callback_value_changed = None
+        self.callback_fade_finished = None
 
     def __apply_output_correction(self, channel_val):
         if self.output_correction is not None:
@@ -92,7 +96,9 @@ class DmxChannel:
     def process(self):
         if not self.__fade_running:
             return False
-
+        
+        channel_value_was = self.__val_act_i.copy()
+        
         running = False
         for i, fade in enumerate(self.__fades):
             assert isinstance(fade, pyartnet.fades.FadeBase), type(fade)
@@ -106,6 +112,12 @@ class DmxChannel:
 
             running = True
         self.__fade_running = running
+
+        # Channel callbacks
+        if self.callback_value_changed is not None and channel_value_was != self.__val_act_i:
+            self.callback_value_changed()
+        if self.callback_fade_finished is not None and self.__fade_running is False:
+            self.callback_fade_finished()
 
         # catch implementation errors
         if self.__step_is > self.__step_max:

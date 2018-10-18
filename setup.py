@@ -5,7 +5,7 @@ with open("readme.md", "r") as fh:
 
 setuptools.setup(
     name="pyartnet",
-    version="0.3.0",
+    version="0.4.0",
     author="spaceman_spiff",
     #author_email="",
     description="Python wrappers for the Art-Net protocol to send DMX over Ethernet",
