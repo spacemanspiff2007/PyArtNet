@@ -10,12 +10,12 @@ from .dmx_universe import DmxUniverse
 log = logging.getLogger('PyArtnet.ArtNetNode')
 
 class ArtNetNode:
-    def __init__(self, host, port = 0x1936, max_fps = 25, refresh_every = 2, sequence_counter = True):
+    def __init__(self, host, port = 0x1936, max_fps = 25, refresh_every=2, sequence_counter=True):
         """
         :param host: IP of the Art-Net Node
         :param port: Port of the Art-Net Node
         :param max_fps: How many packets per sec shall max be send
-        :param refresh_every: Resend the data every x secibds
+        :param refresh_every: Resend the data every x seconds, 0 to deactivate
         :param sequence_counter: activate the sequence counter in the packages
         """
         self.__host = host
@@ -41,13 +41,17 @@ class ArtNetNode:
         
         self.refresh_every = refresh_every
 
-    def get_universe(self, nr : int) -> DmxUniverse:
+    def get_universe(self, nr: int) -> DmxUniverse:
+        assert isinstance(nr, int), type(nr)
+        assert nr >= 0, nr
         return self.__universe[nr]
 
-    def add_universe(self, nr : int = 0) -> DmxUniverse:
-        "Creates a new niverse and adds it to the node"
-        u = DmxUniverse(self)
-        self.__universe[nr] = u
+    def add_universe(self, nr: int = 0) -> DmxUniverse:
+        """Creates a new niverse and adds it to the node"""
+        assert isinstance(nr, int), type(nr)
+        assert nr >= 0, nr
+
+        self.__universe[nr] = u = DmxUniverse(self)
         return u
 
     async def __worker(self):
