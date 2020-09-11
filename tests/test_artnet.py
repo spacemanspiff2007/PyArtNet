@@ -1,14 +1,17 @@
-import unittest, asyncio, time
+import asyncio
+import time
+import unittest
 
 from .context import ArtNetNode, DmxChannel, DmxUniverse, output_correction
+
 
 class TestConfig(unittest.TestCase):
 
     def __init__(self, *args, **kwargs):
         super().__init__( *args, **kwargs)
 
-        self.node : ArtNetNode = None
-        self.univ : DmxUniverse = None
+        self.node: ArtNetNode = None
+        self.univ: DmxUniverse = None
 
     def setUp(self):
         loop = asyncio.get_event_loop()
@@ -26,7 +29,7 @@ class TestConfig(unittest.TestCase):
 
     def __run_fades(self):
         async def run_test():
-            
+
             channel = self.univ.add_channel(129, 3)
 
             soll = [0, 255, 0]
@@ -69,20 +72,23 @@ class TestConfig(unittest.TestCase):
 
     def test_wait(self):
         channel = self.univ.add_channel(129, 3)
+
         async def run_test():
             await asyncio.sleep(10)
-        
+
         asyncio.get_event_loop().run_until_complete(run_test())
 
 
     def test_callbacks(self):
-        
+
         cb_finish = False
+
         def callback_finished():
             global cb_finish
             cb_finish = True
-            
+
         cb_changed = False
+
         def callback_changed():
             global cb_changed
             cb_changed = True
@@ -93,6 +99,6 @@ class TestConfig(unittest.TestCase):
             channel.callback_value_changed = callback_changed
             channel.add_fade([0, 255, 0], 1000)
             await channel.wait_till_fade_complete()
-            
+
             self.assertTrue(cb_finish)
             self.assertTrue(cb_changed)

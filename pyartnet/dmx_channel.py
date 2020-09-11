@@ -1,8 +1,11 @@
-import logging, asyncio, math
+import asyncio
+import logging
+import math
 
 import pyartnet
 
 log = logging.getLogger('PyArtnet.DmxChannel')
+
 
 class DmxChannel:
     def __init__(self, universe, start : int, width : int):
@@ -26,7 +29,7 @@ class DmxChannel:
 
         # Output correction function
         self.output_correction = None
-        
+
         # Callbacks
         self.callback_value_changed = None
         self.callback_fade_finished = None
@@ -34,10 +37,10 @@ class DmxChannel:
     def __apply_output_correction(self, channel_val):
         if self.output_correction is not None:
             return self.output_correction(channel_val)
-        
+
         if self.__universe.output_correction is not None:
             return self.__universe.output_correction(channel_val)
-        
+
         return channel_val
 
     @property
@@ -63,21 +66,21 @@ class DmxChannel:
             assert isinstance(k.val_target, int)
             assert 0 <= k.val_target <= 255
 
-        #calculate how much steps we will be having
+        # calculate how much steps we will be having
         step_time_ms = self.__universe.artnet_node.sleep_time_ms * 1000
         duration_ms = max(duration_ms, step_time_ms)
         self.__step_max = math.ceil(duration_ms / step_time_ms)
         self.__step_is = 0
 
-        #calculate required values
-        for i, fade in enumerate(fade_list): # type: pyartnet.fades.FadeBase
+        # calculate required values
+        for i, fade in enumerate(fade_list):  # type: pyartnet.fades.FadeBase
             fade.val_start = self.__val_act_i[i]
             fade.val_current = fade.val_start
             fade.initialize_fade(self.__step_max)
             self.__fades[i] = fade
 
         if log.isEnabledFor(logging.DEBUG):
-            log._log(logging.DEBUG, f'Fade with {self.__step_max} steps',[])
+            log._log(logging.DEBUG, f'Fade with {self.__step_max} steps', [])
             for i in range(self.width):
                 log._log(logging.DEBUG, 'CH {}: {:03d} -> {:03d} | {}'.format(
                     self.start + i, self.__val_act_i[i], self.__fades[i].val_target, self.__fades[i].debug_initialize()
@@ -96,9 +99,9 @@ class DmxChannel:
     def process(self):
         if not self.__fade_running:
             return False
-        
+
         channel_value_was = self.__val_act_i.copy()
-        
+
         running = False
         for i, fade in enumerate(self.__fades):
             assert isinstance(fade, pyartnet.fades.FadeBase), type(fade)
@@ -122,8 +125,7 @@ class DmxChannel:
         # catch implementation errors
         if self.__step_is > self.__step_max:
             log.warning( f'Fades in Channel {self.start}:{self.width} did not finish! Aborting!')
-            running = False
+            self.__fade_running = False
         self.__step_is += 1
 
-        
         return self.__fade_running

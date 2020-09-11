@@ -1,3 +1,4 @@
+from .__version__ import __version__
 from . import fades
 
 from .dmx_channel   import DmxChannel

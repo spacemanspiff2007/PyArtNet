@@ -1,3 +1,6 @@
+.mypy_cache
 .idea
 __pycache__
+/conf
+/build
 /log.log

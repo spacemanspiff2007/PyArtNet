@@ -1,6 +1,8 @@
-import typing, asyncio
+import asyncio
+import typing
 
 import pyartnet
+
 
 class DmxUniverse:
     def __init__(self, artnet_node):
@@ -29,11 +31,12 @@ class DmxUniverse:
         c = pyartnet.DmxChannel(self, start, width)
 
         self.highest_channel = max(self.highest_channel, c.start + c.width)
-        #round channels
+
+        # round channels
         if self.highest_channel % 2:
             self.highest_channel += 1
 
-        #pad universe with 0
+        # pad universe with 0
         while len(self.data) < self.highest_channel:
             self.data.append(0)
 

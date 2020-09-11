@@ -1,5 +1,6 @@
 import abc
 
+
 class FadeBase(metaclass=abc.ABCMeta):
 
     def __init__(self, target : int):

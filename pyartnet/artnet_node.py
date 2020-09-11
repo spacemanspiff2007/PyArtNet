@@ -1,13 +1,16 @@
-import logging, asyncio
-import socket, time
+import asyncio
+import binascii
+import contextlib
+import logging
+import socket
 import struct
+import time
 import typing
-import contextlib, binascii
 
 from .dmx_universe import DmxUniverse
 
-# https://github.com/jnimmo/hass-artnet/blob/master/artnet.py
 log = logging.getLogger('PyArtnet.ArtNetNode')
+
 
 class ArtNetNode:
     def __init__(self, host, port = 0x1936, max_fps = 25, refresh_every=2, sequence_counter=True):
@@ -38,7 +41,7 @@ class ArtNetNode:
 
         max_fps = max(1, min(max_fps, 40))
         self.sleep_time_ms = 1 / max_fps
-        
+
         self.refresh_every = refresh_every
 
     def get_universe(self, nr: int) -> DmxUniverse:
@@ -76,15 +79,13 @@ class ArtNetNode:
                         self.update()
                         last_update = time.time()
 
-
     def start(self):
         if self.__task:
             return None
 
         loop = asyncio.get_event_loop()
         self.__task = loop.create_task(self.__worker())
-        #self.__thread = asyncio.ensure_future(self.__worker())
-
+        # self.__thread = asyncio.ensure_future(self.__worker())
 
     async def stop(self):
         if not self.__task:
@@ -136,7 +137,7 @@ class ArtNetNode:
         if not log.isEnabledFor(logging.DEBUG):
             return None
 
-        #runs the first time
+        # runs the first time
         if not hasattr(self, '_log_ctr'):
             self._log_ctr = -1
             self._log_show = [False for k in range(103)]
@@ -152,18 +153,18 @@ class ArtNetNode:
         pre = binascii.hexlify(bytearray(p[:12])).decode('ascii').upper()
         out = f'Packet to {self.__host}: {pre} {p[12]:02x} {p[13]:02x} {p[13]:02x}{p[14]:02x} {_channels:04x}'
 
-        #check what to print
+        # check what to print
         for k in range(_channels):
             if p[18 + k]:
-                #once we change something print channel index
-                if self._log_show[k//5] is False:
+                # once we change something print channel index
+                if self._log_show[k // 5] is False:
                     self._log_ctr = 0
-                self._log_show[k//5] = True
+                self._log_show[k // 5] = True
 
         for k in range(0, _channels, 5):
 
             # if there was never anything active do not print, but print the last block
-            if not self._log_show[k//5] and not k +5 > _channels:
+            if not self._log_show[k // 5] and not k + 5 > _channels:
                 # do not print multiple shortings
                 if out.endswith('...'):
                     continue
@@ -172,7 +173,7 @@ class ArtNetNode:
                 out += ' ...'
                 continue
 
-            #separator
+            # separator
             if out.endswith('...'):
                 out_desc += ' '
                 out += ' '
@@ -180,7 +181,7 @@ class ArtNetNode:
                 out_desc += '- '
                 out += '  '
 
-            #block of channels
+            # block of channels
             for i in range(5):
                 if k + i < _channels:
                     out_desc += f'{k+i + 1:<3d} '

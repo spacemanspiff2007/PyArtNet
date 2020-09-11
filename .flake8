@@ -1,0 +1,23 @@
+[flake8]
+ignore =
+    # E201 whitespace after '('
+    E201,
+    # E221 multiple spaces before operator
+    E203,
+    # E203 whitespace before ':'
+    E221,
+    # E251 unexpected spaces around keyword / parameter equals
+    E251
+    # E303 too many blank lines
+    E303
+
+max-line-length = 120
+exclude =
+    .git,
+    .tox,
+    __pycache__,
+    build,
+    dist,
+    conf,
+    __init__.py,
+    tests/context.py
