@@ -1,8 +1,12 @@
 # pyartnet
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pyartnet)
+[![Downloads](https://pepy.tech/badge/pyartnet/month)](https://pepy.tech/project/pyartnet/month)
+
 pyartnet is a python implementation of the ArtNet protocol using [asyncio](https://docs.python.org/3/library/asyncio.html).
 
 # Usage
 
+## Fades
 ````python
 from pyartnet import ArtNetNode
 
@@ -20,9 +24,23 @@ channel.add_fade([255,0,0], 5000)
 await channel.wait_till_fade_complete()
 ````
 
+## Callbacks
+There are two possible callbacks on the channel which make it easy to implement additional logic.
+
+````python
+from pyartnet import ArtNetNode, output_correction
+
+node = ArtNetNode('IP')
+universe = node.add_universe(0)
+
+channel = universe.add_channel(start=1, width=3)
+
+channel.callback_fade_finished = my_func1
+channel.callback_value_changed = my_func2
+````
 
 
-# Output correction
+## Output correction
 It is possible to use an output correction to create different fade curves.
 Output correction can be set on the universe or on the individual channel.
 
@@ -32,10 +50,10 @@ from pyartnet import ArtNetNode, output_correction
 node = ArtNetNode('IP')
 
 universe = node.add_universe(0)
-universe.output_correction = output_correction.quadratic()  # quadratic will be used for all channels
+universe.output_correction = output_correction.quadratic  # quadratic will be used for all channels
 
-channel  = universe.add_channel(start=1, width=3)
-channel.output_correction = output_correction.cubic()       # this channel will use cubic
+channel = universe.add_channel(start=1, width=3)
+channel.output_correction = output_correction.cubic       # this channel will use cubic
 ````
 
 The graph shows different output depending on the output correction.
