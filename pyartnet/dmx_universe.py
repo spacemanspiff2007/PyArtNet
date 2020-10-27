@@ -12,7 +12,7 @@ class DmxUniverse:
         self.__channel_names = {}
 
         assert isinstance(artnet_node, pyartnet.ArtNetNode)
-        self.artnet_node : pyartnet.ArtNetNode = artnet_node
+        self.artnet_node: pyartnet.ArtNetNode = artnet_node
 
         self.__fade_running = False
 
@@ -22,15 +22,15 @@ class DmxUniverse:
     def fade_running(self) -> bool:
         return self.__fade_running
 
-    def get_channel(self, channel_name : str) -> pyartnet.DmxChannel:
+    def get_channel(self, channel_name: str) -> pyartnet.DmxChannel:
         assert isinstance(channel_name, str), type(channel_name)
         return self.__channel_names[channel_name]
 
-    def add_channel(self, start : int, width : int, channel_name = '') -> pyartnet.DmxChannel:
+    def add_channel(self, start: int, width: int, channel_name: str = '') -> pyartnet.DmxChannel:
         assert isinstance(channel_name, str), type(channel_name)
         c = pyartnet.DmxChannel(self, start, width)
 
-        self.highest_channel = max(self.highest_channel, c.start + c.width)
+        self.highest_channel = max(self.highest_channel, c.start + c.width - 1)
 
         # round channels
         if self.highest_channel % 2:
@@ -65,7 +65,6 @@ class DmxUniverse:
         self.__fade_running = running
         return self.__fade_running
 
-
     async def wait_for_fades(self):
         while self.__fade_running:
-            await asyncio.sleep(self.artnet_node.sleep_time_ms)
+            await asyncio.sleep(self.artnet_node.sleep_time)

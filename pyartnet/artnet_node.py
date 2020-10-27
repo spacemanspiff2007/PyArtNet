@@ -13,7 +13,8 @@ log = logging.getLogger('PyArtnet.ArtNetNode')
 
 
 class ArtNetNode:
-    def __init__(self, host, port = 0x1936, max_fps = 25, refresh_every=2, sequence_counter=True):
+    def __init__(self, host: str, port: int = 0x1936, max_fps: int = 25,
+                 refresh_every: int = 2, sequence_counter: bool = True):
         """
         :param host: IP of the Art-Net Node
         :param port: Port of the Art-Net Node
@@ -40,7 +41,7 @@ class ArtNetNode:
         self.__task = None
 
         max_fps = max(1, min(max_fps, 40))
-        self.sleep_time_ms = 1 / max_fps
+        self.sleep_time = 1 / max_fps
 
         self.refresh_every = refresh_every
 
@@ -50,7 +51,7 @@ class ArtNetNode:
         return self.__universe[nr]
 
     def add_universe(self, nr: int = 0) -> DmxUniverse:
-        """Creates a new niverse and adds it to the node"""
+        """Creates a new universe and adds it to the node"""
         assert isinstance(nr, int), type(nr)
         assert nr >= 0, nr
 
@@ -62,7 +63,7 @@ class ArtNetNode:
         last_update = time.time()
 
         while True:
-            await asyncio.sleep(self.sleep_time_ms)
+            await asyncio.sleep(self.sleep_time)
 
             fades_running = False
             for u in self.__universe.values():
@@ -79,13 +80,10 @@ class ArtNetNode:
                         self.update()
                         last_update = time.time()
 
-    def start(self):
+    async def start(self):
         if self.__task:
             return None
-
-        loop = asyncio.get_event_loop()
-        self.__task = loop.create_task(self.__worker())
-        # self.__thread = asyncio.ensure_future(self.__worker())
+        self.__task = asyncio.create_task(self.__worker())
 
     async def stop(self):
         if not self.__task:
@@ -96,8 +94,8 @@ class ArtNetNode:
         with contextlib.suppress(asyncio.CancelledError):
             await self.__task
 
-        log.debug('Worker stopped')
         self.__task = None
+        log.debug('Worker stopped')
         return None
 
     def update(self):
@@ -126,16 +124,15 @@ class ArtNetNode:
 
             packet.extend(struct.pack('>h', universe.highest_channel))  # Pack the number of channels Big endian
             packet.extend(universe.data)
-            self.__log_artnet_frame(packet)
             self._socket.sendto(packet, (self.__host, self.__port))
 
+            if log.isEnabledFor(logging.DEBUG):
+                self.__log_artnet_frame(packet)
+            return None
 
     def __log_artnet_frame(self, p):
         "Log Artnet Frame"
         assert isinstance(p, bytearray)
-
-        if not log.isEnabledFor(logging.DEBUG):
-            return None
 
         # runs the first time
         if not hasattr(self, '_log_ctr'):
@@ -146,12 +143,12 @@ class ArtNetNode:
         if self._log_ctr >= 10:
             self._log_ctr = 0
 
-
-        out_desc = '{:49s} {:2s} {:2s} {:4s} {:4s}'.format('', 'Sq', '', 'Univ', ' Len')
+        host_fmt = ' ' * (36 + len(self.__host))
+        out_desc = '{:s} {:2s} {:2s} {:4s} {:4s}'.format(host_fmt, 'Sq', '', 'Univ', ' Len')
 
         _channels = p[16] << 8 | p[17]
         pre = binascii.hexlify(bytearray(p[:12])).decode('ascii').upper()
-        out = f'Packet to {self.__host}: {pre} {p[12]:02x} {p[13]:02x} {p[13]:02x}{p[14]:02x} {_channels:04x}'
+        out = f'Packet to {self.__host:s}: {pre} {p[12]:02x} {p[13]:02x} {p[13]:02x}{p[14]:02x} {_channels:04x}'
 
         # check what to print
         for k in range(_channels):

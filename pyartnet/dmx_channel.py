@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import math
+import typing
 
 import pyartnet
 
@@ -8,7 +9,7 @@ log = logging.getLogger('PyArtnet.DmxChannel')
 
 
 class DmxChannel:
-    def __init__(self, universe, start : int, width : int):
+    def __init__(self, universe, start: int, width: int):
         assert 1 <= start <= 512
         assert width > 0
         assert start + width <= 512
@@ -18,14 +19,14 @@ class DmxChannel:
 
         self.__val_act_i = [0 for k in range(width)]
 
-        self.__fades = [ None for k in range(width)]
+        self.__fades = [None for k in range(width)]
         self.__fade_running = False
 
         self.__step_max = 0
         self.__step_is = 0
 
         assert isinstance(universe, pyartnet.DmxUniverse)
-        self.__universe : pyartnet.DmxUniverse = universe
+        self.__universe: pyartnet.DmxUniverse = universe
 
         # Output correction function
         self.output_correction = None
@@ -50,24 +51,23 @@ class DmxChannel:
     def get_channel_values(self) -> list:
         return self.__val_act_i
 
-    def add_fade(self, fade_list : list, duration_ms, fade_class = pyartnet.fades.LinearFade):
+    def add_fade(self, fade_list: typing.List[int], duration_ms: int, fade_class=pyartnet.fades.LinearFade):
         fade_list = fade_list[:]
         assert isinstance(fade_list, list)
-        assert len(fade_list) == self.width
+        assert len(fade_list) == self.width, f'Not enough fade values specified, expected {self.width}!'
         for i in range(self.width):
             k = fade_list[i]
 
             # we conveniently convert them to the face-class
             if isinstance(k, int) and fade_class is not None:
-                fade_list[i] = fade_class(k)
-                k = fade_list[i]
+                fade_list[i] = k = fade_class(k)
 
             assert isinstance(k, pyartnet.fades.FadeBase), type(k)
             assert isinstance(k.val_target, int)
             assert 0 <= k.val_target <= 255
 
         # calculate how much steps we will be having
-        step_time_ms = self.__universe.artnet_node.sleep_time_ms * 1000
+        step_time_ms = self.__universe.artnet_node.sleep_time * 1000
         duration_ms = max(duration_ms, step_time_ms)
         self.__step_max = math.ceil(duration_ms / step_time_ms)
         self.__step_is = 0
@@ -91,7 +91,7 @@ class DmxChannel:
 
     async def wait_till_fade_complete(self):
         while self.__fade_running:
-            await asyncio.sleep(self.__universe.artnet_node.sleep_time_ms)
+            await asyncio.sleep(self.__universe.artnet_node.sleep_time)
 
     def cancel_fades(self):
         self.__fade_running = False
@@ -124,7 +124,7 @@ class DmxChannel:
 
         # catch implementation errors
         if self.__step_is > self.__step_max:
-            log.warning( f'Fades in Channel {self.start}:{self.width} did not finish! Aborting!')
+            log.warning(f'Fades in Channel {self.start}:{self.width} did not finish! Aborting!')
             self.__fade_running = False
         self.__step_is += 1
 
