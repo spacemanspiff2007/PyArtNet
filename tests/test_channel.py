@@ -1,5 +1,7 @@
-import pytest, time
 from unittest.mock import Mock
+
+import pytest
+import time
 
 from .conftest import PatchedArtNetNode
 

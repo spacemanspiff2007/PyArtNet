@@ -9,7 +9,7 @@ import typing
 
 from .dmx_universe import DmxUniverse
 
-log = logging.getLogger('PyArtnet.ArtNetNode')
+log = logging.getLogger('pyartnet.ArtNetNode')
 
 
 class ArtNetNode:
@@ -44,6 +44,8 @@ class ArtNetNode:
         self.sleep_time = 1 / max_fps
 
         self.refresh_every = refresh_every
+        log.debug(f'Created ArtNetNode: {max_fps}fps, {self.refresh_every}s refresh, '
+                  f'[{"x" if sequence_counter else ""}] sequence counter')
 
     def get_universe(self, nr: int) -> DmxUniverse:
         assert isinstance(nr, int), type(nr)
@@ -142,26 +144,27 @@ class ArtNetNode:
         self._log_ctr += 1
         if self._log_ctr >= 10:
             self._log_ctr = 0
+        show_description: bool = self._log_ctr == 0
 
         host_fmt = ' ' * (36 + len(self.__host))
         out_desc = '{:s} {:2s} {:2s} {:4s} {:4s}'.format(host_fmt, 'Sq', '', 'Univ', ' Len')
 
-        _channels = p[16] << 8 | p[17]
+        _max_channel = p[16] << 8 | p[17]
         pre = binascii.hexlify(bytearray(p[:12])).decode('ascii').upper()
-        out = f'Packet to {self.__host:s}: {pre} {p[12]:02x} {p[13]:02x} {p[13]:02x}{p[14]:02x} {_channels:04x}'
+        out = f'Packet to {self.__host:s}: {pre} {p[12]:02x} {p[13]:02x} {p[13]:02x}{p[14]:02x} {_max_channel:04x}'
 
         # check what to print
-        for k in range(_channels):
+        for k in range(_max_channel):
             if p[18 + k]:
                 # once we change something print channel index
                 if self._log_show[k // 5] is False:
-                    self._log_ctr = 0
+                    show_description = True
                 self._log_show[k // 5] = True
 
-        for k in range(0, _channels, 5):
+        for k in range(0, _max_channel, 5):
 
             # if there was never anything active do not print, but print the last block
-            if not self._log_show[k // 5] and not k + 5 > _channels:
+            if not self._log_show[k // 5] and not k + 5 > _max_channel:
                 # do not print multiple shortings
                 if out.endswith('...'):
                     continue
@@ -170,20 +173,28 @@ class ArtNetNode:
                 out += ' ...'
                 continue
 
+            # format block of channels
+            _block_vals = []
+            _block_desc = []
+            for i in range(5):
+                if k + i < _max_channel:
+                    if show_description:
+                        _block_desc.append(f'{k + i + 1:<3d}')
+                    _block_vals.append(f'{p[18 + k + i]:03d}')
+
             # separator
             if out.endswith('...'):
                 out_desc += ' '
                 out += ' '
             else:
-                out_desc += '- '
-                out += '  '
+                out_desc += '   '
+                out += '   '
 
-            # block of channels
-            for i in range(5):
-                if k + i < _channels:
-                    out_desc += f'{k+i + 1:<3d} '
-                    out += f'{p[18 + k+i]:03d} '
+            out += ' '.join(_block_vals)
+            if show_description:
+                out_desc += ' '.join(_block_desc)
 
-        if self._log_ctr == 0:
+
+        if show_description:
             log.debug(out_desc)
         log.debug(out)

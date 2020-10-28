@@ -24,18 +24,32 @@ channel.add_fade([255,0,0], 5000)
 await channel.wait_till_fade_complete()
 ````
 
-## Callbacks
-There are two possible callbacks on the channel which make it easy to implement additional logic.
+## Channel handling
+Created channels can be requested from the universe through the dict syntax or through ``universe.get_channel()``.
+If no channel name is specified during creation the default name will be ``{START}/{WIDTH}``.
 
 ````python
-from pyartnet import ArtNetNode, output_correction
+channel = universe['1/3']  
+channel = universe.get_channel('1/3')  
+````
+
+## Callbacks
+There are two possible callbacks on the channel which make it easy to implement additional logic.
+The callback takes the channel as an argument.
+This example shows how to automatically fade the channel up and down.
+
+````python
+from pyartnet import ArtNetNode, DmxChannel
 
 node = ArtNetNode('IP')
 universe = node.add_universe(0)
 
 channel = universe.add_channel(start=1, width=3)
 
-channel.callback_fade_finished = my_func1
+def cb(ch: DmxChannel):
+    ch.add_fade([0] if ch.get_channel_values() == [255] else [255], 1000)
+
+channel.callback_fade_finished = cb
 channel.callback_value_changed = my_func2
 ````
 
@@ -65,6 +79,16 @@ linear (default when nothing is set), quadratic, cubic then quadruple
 Quadratic or cubic results in much smoother and more pleasant fades when using LED Strips.
 
 # Changelog
+
+#### 0.7.0 (28.10.2020)
+- renamed logger to ``pyartnet`` to make it consistent with the module name
+- callbacks on the channel now get the channel passed in as an argument
+- Adding the same channel multiple times or adding overlapping channels raises an exception
+- Added ``pyartnet.errors``
+- optimized logging of sent frames
+
+
+
 #### 0.6.0 (27.10.2020)
 - ``ArtnetNode.start`` is now an async function
 - ``ArtnetNode.step_time_ms`` renamed to ``ArtnetNode.step_time`` (shouldn't be used manually anyway)
