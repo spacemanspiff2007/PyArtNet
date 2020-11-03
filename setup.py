@@ -1,4 +1,5 @@
 import typing
+from pathlib import Path
 
 import setuptools  # type: ignore
 
@@ -17,8 +18,13 @@ __version__ = load_version()
 print(f'Version: {__version__}')
 print('')
 
-with open("readme.md", "r") as fh:
-    long_description = fh.read()
+# When we run tox tests we don't have these files available so we skip them
+readme = Path(__file__).with_name('readme.md')
+long_description = ''
+if readme.is_file():
+    with readme.open("r", encoding='utf-8') as fh:
+        long_description = fh.read()
+
 
 setuptools.setup(
     name="pyartnet",
@@ -26,7 +32,7 @@ setuptools.setup(
     author="spaceman_spiff",
     # author_email="",
     description="Python wrappers for the Art-Net protocol to send DMX over Ethernet",
-    keywords = 'DMX, Art-Net, ArtNet',
+    keywords='DMX, Art-Net, ArtNet',
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/spacemanspiff2007/PyArtNet",
