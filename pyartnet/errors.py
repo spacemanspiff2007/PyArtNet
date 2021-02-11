@@ -8,3 +8,11 @@ class ChannelNotFoundError(Exception):
 
 class OverlappingChannelError(Exception):
     pass
+
+
+class ChannelOutOfUniverseError(Exception):
+    pass
+
+
+class ChannelWidthInvalid(Exception):
+    pass

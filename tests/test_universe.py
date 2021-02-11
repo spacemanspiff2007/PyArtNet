@@ -53,7 +53,6 @@ def test_exceptions(artnet_node: PatchedArtNetNode):
         universe.add_channel(8, 20)
 
 
-
 def test_container(artnet_node: PatchedArtNetNode):
     universe = DmxUniverse(artnet_node)
 

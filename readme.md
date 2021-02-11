@@ -1,6 +1,8 @@
 # pyartnet
+![Tests](https://github.com/spacemanspiff2007/PyArtNet/workflows/Tests/badge.svg)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pyartnet)
 [![Downloads](https://pepy.tech/badge/pyartnet/month)](https://pepy.tech/project/pyartnet/month)
+
 
 pyartnet is a python implementation of the ArtNet protocol using [asyncio](https://docs.python.org/3/library/asyncio.html).
 
@@ -13,7 +15,12 @@ from pyartnet import ArtNetNode
 node = ArtNetNode('IP')
 await node.start()
 
+# Create universe 0
 universe = node.add_universe(0)
+
+# Add a channel to the universe which consists of 3 values
+# Default size of a value is 8Bit (0..255) so this would fill
+# the DMX values 1..3 of the universe
 channel  = universe.add_channel(start=1, width=3)
 
 # Fade channel to 255,0,0 in 5s
@@ -78,7 +85,33 @@ linear (default when nothing is set), quadratic, cubic then quadruple
 
 Quadratic or cubic results in much smoother and more pleasant fades when using LED Strips.
 
+## Wider DMX Channels
+The library supports wider dmx channels for advanced control. 
+
+````python
+from pyartnet import ArtNetNode, DmxChannel16Bit
+
+node = ArtNetNode('IP')
+await node.start()
+
+# Create universe 0
+universe = node.add_universe(1)
+
+# Add a channel to the universe which consists of 3 values where each value is 16Bits
+# This would fill the DMX values 1..6 of the universe
+channel  = universe.add_channel(start=1, width=3, channel_type=DmxChannel16Bit)
+
+# Notice the higher maximum value for the fade
+channel.add_fade([0xFFFF,0,0], 5000)   
+````
+
+
 # Changelog
+
+#### 0.8.0 (11.02.2021)
+- Added support for channels with 16, 24 and 32bits 
+
+
 
 #### 0.7.0 (28.10.2020)
 - renamed logger to ``pyartnet`` to make it consistent with the module name

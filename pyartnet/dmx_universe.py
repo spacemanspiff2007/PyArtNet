@@ -34,10 +34,12 @@ class DmxUniverse:
         except KeyError:
             raise ChannelNotFoundError(f'Channel "{channel_name}" not found in the universe!') from None
 
-    def add_channel(self, start: int, width: int, channel_name: str = '') -> pyartnet.DmxChannel:
+    def add_channel(self, start: int, width: int, channel_name: str = '',
+                    channel_type: typing.Type[pyartnet.DmxChannel] = pyartnet.DmxChannel) -> pyartnet.DmxChannel:
         assert isinstance(channel_name, str), type(channel_name)
-        chan = pyartnet.DmxChannel(self, start, width)
-        stop = start + width - 1
+        assert issubclass(channel_type, pyartnet.DmxChannel)
+
+        chan = channel_type(self, start, width)
 
         # build name if not supplied
         if not channel_name:
@@ -50,17 +52,15 @@ class DmxUniverse:
         # Make sure channels are not overlapping because they will overwrite each other
         # and this leads to unintended behavior
         for _n, _c in self.__chans.items():
-            _c_start = _c.start
-            _c_end = _c.start + _c.width
-            if _c_start > stop or _c_end < start:
+            if _c.start > chan.stop or _c.stop < chan.start:
                 continue
-            for i in range(_c_start, _c_end):
-                if start <= i <= stop:
+            for i in range(_c.start, _c.stop + 1):
+                if start <= i <= chan.stop:
                     raise OverlappingChannelError(f'New channel {channel_name} is overlapping with channel {_n:s}!')
 
         # Keep track of highest channel so we can pad
         highest_was = self.highest_channel
-        self.highest_channel = max(self.highest_channel, start + width - 1)
+        self.highest_channel = max(self.highest_channel, chan.stop)
 
         # round channels
         if self.highest_channel % 2:
@@ -89,8 +89,7 @@ class DmxUniverse:
             running = True
 
             # get new universe Data
-            new_val = c.get_channel_values()
-            for k, val in enumerate(new_val):
+            for k, val in enumerate(c.get_bytes()):
                 self.data[c.start + k - 1] = val
 
         self.__fade_running = running

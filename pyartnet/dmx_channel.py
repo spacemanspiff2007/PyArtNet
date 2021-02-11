@@ -5,21 +5,36 @@ import typing
 
 import pyartnet
 
+
 log = logging.getLogger('pyartnet.DmxChannel')
 
 
 class DmxChannel:
-    def __init__(self, universe, start: int, width: int):
-        assert 1 <= start <= 512
-        assert width > 0
-        assert start + width - 1 <= 512
+    _CHANNEL_SIZE: int = 1   # Channel size in byte
 
-        self.start = start
-        self.width = width
+    def __init__(self, universe: 'pyartnet.DmxUniverse', start: int, width: int):
+        self.width: int = width
+        byte_width: int = width * self._CHANNEL_SIZE
 
-        self.__val_act_i = [0 for k in range(width)]
+        self.start: int = start
+        self.stop: int = start + byte_width - 1
 
-        self.__fades: typing.List[typing.Optional[pyartnet.fades.FadeBase]] = [None for k in range(width)]
+        if self.start < 1 or self.start > 512:
+            raise pyartnet.errors.ChannelOutOfUniverseError(
+                f'Start position of channel out of universe (1..512): {self.start}')
+
+        if width <= 0 or not isinstance(width, int):
+            raise pyartnet.errors.ChannelWidthInvalid(f'Channel width must be int > 0: {width} ({type(width)})')
+
+        if self.stop > 512:
+            raise pyartnet.errors.ChannelOutOfUniverseError(
+                f'End position of channel out of universe (1..512): '
+                f'start: {self.start} width: {self.width} * {byte_width}bytes -> {self.stop}'
+            )
+
+        self.__val_act_i = [0 for _ in range(self.width)]
+
+        self.__fades: typing.List[typing.Optional[pyartnet.fades.FadeBase]] = [None for k in range(self.width)]
         self.__fade_running = False
 
         self.__step_max = 0
@@ -37,10 +52,10 @@ class DmxChannel:
 
     def __apply_output_correction(self, channel_val):
         if self.output_correction is not None:
-            return self.output_correction(channel_val)
+            return self.output_correction(channel_val, 255 ** self._CHANNEL_SIZE)
 
         if self.__universe.output_correction is not None:
-            return self.__universe.output_correction(channel_val)
+            return self.__universe.output_correction(channel_val, 255 ** self._CHANNEL_SIZE)
 
         return channel_val
 
@@ -50,6 +65,15 @@ class DmxChannel:
 
     def get_channel_values(self) -> typing.List[int]:
         return self.__val_act_i.copy()
+
+    def get_bytes(self) -> typing.Iterable:
+        for obj in self.__val_act_i:
+            if self._CHANNEL_SIZE == 1:
+                yield obj
+            else:
+                for i in range(self._CHANNEL_SIZE, 0, -1):
+                    val = (obj >> 8 * (i - 1)) & 0xFF
+                    yield val
 
     def add_fade(self, fade_list: typing.List[int], duration_ms: int, fade_class=pyartnet.fades.LinearFade):
         fade_list = fade_list[:]
@@ -64,7 +88,7 @@ class DmxChannel:
 
             assert isinstance(k, pyartnet.fades.FadeBase), type(k)
             assert isinstance(k.val_target, int)
-            assert 0 <= k.val_target <= 255
+            assert 0 <= k.val_target <= 255 ** self._CHANNEL_SIZE
 
         # calculate how much steps we will be having
         step_time_ms = self.__universe._artnet_node.sleep_time * 1000
@@ -129,3 +153,15 @@ class DmxChannel:
         self.__step_is += 1
 
         return self.__fade_running
+
+
+class DmxChannel16Bit(DmxChannel):
+    _CHANNEL_SIZE: int = 2   # Channel size in byte
+
+
+class DmxChannel24Bit(DmxChannel):
+    _CHANNEL_SIZE: int = 3   # Channel size in byte
+
+
+class DmxChannel32Bit(DmxChannel):
+    _CHANNEL_SIZE: int = 4   # Channel size in byte
