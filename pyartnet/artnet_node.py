@@ -130,7 +130,8 @@ class ArtNetNode:
 
             if log.isEnabledFor(logging.DEBUG):
                 self.__log_artnet_frame(packet)
-            return None
+
+        return None
 
     def __log_artnet_frame(self, p):
         "Log Artnet Frame"
