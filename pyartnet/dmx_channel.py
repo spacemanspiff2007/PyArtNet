@@ -88,7 +88,7 @@ class DmxChannel:
 
             assert isinstance(k, pyartnet.fades.FadeBase), type(k)
             assert isinstance(k.val_target, int)
-            assert 0 <= k.val_target <= 255 ** self._CHANNEL_SIZE
+            assert 0 <= k.val_target <= (256 ** self._CHANNEL_SIZE) - 1
 
         # calculate how much steps we will be having
         step_time_ms = self.__universe._artnet_node.sleep_time * 1000
