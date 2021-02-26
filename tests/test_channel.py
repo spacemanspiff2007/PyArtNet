@@ -152,3 +152,13 @@ def test_channel_boundaries():
         pyartnet.DmxChannel16Bit(univ, 512, 1)
     assert str(r.value) == 'End position of channel out of universe (1..512): start: 512 width: 1 * 2bytes -> 513'
     pyartnet.DmxChannel16Bit(univ, 511, 1)
+
+
+def test_channel_max_values():
+    node = pyartnet.ArtNetNode(host='')
+    univ = pyartnet.DmxUniverse(node)
+
+    univ.add_channel(10, 1, channel_type=pyartnet.DmxChannel).add_fade([0xFF], 0)
+    univ.add_channel(20, 1, channel_type=pyartnet.DmxChannel16Bit).add_fade([0xFFFF], 0)
+    univ.add_channel(30, 1, channel_type=pyartnet.DmxChannel24Bit).add_fade([0xFFFFFF], 0)
+    univ.add_channel(40, 1, channel_type=pyartnet.DmxChannel32Bit).add_fade([0xFFFFFFFF], 0)

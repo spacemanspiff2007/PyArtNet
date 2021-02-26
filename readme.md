@@ -108,9 +108,11 @@ channel.add_fade([0xFFFF,0,0], 5000)
 
 # Changelog
 
+#### 0.8.1 (26.02.2021)
+- Fixed an issue with the max value for channels with 16bits and more
+
 #### 0.8.0 (11.02.2021)
 - Added support for channels with 16, 24 and 32bits 
-
 
 
 #### 0.7.0 (28.10.2020)
