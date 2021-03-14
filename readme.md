@@ -107,6 +107,9 @@ channel.add_fade([0xFFFF,0,0], 5000)
 
 
 # Changelog
+#### 0.8.2 (14.03.2021)
+- Using nonblocking sockets
+- Added option to send frames to a broadcast address
 
 #### 0.8.1 (26.02.2021)
 - Fixed an issue with the max value for channels with 16bits and more

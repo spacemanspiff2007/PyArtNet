@@ -6,6 +6,7 @@ import socket
 import struct
 import time
 import typing
+from traceback import format_exc
 
 from .dmx_universe import DmxUniverse
 
@@ -14,13 +15,14 @@ log = logging.getLogger('pyartnet.ArtNetNode')
 
 class ArtNetNode:
     def __init__(self, host: str, port: int = 0x1936, max_fps: int = 25,
-                 refresh_every: int = 2, sequence_counter: bool = True):
+                 refresh_every: int = 2, sequence_counter: bool = True, broadcast: bool = False):
         """
         :param host: IP of the Art-Net Node
         :param port: Port of the Art-Net Node
         :param max_fps: How many packets per sec shall max be send
         :param refresh_every: Resend the data every x seconds, 0 to deactivate
         :param sequence_counter: activate the sequence counter in the packages
+        :param broadcast: activate if you want to send the frames to a broadcast address
         """
         self.__host = host
         self.__port = port
@@ -30,6 +32,9 @@ class ArtNetNode:
         self.__universe = {}  # type: typing.Dict[int, DmxUniverse]
 
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
+        self._socket.setblocking(False)
+        if broadcast:
+            self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
         packet = bytearray()
         packet.extend(map(ord, "Art-Net"))
@@ -67,20 +72,25 @@ class ArtNetNode:
         while True:
             await asyncio.sleep(self.sleep_time)
 
-            fades_running = False
-            for u in self.__universe.values():
-                if u.process():
-                    fades_running = True
+            try:
+                fades_running = False
+                for u in self.__universe.values():
+                    if u.process():
+                        fades_running = True
 
-            if fades_running:
-                self.update()
-                last_update = time.time()
-            else:
-                if self.refresh_every > 0:
-                    # refresh data all 2 secs
-                    if time.time() - last_update > self.refresh_every:
-                        self.update()
-                        last_update = time.time()
+                if fades_running:
+                    self.update()
+                    last_update = time.time()
+                else:
+                    if self.refresh_every > 0:
+                        # refresh data all 2 secs
+                        if time.time() - last_update > self.refresh_every:
+                            self.update()
+                            last_update = time.time()
+            except Exception:
+                log.error(f'Error in worker for {self.__host}:')
+                for line in format_exc().splitlines():
+                    log.error(line)
 
     async def start(self):
         if self.__task:
@@ -101,7 +111,7 @@ class ArtNetNode:
         return None
 
     def update(self):
-        "Send an update to the artnet device. This normally happens automatically"
+        """Send an update to the artnet device. This normally happens automatically"""
 
         for universe_nr, universe in self.__universe.items():
             assert isinstance(universe_nr, int), type(universe_nr)
@@ -133,8 +143,8 @@ class ArtNetNode:
 
         return None
 
-    def __log_artnet_frame(self, p):
-        "Log Artnet Frame"
+    def __log_artnet_frame(self, p: bytearray):
+        """Log Artnet Frame"""
         assert isinstance(p, bytearray)
 
         # runs the first time
@@ -194,7 +204,6 @@ class ArtNetNode:
             out += ' '.join(_block_vals)
             if show_description:
                 out_desc += ' '.join(_block_desc)
-
 
         if show_description:
             log.debug(out_desc)
