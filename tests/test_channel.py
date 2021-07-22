@@ -5,6 +5,8 @@ from unittest.mock import Mock
 import pytest
 
 import pyartnet
+from pyartnet import output_correction
+
 from .conftest import PatchedArtNetNode
 
 
@@ -40,6 +42,28 @@ async def test_channel_double_step(running_artnet_node: PatchedArtNetNode):
     assert channel.get_channel_values() == [0]
 
     assert running_artnet_node.values == [[128, 0], [255, 0], [128, 0], [0, 0]]
+
+
+@pytest.mark.parametrize('corr, dst_val',
+                         [(None, 128), (output_correction.quadratic, 64), (output_correction.cubic, 32),
+                          (output_correction.quadruple, 16)])
+@pytest.mark.asyncio
+async def test_channel_output_correction_continue(running_artnet_node: PatchedArtNetNode, corr, dst_val):
+
+    universe = running_artnet_node.add_universe(0)
+    channel = universe.add_channel(1, 1)
+    channel.output_correction = corr
+
+    channel.add_fade([128], 0)
+    await channel.wait_till_fade_complete()
+    assert channel.get_channel_values() == [dst_val]
+
+    channel.add_fade([255], 50)
+    await channel.wait_till_fade_complete()
+    assert channel.get_channel_values() == [255]
+
+    for val, ign in running_artnet_node.values:
+        assert val >= dst_val, running_artnet_node.values
 
 
 @pytest.mark.asyncio

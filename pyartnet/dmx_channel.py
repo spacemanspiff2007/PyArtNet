@@ -5,12 +5,12 @@ import typing
 
 import pyartnet
 
-
 log = logging.getLogger('pyartnet.DmxChannel')
 
 
 class DmxChannel:
-    _CHANNEL_SIZE: int = 1   # Channel size in byte
+    _CHANNEL_SIZE: int = 1                          # Channel size in byte
+    _CHANNEL_MAX: int = 256 ** _CHANNEL_SIZE - 1    # Max value of the channel
 
     def __init__(self, universe: 'pyartnet.DmxUniverse', start: int, width: int):
         self.width: int = width
@@ -32,7 +32,8 @@ class DmxChannel:
                 f'start: {self.start} width: {self.width} * {byte_width}bytes -> {self.stop}'
             )
 
-        self.__val_act_i = [0 for _ in range(self.width)]
+        self.__val_raw_i = [0 for _ in range(self.width)]   # uncorrected values
+        self.__val_act_i = [0 for _ in range(self.width)]   # values after output correction
 
         self.__fades: typing.List[typing.Optional[pyartnet.fades.FadeBase]] = [None for k in range(self.width)]
         self.__fade_running = False
@@ -49,15 +50,6 @@ class DmxChannel:
         # Callbacks
         self.callback_value_changed: typing.Optional[typing.Callable[[DmxChannel], typing.Any]] = None
         self.callback_fade_finished: typing.Optional[typing.Callable[[DmxChannel], typing.Any]] = None
-
-    def __apply_output_correction(self, channel_val):
-        if self.output_correction is not None:
-            return self.output_correction(channel_val, 255 ** self._CHANNEL_SIZE)
-
-        if self.__universe.output_correction is not None:
-            return self.__universe.output_correction(channel_val, 255 ** self._CHANNEL_SIZE)
-
-        return channel_val
 
     @property
     def fade_running(self) -> bool:
@@ -98,7 +90,7 @@ class DmxChannel:
 
         # calculate required values
         for i, fade in enumerate(fade_list):  # type: int, pyartnet.fades.FadeBase
-            fade.val_start = self.__val_act_i[i]
+            fade.val_start = self.__val_raw_i[i]
             fade.val_current = fade.val_start
             fade.initialize_fade(self.__step_max)
             self.__fades[i] = fade
@@ -107,7 +99,7 @@ class DmxChannel:
             log._log(logging.DEBUG, f'Fade with {self.__step_max} steps:', [])
             for i in range(self.width):
                 log._log(logging.DEBUG, 'CH {}: {:03d} -> {:03d} | {}'.format(
-                    self.start + i, self.__val_act_i[i], self.__fades[i].val_target, self.__fades[i].debug_initialize()
+                    self.start + i, self.__val_raw_i[i], self.__fades[i].val_target, self.__fades[i].debug_initialize()
                 ), [])
 
         self.__fade_running = True
@@ -135,7 +127,15 @@ class DmxChannel:
 
             # get next value
             fade.calc_next_value()
-            self.__val_act_i[i] = round(self.__apply_output_correction(fade.val_current))
+            self.__val_raw_i[i] = current = round(fade.val_current)
+
+            # apply output correction
+            if self.output_correction is not None:
+                self.__val_act_i[i] = round(self.output_correction(current, self._CHANNEL_MAX))
+            elif self.__universe.output_correction is not None:
+                self.__val_act_i[i] = round(self.__universe.output_correction(current, self._CHANNEL_MAX))
+            else:
+                self.__val_act_i[i] = round(current)
 
             running = True
         self.__fade_running = running
@@ -156,12 +156,15 @@ class DmxChannel:
 
 
 class DmxChannel16Bit(DmxChannel):
-    _CHANNEL_SIZE: int = 2   # Channel size in byte
+    _CHANNEL_SIZE: int = 2                          # Channel size in byte
+    _CHANNEL_MAX: int = 256 ** _CHANNEL_SIZE - 1    # Max value of the channel
 
 
 class DmxChannel24Bit(DmxChannel):
-    _CHANNEL_SIZE: int = 3   # Channel size in byte
+    _CHANNEL_SIZE: int = 3                          # Channel size in byte
+    _CHANNEL_MAX: int = 256 ** _CHANNEL_SIZE - 1    # Max value of the channel
 
 
 class DmxChannel32Bit(DmxChannel):
-    _CHANNEL_SIZE: int = 4   # Channel size in byte
+    _CHANNEL_SIZE: int = 4                          # Channel size in byte
+    _CHANNEL_MAX: int = 256 ** _CHANNEL_SIZE - 1    # Max value of the channel

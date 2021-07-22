@@ -1,4 +1,5 @@
 import logging
+
 import pytest
 
 import pyartnet

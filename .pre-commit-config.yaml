@@ -1,0 +1,19 @@
+repos:
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v3.4.0
+    hooks:
+      - id: check-yaml
+      - id: end-of-file-fixer
+        exclude: \.(?:pdf|svg)$
+      - id: trailing-whitespace
+
+  - repo: https://github.com/pycqa/isort
+    rev: 5.8.0
+    hooks:
+      - id: isort
+        name: isort (python)
+
+  - repo: https://gitlab.com/PyCQA/flake8
+    rev: '3.9.1'
+    hooks:
+    -   id: flake8

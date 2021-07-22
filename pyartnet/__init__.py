@@ -1,9 +1,11 @@
+from . import errors, fades, output_correction
 from .__version__ import __version__
-from . import errors
-from . import fades
 
-from .dmx_channel   import DmxChannel, DmxChannel16Bit, DmxChannel24Bit, DmxChannel32Bit
-from .dmx_universe  import DmxUniverse
-from .artnet_node   import ArtNetNode
+# isort: split
 
-from . import output_correction
+from .dmx_channel import DmxChannel, DmxChannel16Bit, DmxChannel24Bit, DmxChannel32Bit
+from .dmx_universe import DmxUniverse
+
+# isort: split
+
+from .artnet_node import ArtNetNode

@@ -3,6 +3,7 @@ import logging
 import typing
 
 import pyartnet
+
 from .errors import ChannelExistsError, ChannelNotFoundError, OverlappingChannelError
 
 log = logging.getLogger('pyartnet.DmxUniverse')

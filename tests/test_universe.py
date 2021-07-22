@@ -1,6 +1,8 @@
-from pyartnet import DmxUniverse, errors
-from .conftest import PatchedArtNetNode
 import pytest
+
+from pyartnet import DmxUniverse, errors
+
+from .conftest import PatchedArtNetNode
 
 
 def test_channel_add(artnet_node: PatchedArtNetNode):

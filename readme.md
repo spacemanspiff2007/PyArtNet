@@ -12,6 +12,7 @@ pyartnet is a python implementation of the ArtNet protocol using [asyncio](https
 ````python
 from pyartnet import ArtNetNode
 
+# Run this code in your async function
 node = ArtNetNode('IP')
 await node.start()
 
@@ -25,7 +26,7 @@ channel  = universe.add_channel(start=1, width=3)
 
 # Fade channel to 255,0,0 in 5s
 # The fade will automatically run in the background
-channel.add_fade([255,0,0], 5000)   
+channel.add_fade([255,0,0], 5000)
 
 # this can be used to wait till the fade is complete
 await channel.wait_till_fade_complete()
@@ -36,8 +37,8 @@ Created channels can be requested from the universe through the dict syntax or t
 If no channel name is specified during creation the default name will be ``{START}/{WIDTH}``.
 
 ````python
-channel = universe['1/3']  
-channel = universe.get_channel('1/3')  
+channel = universe['1/3']
+channel = universe.get_channel('1/3')
 ````
 
 ## Callbacks
@@ -54,7 +55,7 @@ universe = node.add_universe(0)
 channel = universe.add_channel(start=1, width=3)
 
 def cb(ch: DmxChannel):
-    ch.add_fade([0] if ch.get_channel_values() == [255] else [255], 1000)
+    ch.add_fade([0, 0, 0] if ch.get_channel_values() == [255, 255, 255] else [255, 255, 255], 1000)
 
 channel.callback_fade_finished = cb
 channel.callback_value_changed = my_func2
@@ -86,7 +87,7 @@ linear (default when nothing is set), quadratic, cubic then quadruple
 Quadratic or cubic results in much smoother and more pleasant fades when using LED Strips.
 
 ## Wider DMX Channels
-The library supports wider dmx channels for advanced control. 
+The library supports wider dmx channels for advanced control.
 
 ````python
 from pyartnet import ArtNetNode, DmxChannel16Bit
@@ -102,11 +103,15 @@ universe = node.add_universe(1)
 channel  = universe.add_channel(start=1, width=3, channel_type=DmxChannel16Bit)
 
 # Notice the higher maximum value for the fade
-channel.add_fade([0xFFFF,0,0], 5000)   
+channel.add_fade([0xFFFF, 0, 0], 5000)
 ````
 
 
 # Changelog
+#### 0.8.3 (23.07.2021)
+- No more jumping fades when using output correction with bigger channels
+- Reformatted files
+
 #### 0.8.2 (14.03.2021)
 - Using nonblocking sockets
 - Added option to send frames to a broadcast address
@@ -115,7 +120,7 @@ channel.add_fade([0xFFFF,0,0], 5000)
 - Fixed an issue with the max value for channels with 16bits and more
 
 #### 0.8.0 (11.02.2021)
-- Added support for channels with 16, 24 and 32bits 
+- Added support for channels with 16, 24 and 32bits
 
 
 #### 0.7.0 (28.10.2020)
