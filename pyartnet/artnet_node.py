@@ -45,7 +45,7 @@ class ArtNetNode:
 
         self.__task = None
 
-        max_fps = max(1, min(max_fps, 40))
+        max_fps = max(1, min(max_fps, 44))
         self.sleep_time = 1 / max_fps
 
         self.refresh_every = refresh_every
