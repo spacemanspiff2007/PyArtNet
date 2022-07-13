@@ -3,8 +3,6 @@ import logging
 import socket
 import struct
 
-from pyartnet import DmxUniverse
-
 log = logging.getLogger('pyartnet.DmxClient')
 
 
@@ -17,9 +15,10 @@ class DmxClient:
         self.__host = host
         self.__port = port
 
-    def update(self, universe):
-        """Send an update to the device. This normally happens automatically"""
-
+    def update(self, universe_nr, universe):
+        """
+        Send the current state of DMX values to the gateway via UDP packet.
+        """
         raise NotImplementedError()
 
 
@@ -47,34 +46,29 @@ class ArtNetClient(DmxClient):
 
         self.__sequence_counter = 255 if sequence_counter else 0
 
-    def update(self, universe):
-        for universe_nr, universe in universe.items():
-            assert isinstance(universe_nr, int), type(universe_nr)
-            assert isinstance(universe, DmxUniverse), type(universe)
+    def update(self, universe_nr, universe):
+        """
+        Send the current state of DMX values to the gateway via UDP packet.
+        """
+        # Copy the base packet then add the channel array
+        packet = self.__base_packet[:]
 
-            # don't send empty universes
-            if universe.highest_channel <= 0:
-                continue
+        if self.__sequence_counter:
+            self.__sequence_counter += 1
+            if self.__sequence_counter > 255:
+                self.__sequence_counter = 1
 
-            # Copy the base packet then add the channel array
-            packet = self.__base_packet[:]
+        packet.append(self.__sequence_counter)  # Sequence,
+        packet.append(0x00)  # Physical
+        packet.append(universe_nr & 0xFF)  # Universe LowByte
+        packet.append(universe_nr >> 8 & 0xFF)  # Universe HighByte
 
-            if self.__sequence_counter:
-                self.__sequence_counter += 1
-                if self.__sequence_counter > 255:
-                    self.__sequence_counter = 1
+        packet.extend(struct.pack('>h', universe.highest_channel))  # Pack the number of channels Big endian
+        packet.extend(universe.data)
+        self.__socket.sendto(packet, (self.__host, self.__port))
 
-            packet.append(self.__sequence_counter)  # Sequence,
-            packet.append(0x00)  # Physical
-            packet.append(universe_nr & 0xFF)  # Universe LowByte
-            packet.append(universe_nr >> 8 & 0xFF)  # Universe HighByte
-
-            packet.extend(struct.pack('>h', universe.highest_channel))  # Pack the number of channels Big endian
-            packet.extend(universe.data)
-            self.__socket.sendto(packet, (self.__host, self.__port))
-
-            if log.isEnabledFor(logging.DEBUG):
-                self.__log_artnet_frame(packet)
+        if log.isEnabledFor(logging.DEBUG):
+            self.__log_artnet_frame(packet)
 
     def __log_artnet_frame(self, p: bytearray):
         """Log Artnet Frame"""
