@@ -89,4 +89,12 @@ class AnimationNode:
 
     def update(self):
         """Send an update to the dmx device. This normally happens automatically"""
-        return self.__dmxClient.update(self.__universe)
+        for universe_nr, universe in self.__universe.items():
+            assert isinstance(universe_nr, int), type(universe_nr)
+            assert isinstance(universe, DmxUniverse), type(universe)
+
+            # don't send empty universes
+            if universe.highest_channel <= 0:
+                continue
+
+            self.__dmxClient.update(universe_nr, universe)

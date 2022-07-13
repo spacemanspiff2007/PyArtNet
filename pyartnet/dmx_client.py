@@ -17,7 +17,7 @@ class DmxClient:
         self.__host = host
         self.__port = port
 
-    def update(self, universe):
+    def update(self, universe_nr, universe):
         """
         Send the current state of DMX values to the gateway via UDP packet.
         """
@@ -51,37 +51,29 @@ class ArtNetClient(DmxClient):
 
         self.__sequence_counter = 255 if sequence_counter else 0
 
-    def update(self, universe):
+    def update(self, universe_nr, universe):
         """
         Send the current state of DMX values to the gateway via UDP packet.
         """
-        for universe_nr, universe in universe.items():
-            assert isinstance(universe_nr, int), type(universe_nr)
-            assert isinstance(universe, DmxUniverse), type(universe)
+        # Copy the base packet then add the channel array
+        packet = self.__base_packet[:]
 
-            # don't send empty universes
-            if universe.highest_channel <= 0:
-                continue
+        if self.__sequence_counter:
+            self.__sequence_counter += 1
+            if self.__sequence_counter > 255:
+                self.__sequence_counter = 1
 
-            # Copy the base packet then add the channel array
-            packet = self.__base_packet[:]
+        packet.append(self.__sequence_counter)  # Sequence,
+        packet.append(0x00)  # Physical
+        packet.append(universe_nr & 0xFF)  # Universe LowByte
+        packet.append(universe_nr >> 8 & 0xFF)  # Universe HighByte
 
-            if self.__sequence_counter:
-                self.__sequence_counter += 1
-                if self.__sequence_counter > 255:
-                    self.__sequence_counter = 1
+        packet.extend(struct.pack('>h', universe.highest_channel))  # Pack the number of channels Big endian
+        packet.extend(universe.data)
+        self.__socket.sendto(packet, (self.__host, self.__port))
 
-            packet.append(self.__sequence_counter)  # Sequence,
-            packet.append(0x00)  # Physical
-            packet.append(universe_nr & 0xFF)  # Universe LowByte
-            packet.append(universe_nr >> 8 & 0xFF)  # Universe HighByte
-
-            packet.extend(struct.pack('>h', universe.highest_channel))  # Pack the number of channels Big endian
-            packet.extend(universe.data)
-            self.__socket.sendto(packet, (self.__host, self.__port))
-
-            if log.isEnabledFor(logging.DEBUG):
-                self.__log_artnet_frame(packet)
+        if log.isEnabledFor(logging.DEBUG):
+            self.__log_artnet_frame(packet)
 
     def __log_artnet_frame(self, p: bytearray):
         """Log Artnet Frame"""
@@ -171,24 +163,15 @@ class KiNetClient(DmxClient):
         )  # sequence, port, padding, flags, timer
         self.__base_packet = packet
 
-    def update(self, universe):
+    def update(self, universe_nr, universe):
         """
         Send the current state of DMX values to the gateway via UDP packet.
         """
-
-        for universe_nr, universe in universe.items():
-            assert isinstance(universe_nr, int), type(universe_nr)
-            assert isinstance(universe, DmxUniverse), type(universe)
-
-            # don't send empty universes
-            if universe.highest_channel <= 0:
-                continue
-
-            packet = self.__base_packet[:]
-            packet.extend(struct.pack("B", universe_nr))  # Universe
-            packet.extend(universe.data)
-            self.__socket.sendto(packet, (self.__host, self.__port))
-            log.debug(f"Sending Art-Net frame to {self.__host}:{self.__port}")
+        packet = self.__base_packet[:]
+        packet.extend(struct.pack("B", universe_nr))  # Universe
+        packet.extend(universe.data)
+        self.__socket.sendto(packet, (self.__host, self.__port))
+        log.debug(f"Sending Art-Net frame to {self.__host}:{self.__port}")
 
 
 class SacnClient(DmxClient):
@@ -223,32 +206,24 @@ class SacnClient(DmxClient):
 
         self.__sequence = 0
 
-    def update(self, universe):
+    def update(self, universe_nr, universe):
         """
         Send the current state of DMX values to the gateway via UDP packet.
         """
 
-        for universe_nr, universe in universe.items():
-            assert isinstance(universe_nr, int), type(universe_nr)
-            assert isinstance(universe, DmxUniverse), type(universe)
+        packet = self.__base_packet[:111]
 
-            # don't send empty universes
-            if universe.highest_channel <= 0:
-                continue
+        packet.extend(struct.pack(">B", self.__sequence))
+        self.__sequence += 1
+        if self.__sequence == 200:
+            self.__sequence = 1
 
-            packet = self.__base_packet[:111]
+        packet.extend([0x00])  # Options
+        packet.extend(struct.pack(">H", universe_nr))  # UNIVERSE
+        # Data layer
+        packet.extend([0x72, 0x0d, 0x02, 0xa1, 0x00, 0x00, 0x00, 0x01, 0x02, 0x01, 0x00])
 
-            packet.extend(struct.pack(">B", self.__sequence))
-            self.__sequence += 1
-            if self.__sequence == 200:
-                self.__sequence = 1
+        packet.extend(universe.data)
 
-            packet.extend([0x00])  # Options
-            packet.extend(struct.pack(">H", universe_nr))  # UNIVERSE
-            # Data layer
-            packet.extend([0x72, 0x0d, 0x02, 0xa1, 0x00, 0x00, 0x00, 0x01, 0x02, 0x01, 0x00])
-
-            packet.extend(universe.data)
-
-            self._socket.sendto(packet, (self.__host, self.__port))
-            log.debug(f"Sending sACN frame to {self.__host}:{self.__port}")
+        self._socket.sendto(packet, (self.__host, self.__port))
+        log.debug(f"Sending sACN frame to {self.__host}:{self.__port}")

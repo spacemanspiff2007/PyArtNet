@@ -17,7 +17,7 @@ class StubClient(DmxClient):
         super().__init__(host, port)
         self.values = []
 
-    def update(self, universe):
+    def update(self, universe_nr, universe):
         pass
 
 
