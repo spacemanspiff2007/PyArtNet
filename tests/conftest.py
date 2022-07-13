@@ -3,7 +3,8 @@ import logging
 import pytest
 
 import pyartnet
-from pyartnet import ArtNetNode
+from pyartnet import AnimationNode
+from pyartnet.dmx_client import DmxClient
 
 
 class DummySocket:
@@ -11,11 +12,19 @@ class DummySocket:
         pass
 
 
-class PatchedArtNetNode(ArtNetNode):
+class StubClient(DmxClient):
+    def __init__(self, host: str = "", port: int = 0):
+        super().__init__(host, port)
+        self.values = []
 
+    def update(self, universe):
+        pass
+
+
+class PatchedAnimationNode(AnimationNode):
     def __init__(self, host: str, port: int = 0x1936, max_fps: int = 25, refresh_every: int = 2,
                  sequence_counter: bool = True):
-        super().__init__(host, port, max_fps, refresh_every=0, sequence_counter=sequence_counter)
+        super().__init__(StubClient(host, port), max_fps, refresh_every=0)
         self.sleep_time = 0.001
 
         self._socket = DummySocket()
@@ -29,17 +38,17 @@ class PatchedArtNetNode(ArtNetNode):
 @pytest.fixture
 def artnet_node(monkeypatch, caplog):
     caplog.set_level(logging.DEBUG)
-    monkeypatch.setattr(pyartnet, 'ArtNetNode', PatchedArtNetNode)
+    monkeypatch.setattr(pyartnet, 'AnimationNode', PatchedAnimationNode)
 
-    yield PatchedArtNetNode('-')
+    yield PatchedAnimationNode('-')
 
 
 @pytest.fixture
 async def running_artnet_node(monkeypatch, caplog):
     caplog.set_level(logging.DEBUG)
-    monkeypatch.setattr(pyartnet, 'ArtNetNode', PatchedArtNetNode)
+    monkeypatch.setattr(pyartnet, 'AnimationNode', PatchedAnimationNode)
 
-    node = PatchedArtNetNode('-')
+    node = PatchedAnimationNode('-')
     await node.start()
 
     yield node
