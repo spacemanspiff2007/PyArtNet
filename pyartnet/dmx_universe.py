@@ -10,13 +10,13 @@ log = logging.getLogger('pyartnet.DmxUniverse')
 
 
 class DmxUniverse:
-    def __init__(self, artnet_node):
+    def __init__(self, animation_node):
         self.highest_channel: int = 0
         self.data: bytearray = bytearray()
         self.__channels: Dict[str, pyartnet.DmxChannel] = {}
 
-        assert isinstance(artnet_node, pyartnet.ArtNetNode)
-        self._artnet_node: pyartnet.ArtNetNode = artnet_node
+        assert isinstance(animation_node, pyartnet.AnimationNode)
+        self._artnet_node: pyartnet.AnimationNode = animation_node
 
         self.__fade_running = False
 

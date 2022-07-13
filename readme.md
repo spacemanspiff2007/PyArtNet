@@ -9,11 +9,13 @@ pyartnet is a python implementation of the ArtNet protocol using [asyncio](https
 # Usage
 
 ## Fades
+
 ````python
-from pyartnet import ArtNetNode
+from pyartnet import AnimationNode, ArtNetClient
 
 # Run this code in your async function
-node = ArtNetNode('IP')
+client = ArtNetClient('IP')
+node = AnimationNode(client)
 await node.start()
 
 # Create universe 0
@@ -22,11 +24,11 @@ universe = node.add_universe(0)
 # Add a channel to the universe which consists of 3 values
 # Default size of a value is 8Bit (0..255) so this would fill
 # the DMX values 1..3 of the universe
-channel  = universe.add_channel(start=1, width=3)
+channel = universe.add_channel(start=1, width=3)
 
 # Fade channel to 255,0,0 in 5s
 # The fade will automatically run in the background
-channel.add_fade([255,0,0], 5000)
+channel.add_fade([255, 0, 0], 5000)
 
 # this can be used to wait till the fade is complete
 await channel.wait_till_fade_complete()
@@ -47,15 +49,18 @@ The callback takes the channel as an argument.
 This example shows how to automatically fade the channel up and down.
 
 ````python
-from pyartnet import ArtNetNode, DmxChannel
+from pyartnet import AnimationNode, ArtNetClient, DmxChannel
 
-node = ArtNetNode('IP')
+client = ArtNetClient('IP')
+node = AnimationNode(client)
 universe = node.add_universe(0)
 
 channel = universe.add_channel(start=1, width=3)
 
+
 def cb(ch: DmxChannel):
     ch.add_fade([0, 0, 0] if ch.get_channel_values() == [255, 255, 255] else [255, 255, 255], 1000)
+
 
 channel.callback_fade_finished = cb
 channel.callback_value_changed = my_func2
@@ -67,15 +72,16 @@ It is possible to use an output correction to create different fade curves.
 Output correction can be set on the universe or on the individual channel.
 
 ````python
-from pyartnet import ArtNetNode, output_correction
+from pyartnet import AnimationNode, ArtNetClient, output_correction
 
-node = ArtNetNode('IP')
+client = ArtNetClient('IP')
+node = AnimationNode(client)
 
 universe = node.add_universe(0)
 universe.output_correction = output_correction.quadratic  # quadratic will be used for all channels
 
 channel = universe.add_channel(start=1, width=3)
-channel.output_correction = output_correction.cubic       # this channel will use cubic
+channel.output_correction = output_correction.cubic  # this channel will use cubic
 ````
 
 The graph shows different output depending on the output correction.
@@ -90,9 +96,10 @@ Quadratic or cubic results in much smoother and more pleasant fades when using L
 The library supports wider dmx channels for advanced control.
 
 ````python
-from pyartnet import ArtNetNode, DmxChannel16Bit
+from pyartnet import AnimationNode, ArtNetClient, DmxChannel16Bit
 
-node = ArtNetNode('IP')
+client = ArtNetClient('IP')
+node = AnimationNode(client)
 await node.start()
 
 # Create universe 0
@@ -100,7 +107,7 @@ universe = node.add_universe(1)
 
 # Add a channel to the universe which consists of 3 values where each value is 16Bits
 # This would fill the DMX values 1..6 of the universe
-channel  = universe.add_channel(start=1, width=3, channel_type=DmxChannel16Bit)
+channel = universe.add_channel(start=1, width=3, channel_type=DmxChannel16Bit)
 
 # Notice the higher maximum value for the fade
 channel.add_fade([0xFFFF, 0, 0], 5000)
@@ -109,29 +116,34 @@ channel.add_fade([0xFFFF, 0, 0], 5000)
 
 # Changelog
 
-#### 0.8.4 (13.07.2022)
+#### 0.9.0 (2022-07-13)
+- Separate animation logic from protocol logic
+- Change date format to ISO 8601
+
+
+#### 0.8.4 (2022-07-13)
 - Added linear fade (closes #14)
 - Updated max FPS (closes #17)
 - All raised Errors inherit now from PyArtNetError
 - Some refactoring and cleanup
 - Activated tests for Python 3.10
 
-#### 0.8.3 (23.07.2021)
+#### 0.8.3 (2021-07-23)
 - No more jumping fades when using output correction with bigger channels
 - Reformatted files
 
-#### 0.8.2 (14.03.2021)
+#### 0.8.2 (2021-03-14)
 - Using nonblocking sockets
 - Added option to send frames to a broadcast address
 
-#### 0.8.1 (26.02.2021)
+#### 0.8.1 (2021-02-26)
 - Fixed an issue with the max value for channels with 16bits and more
 
-#### 0.8.0 (11.02.2021)
+#### 0.8.0 (2021-02-11)
 - Added support for channels with 16, 24 and 32bits
 
 
-#### 0.7.0 (28.10.2020)
+#### 0.7.0 (2020-10-28)
 - renamed logger to ``pyartnet`` to make it consistent with the module name
 - callbacks on the channel now get the channel passed in as an argument
 - Adding the same channel multiple times or adding overlapping channels raises an exception
@@ -140,7 +152,7 @@ channel.add_fade([0xFFFF, 0, 0], 5000)
 
 
 
-#### 0.6.0 (27.10.2020)
+#### 0.6.0 (2020-10-27)
 - ``ArtnetNode.start`` is now an async function
 - ``ArtnetNode.step_time_ms`` renamed to ``ArtnetNode.step_time`` (shouldn't be used manually anyway)
 - removed support for python 3.6

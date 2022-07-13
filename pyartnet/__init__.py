@@ -8,4 +8,5 @@ from .dmx_universe import DmxUniverse
 
 # isort: split
 
-from .artnet_node import ArtNetNode
+from .animation_node import AnimationNode
+from .dmx_client import ArtNetClient

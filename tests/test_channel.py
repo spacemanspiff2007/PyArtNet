@@ -8,11 +8,11 @@ import pyartnet
 from pyartnet import DmxChannel16Bit, output_correction
 from pyartnet.errors import ChannelValueOutOfBounds, ValueCountDoesNotMatchChannelWidthError
 
-from .conftest import PatchedArtNetNode
+from .conftest import PatchedAnimationNode, StubClient
 
 
 @pytest.mark.asyncio
-async def test_channel_single_step(running_artnet_node: PatchedArtNetNode):
+async def test_channel_single_step(running_artnet_node: PatchedAnimationNode):
 
     universe = running_artnet_node.add_universe(0)
     channel = universe.add_channel(1, 1)
@@ -29,7 +29,7 @@ async def test_channel_single_step(running_artnet_node: PatchedArtNetNode):
 
 
 @pytest.mark.asyncio
-async def test_channel_double_step(running_artnet_node: PatchedArtNetNode):
+async def test_channel_double_step(running_artnet_node: PatchedAnimationNode):
 
     universe = running_artnet_node.add_universe(0)
     channel = universe.add_channel(1, 1)
@@ -49,7 +49,7 @@ async def test_channel_double_step(running_artnet_node: PatchedArtNetNode):
                          [(None, 128), (output_correction.quadratic, 64), (output_correction.cubic, 32),
                           (output_correction.quadruple, 16)])
 @pytest.mark.asyncio
-async def test_channel_output_correction_continue(running_artnet_node: PatchedArtNetNode, corr, dst_val):
+async def test_channel_output_correction_continue(running_artnet_node: PatchedAnimationNode, corr, dst_val):
 
     universe = running_artnet_node.add_universe(0)
     channel = universe.add_channel(1, 1)
@@ -68,7 +68,7 @@ async def test_channel_output_correction_continue(running_artnet_node: PatchedAr
 
 
 @pytest.mark.asyncio
-async def test_channel_with_3(running_artnet_node: PatchedArtNetNode):
+async def test_channel_with_3(running_artnet_node: PatchedAnimationNode):
 
     universe = running_artnet_node.add_universe(0)
     channel = universe.add_channel(1, 3)
@@ -90,7 +90,7 @@ async def test_channel_with_3(running_artnet_node: PatchedArtNetNode):
 
 
 @pytest.mark.asyncio
-async def test_fade_errors(running_artnet_node: PatchedArtNetNode):
+async def test_fade_errors(running_artnet_node: PatchedAnimationNode):
 
     universe = running_artnet_node.add_universe(0)
     channel = universe.add_channel(1, 3)
@@ -110,7 +110,7 @@ async def test_fade_errors(running_artnet_node: PatchedArtNetNode):
 
 
 @pytest.mark.asyncio
-async def test_channel_cb(running_artnet_node: PatchedArtNetNode):
+async def test_channel_cb(running_artnet_node: PatchedAnimationNode):
     universe = running_artnet_node.add_universe(0)
     channel = universe.add_channel(1, 1)
 
@@ -125,7 +125,7 @@ async def test_channel_cb(running_artnet_node: PatchedArtNetNode):
 
 
 @pytest.mark.asyncio
-async def test_channel_wait_till_complete(running_artnet_node: PatchedArtNetNode):
+async def test_channel_wait_till_complete(running_artnet_node: PatchedAnimationNode):
     # under windows we can't use the quick ms sleeps
     running_artnet_node.sleep_time = 0.05
 
@@ -143,7 +143,7 @@ async def test_channel_wait_till_complete(running_artnet_node: PatchedArtNetNode
 
 
 @pytest.mark.asyncio
-async def test_byte_iterator(running_artnet_node: PatchedArtNetNode):
+async def test_byte_iterator(running_artnet_node: PatchedAnimationNode):
 
     universe = running_artnet_node.add_universe(0)
 
@@ -174,7 +174,7 @@ async def test_byte_iterator(running_artnet_node: PatchedArtNetNode):
 
 
 def test_channel_boundaries():
-    node = pyartnet.ArtNetNode(host='')
+    node = pyartnet.AnimationNode(StubClient())
     univ = pyartnet.DmxUniverse(node)
 
     with pytest.raises(pyartnet.errors.ChannelOutOfUniverseError) as r:
@@ -200,7 +200,7 @@ def test_channel_boundaries():
 
 
 def test_channel_max_values():
-    node = pyartnet.ArtNetNode(host='')
+    node = pyartnet.AnimationNode(StubClient())
     univ = pyartnet.DmxUniverse(node)
 
     univ.add_channel(10, 1, channel_type=pyartnet.DmxChannel).add_fade([0xFF], 0)

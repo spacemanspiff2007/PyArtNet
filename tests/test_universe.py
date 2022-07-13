@@ -2,10 +2,10 @@ import pytest
 
 from pyartnet import DmxUniverse, errors
 
-from .conftest import PatchedArtNetNode
+from .conftest import PatchedAnimationNode
 
 
-def test_channel_add(artnet_node: PatchedArtNetNode):
+def test_channel_add(artnet_node: PatchedAnimationNode):
     universe = DmxUniverse(artnet_node)
 
     universe.add_channel(2, 1)
@@ -25,7 +25,7 @@ def test_channel_add(artnet_node: PatchedArtNetNode):
     assert universe.data == b'\x00\x00\x00\x00\x00\x00\x00\x00'
 
 
-def test_exceptions(artnet_node: PatchedArtNetNode):
+def test_exceptions(artnet_node: PatchedAnimationNode):
     universe = DmxUniverse(artnet_node)
     universe.add_channel(1, 1)
 
@@ -55,7 +55,7 @@ def test_exceptions(artnet_node: PatchedArtNetNode):
         universe.add_channel(8, 20)
 
 
-def test_container(artnet_node: PatchedArtNetNode):
+def test_container(artnet_node: PatchedAnimationNode):
     universe = DmxUniverse(artnet_node)
 
     universe.add_channel(1, 1)
