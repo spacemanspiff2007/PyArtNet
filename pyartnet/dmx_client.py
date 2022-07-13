@@ -18,12 +18,16 @@ class DmxClient:
         self.__port = port
 
     def update(self, universe):
-        """Send an update to the device. This normally happens automatically"""
-
+        """
+        Send the current state of DMX values to the gateway via UDP packet.
+        """
         raise NotImplementedError()
 
 
 class ArtNetClient(DmxClient):
+    """
+    Interface with an Art-Net device
+    """
 
     def __init__(self, host: str, port: int = 0x1936, sequence_counter: bool = True, broadcast: bool = False):
         """
@@ -48,6 +52,9 @@ class ArtNetClient(DmxClient):
         self.__sequence_counter = 255 if sequence_counter else 0
 
     def update(self, universe):
+        """
+        Send the current state of DMX values to the gateway via UDP packet.
+        """
         for universe_nr, universe in universe.items():
             assert isinstance(universe_nr, int), type(universe_nr)
             assert isinstance(universe, DmxUniverse), type(universe)
@@ -141,3 +148,107 @@ class ArtNetClient(DmxClient):
         if show_description:
             log.debug(out_desc)
         log.debug(out)
+
+
+class KiNetClient(DmxClient):
+    """
+    Interface with a KiNet device
+    """
+
+    def __init__(self, host: str, port: int):
+        """
+        :param host: IP of the Art-Net Node
+        :param port: Port of the Art-Net Node
+        """
+        super().__init__(host, port)
+
+        self.__socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
+
+        packet = bytearray()
+        packet.extend(struct.pack(">IHH", 0x0401DC4A, 0x0100, 0x0101))  # Magic, version, type
+        packet.extend(
+            struct.pack(">IBBHI", 0, 0, 0, 0, 0xFFFFFFFF)
+        )  # sequence, port, padding, flags, timer
+        self.__base_packet = packet
+
+    def update(self, universe):
+        """
+        Send the current state of DMX values to the gateway via UDP packet.
+        """
+
+        for universe_nr, universe in universe.items():
+            assert isinstance(universe_nr, int), type(universe_nr)
+            assert isinstance(universe, DmxUniverse), type(universe)
+
+            # don't send empty universes
+            if universe.highest_channel <= 0:
+                continue
+
+            packet = self.__base_packet[:]
+            packet.extend(struct.pack("B", universe_nr))  # Universe
+            packet.extend(universe.data)
+            self.__socket.sendto(packet, (self.__host, self.__port))
+            log.debug(f"Sending Art-Net frame to {self.__host}:{self.__port}")
+
+
+class SacnClient(DmxClient):
+    """
+    Interface with a sACN device
+    """
+
+    def __init__(self, host: str, port: int):
+        """
+        :param host: IP of the Art-Net Node
+        :param port: Port of the Art-Net Node
+        """
+        super().__init__(host, port)
+
+        # Initialise socket
+        self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
+
+        packet = bytearray()
+        # Root layer
+        packet.extend([0x00, 0x01, 0x00, 0x00])  # Preamble Size, Post-amble Size
+        packet.extend(map(ord, "ASC-E1.17"))  # Packet Identifier
+        packet.extend([0x00, 0x00, 0x00, 0x72, 0x57])  # padding x 3 , Flags, Length
+        packet.extend(struct.pack(">l", 4))  # Root Layer Vector
+        packet.extend(map(ord, "ThisIsMyCIDxxxxx"))  # CID, a unique identifier
+        # Framing layer
+        packet.extend([0x72, 0x57])  # Flags and length
+        packet.extend(struct.pack(">l", 2))  # Data type ID
+        packet.extend(map(ord, "-HA-DMX-Over-IP--HA-DMX-Over-IP--HA-DMX-Over-IP--HA-DMX-Over-IP-"))  # Source Name
+        packet.extend([0xFF])  # Priority
+        packet.extend(struct.pack(">H", 50))  # Synchronization universe
+        self.__base_packet = packet
+
+        self.__sequence = 0
+
+    def update(self, universe):
+        """
+        Send the current state of DMX values to the gateway via UDP packet.
+        """
+
+        for universe_nr, universe in universe.items():
+            assert isinstance(universe_nr, int), type(universe_nr)
+            assert isinstance(universe, DmxUniverse), type(universe)
+
+            # don't send empty universes
+            if universe.highest_channel <= 0:
+                continue
+
+            packet = self.__base_packet[:111]
+
+            packet.extend(struct.pack(">B", self.__sequence))
+            self.__sequence += 1
+            if self.__sequence == 200:
+                self.__sequence = 1
+
+            packet.extend([0x00])  # Options
+            packet.extend(struct.pack(">H", universe_nr))  # UNIVERSE
+            # Data layer
+            packet.extend([0x72, 0x0d, 0x02, 0xa1, 0x00, 0x00, 0x00, 0x01, 0x02, 0x01, 0x00])
+
+            packet.extend(universe.data)
+
+            self._socket.sendto(packet, (self.__host, self.__port))
+            log.debug(f"Sending sACN frame to {self.__host}:{self.__port}")

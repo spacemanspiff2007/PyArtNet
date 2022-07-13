@@ -9,4 +9,4 @@ from .dmx_universe import DmxUniverse
 # isort: split
 
 from .animation_node import AnimationNode
-from .dmx_client import ArtNetClient
+from .dmx_client import ArtNetClient, KiNetClient, SacnClient

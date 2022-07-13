@@ -113,12 +113,28 @@ channel = universe.add_channel(start=1, width=3, channel_type=DmxChannel16Bit)
 channel.add_fade([0xFFFF, 0, 0], 5000)
 ````
 
+## Alternative DMX Clients
+
+KiNet and sACN DMX clients are also supported.
+
+````python
+from pyartnet import AnimationNode, KiNetClient, SacnClient
+
+kinet_client = KiNetClient('IP')
+kinet_node = AnimationNode(kinet_client)
+
+sacn_client = SacnClient('IP')
+sacn_node = AnimationNode(sacn_client)
+````
+
 
 # Changelog
 
 #### 0.9.0 (2022-07-13)
 - Separate animation logic from protocol logic
 - Change date format to ISO 8601
+- Implement KiNet (thanks @jjhuff)
+- Implement e1.31 sACN (thanks @RichUncleCody)
 
 
 #### 0.8.4 (2022-07-13)
