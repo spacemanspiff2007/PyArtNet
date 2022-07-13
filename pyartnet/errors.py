@@ -1,18 +1,30 @@
-class ChannelExistsError(Exception):
+class PyArtNetError(Exception):
     pass
 
 
-class ChannelNotFoundError(Exception):
+class ChannelExistsError(PyArtNetError):
     pass
 
 
-class OverlappingChannelError(Exception):
+class ChannelNotFoundError(PyArtNetError):
     pass
 
 
-class ChannelOutOfUniverseError(Exception):
+class OverlappingChannelError(PyArtNetError):
     pass
 
 
-class ChannelWidthInvalid(Exception):
+class ChannelOutOfUniverseError(PyArtNetError):
+    pass
+
+
+class ChannelWidthInvalid(PyArtNetError):
+    pass
+
+
+class ChannelValueOutOfBounds(PyArtNetError):
+    pass
+
+
+class ValueCountDoesNotMatchChannelWidthError(PyArtNetError):
     pass

@@ -1,6 +1,6 @@
 import asyncio
 import logging
-import typing
+from typing import Dict, Type
 
 import pyartnet
 
@@ -13,7 +13,7 @@ class DmxUniverse:
     def __init__(self, artnet_node):
         self.highest_channel: int = 0
         self.data: bytearray = bytearray()
-        self.__chans: typing.Dict[str, pyartnet.DmxChannel] = {}
+        self.__channels: Dict[str, pyartnet.DmxChannel] = {}
 
         assert isinstance(artnet_node, pyartnet.ArtNetNode)
         self._artnet_node: pyartnet.ArtNetNode = artnet_node
@@ -31,12 +31,12 @@ class DmxUniverse:
             raise TypeError('Channel name must be str')
 
         try:
-            return self.__chans[channel_name]
+            return self.__channels[channel_name]
         except KeyError:
             raise ChannelNotFoundError(f'Channel "{channel_name}" not found in the universe!') from None
 
     def add_channel(self, start: int, width: int, channel_name: str = '',
-                    channel_type: typing.Type[pyartnet.DmxChannel] = pyartnet.DmxChannel) -> pyartnet.DmxChannel:
+                    channel_type: Type[pyartnet.DmxChannel] = pyartnet.DmxChannel) -> pyartnet.DmxChannel:
         assert isinstance(channel_name, str), type(channel_name)
         assert issubclass(channel_type, pyartnet.DmxChannel)
 
@@ -47,12 +47,12 @@ class DmxUniverse:
             channel_name = f'{start:d}/{width:d}'
 
         # Make sure we don't accidentally overwrite the channel
-        if channel_name in self.__chans:
+        if channel_name in self.__channels:
             raise ChannelExistsError(f'Channel "{channel_name}" does already exist in the universe!')
 
         # Make sure channels are not overlapping because they will overwrite each other
         # and this leads to unintended behavior
-        for _n, _c in self.__chans.items():
+        for _n, _c in self.__channels.items():
             if _c.start > chan.stop or _c.stop < chan.start:
                 continue
             for i in range(_c.start, _c.stop + 1):
@@ -73,7 +73,7 @@ class DmxUniverse:
                 self.data.append(0)
 
         # add channel to universe
-        self.__chans[channel_name] = chan
+        self.__channels[channel_name] = chan
         log.debug(f'Added channel "{channel_name}": start: {start:d}, stop: {start + width - 1:d}')
         return chan
 
@@ -83,7 +83,7 @@ class DmxUniverse:
         :return: True if something was processed
         """
         running = False
-        for c in self.__chans.values():
+        for c in self.__channels.values():
             if not c.process():
                 continue
 
@@ -103,7 +103,7 @@ class DmxUniverse:
     # -----------------------------------------------------------
     # emulate container
     def __len__(self):
-        return len(self.__chans)
+        return len(self.__channels)
 
     def __getitem__(self, item: str) -> pyartnet.DmxChannel:
         return self.get_channel(item)

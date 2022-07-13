@@ -5,7 +5,8 @@ from unittest.mock import Mock
 import pytest
 
 import pyartnet
-from pyartnet import output_correction
+from pyartnet import DmxChannel16Bit, output_correction
+from pyartnet.errors import ChannelValueOutOfBounds, ValueCountDoesNotMatchChannelWidthError
 
 from .conftest import PatchedArtNetNode
 
@@ -86,6 +87,26 @@ async def test_channel_with_3(running_artnet_node: PatchedArtNetNode):
     assert channel.get_channel_values() == [0, 0, 0]
 
     assert running_artnet_node.values == [[50, 75, 100, 0], [0, 0, 0, 0]]
+
+
+@pytest.mark.asyncio
+async def test_fade_errors(running_artnet_node: PatchedArtNetNode):
+
+    universe = running_artnet_node.add_universe(0)
+    channel = universe.add_channel(1, 3)
+
+    with pytest.raises(ValueCountDoesNotMatchChannelWidthError) as e:
+        channel.add_fade([100, 150, 200, 100], 5)
+    assert str(e.value) == 'Not enough fade values specified, expected 3 but got 4!'
+
+    with pytest.raises(ChannelValueOutOfBounds) as e:
+        channel.add_fade([100, 150, 600], 5)
+    assert str(e.value) == 'Target value out of bounds! 0 <= 600 <= 255'
+
+    channel = universe.add_channel(4, 3, channel_type=DmxChannel16Bit)
+    with pytest.raises(ChannelValueOutOfBounds) as e:
+        channel.add_fade([100, 150, 70_000], 5)
+    assert str(e.value) == 'Target value out of bounds! 0 <= 70000 <= 65535'
 
 
 @pytest.mark.asyncio

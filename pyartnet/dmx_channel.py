@@ -1,9 +1,11 @@
 import asyncio
 import logging
 import math
-import typing
+from typing import Any, Callable, Iterable, List, Optional, Type, Union
 
 import pyartnet
+from pyartnet.errors import ChannelValueOutOfBounds, ValueCountDoesNotMatchChannelWidthError
+from pyartnet.fades import FadeBase, LinearFade
 
 log = logging.getLogger('pyartnet.DmxChannel')
 
@@ -35,7 +37,7 @@ class DmxChannel:
         self.__val_raw_i = [0 for _ in range(self.width)]   # uncorrected values
         self.__val_act_i = [0 for _ in range(self.width)]   # values after output correction
 
-        self.__fades: typing.List[typing.Optional[pyartnet.fades.FadeBase]] = [None for k in range(self.width)]
+        self.__fades: List[Optional[pyartnet.fades.FadeBase]] = [None for _ in range(self.width)]
         self.__fade_running = False
 
         self.__step_max = 0
@@ -48,17 +50,17 @@ class DmxChannel:
         self.output_correction = None
 
         # Callbacks
-        self.callback_value_changed: typing.Optional[typing.Callable[[DmxChannel], typing.Any]] = None
-        self.callback_fade_finished: typing.Optional[typing.Callable[[DmxChannel], typing.Any]] = None
+        self.callback_value_changed: Optional[Callable[[DmxChannel], Any]] = None
+        self.callback_fade_finished: Optional[Callable[[DmxChannel], Any]] = None
 
     @property
     def fade_running(self) -> bool:
         return self.__fade_running
 
-    def get_channel_values(self) -> typing.List[int]:
+    def get_channel_values(self) -> List[int]:
         return self.__val_act_i.copy()
 
-    def get_bytes(self) -> typing.Iterable:
+    def get_bytes(self) -> Iterable:
         for obj in self.__val_act_i:
             if self._CHANNEL_SIZE == 1:
                 yield obj
@@ -67,20 +69,26 @@ class DmxChannel:
                     val = (obj >> 8 * (i - 1)) & 0xFF
                     yield val
 
-    def add_fade(self, fade_list: typing.List[int], duration_ms: int, fade_class=pyartnet.fades.LinearFade):
-        fade_list = fade_list[:]
-        assert isinstance(fade_list, list)
-        assert len(fade_list) == self.width, f'Not enough fade values specified, expected {self.width}!'
-        for i in range(self.width):
-            k = fade_list[i]
+    def add_fade(self, target_values: Iterable[Union[int, FadeBase]],
+                 duration_ms: int, fade_class: Type[FadeBase] = LinearFade):
 
-            # we conveniently convert them to the face-class
-            if isinstance(k, int) and fade_class is not None:
-                fade_list[i] = k = fade_class(k)
+        fade_objs: List[FadeBase] = []
+        for target_value in target_values:
+            if not isinstance(target_value, FadeBase):
+                k = fade_class(target_value)
+            else:
+                k = target_value
+
+            fade_objs.append(k)
 
             assert isinstance(k, pyartnet.fades.FadeBase), type(k)
             assert isinstance(k.val_target, int)
-            assert 0 <= k.val_target <= (256 ** self._CHANNEL_SIZE) - 1
+            if not 0 <= k.val_target <= self._CHANNEL_MAX:
+                raise ChannelValueOutOfBounds(f'Target value out of bounds! 0 <= {k.val_target} <= {self._CHANNEL_MAX}')
+
+        if len(fade_objs) != self.width:
+            raise ValueCountDoesNotMatchChannelWidthError(
+                f'Not enough fade values specified, expected {self.width} but got {len(fade_objs)}!')
 
         # calculate how much steps we will be having
         step_time_ms = self.__universe._artnet_node.sleep_time * 1000
@@ -89,7 +97,7 @@ class DmxChannel:
         self.__step_is = 0
 
         # calculate required values
-        for i, fade in enumerate(fade_list):  # type: int, pyartnet.fades.FadeBase
+        for i, fade in enumerate(fade_objs):  # type: int, pyartnet.fades.FadeBase
             fade.val_start = self.__val_raw_i[i]
             fade.val_current = fade.val_start
             fade.initialize_fade(self.__step_max)

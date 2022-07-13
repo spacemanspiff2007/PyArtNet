@@ -108,6 +108,14 @@ channel.add_fade([0xFFFF, 0, 0], 5000)
 
 
 # Changelog
+
+#### 0.8.4 (13.07.2022)
+- Added linear fade (closes #14)
+- Updated max FPS (closes #17)
+- All raised Errors inherit now from PyArtNetError
+- Some refactoring and cleanup
+- Activated tests for Python 3.10
+
 #### 0.8.3 (23.07.2021)
 - No more jumping fades when using output correction with bigger channels
 - Reformatted files

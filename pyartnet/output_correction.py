@@ -1,3 +1,5 @@
+def linear(val: float, max_val: int = 0xFF):
+    return val
 
 
 def quadratic(val: float, max_val: int = 0xFF):
