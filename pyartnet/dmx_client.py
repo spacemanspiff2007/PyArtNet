@@ -215,7 +215,7 @@ class SacnClient(DmxClient):
 
         packet.extend(struct.pack(">B", self.__sequence))
         self.__sequence += 1
-        if self.__sequence == 200:
+        if self.__sequence > 255:
             self.__sequence = 1
 
         packet.extend([0x00])  # Options
