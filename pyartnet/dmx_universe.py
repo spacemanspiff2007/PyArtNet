@@ -103,6 +103,10 @@ class DmxUniverse:
     def animation_thread_start(self):
         await self._artnet_node.start()
 
+    @property
+    def sleep_time(self):
+        return self._artnet_node.sleep_time
+
     # -----------------------------------------------------------
     # emulate container
     def __len__(self):

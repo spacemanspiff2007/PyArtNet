@@ -91,7 +91,7 @@ class DmxChannel:
                 f'Not enough fade values specified, expected {self.width} but got {len(fade_objs)}!')
 
         # calculate how much steps we will be having
-        step_time_ms = self.__universe._artnet_node.sleep_time * 1000
+        step_time_ms = self.__universe.sleep_time * 1000
         duration_ms = max(duration_ms, step_time_ms)
         self.__step_max = math.ceil(duration_ms / step_time_ms)
         self.__step_is = 0
@@ -116,7 +116,7 @@ class DmxChannel:
 
     async def wait_till_fade_complete(self):
         while self.__fade_running:
-            await asyncio.sleep(self.__universe._artnet_node.sleep_time)
+            await asyncio.sleep(self.__universe.sleep_time)
 
     def cancel_fades(self):
         self.__fade_running = False
