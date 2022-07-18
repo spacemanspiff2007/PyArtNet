@@ -59,7 +59,7 @@ class DmxUniverse:
                 if start <= i <= chan.stop:
                     raise OverlappingChannelError(f'New channel {channel_name} is overlapping with channel {_n:s}!')
 
-        # Keep track of highest channel so we can pad
+        # Keep track of the highest channel so we can pad
         highest_was = self.highest_channel
         self.highest_channel = max(self.highest_channel, chan.stop)
 

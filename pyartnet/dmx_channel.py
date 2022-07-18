@@ -90,7 +90,7 @@ class DmxChannel:
             raise ValueCountDoesNotMatchChannelWidthError(
                 f'Not enough fade values specified, expected {self.width} but got {len(fade_objs)}!')
 
-        # calculate how much steps we will be having
+        # calculate how many steps we will be having
         step_time_ms = self.__universe.sleep_time * 1000
         duration_ms = max(duration_ms, step_time_ms)
         self.__step_max = math.ceil(duration_ms / step_time_ms)
