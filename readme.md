@@ -128,14 +128,12 @@ sacn_node = AnimationNode(sacn_client)
 
 # Changelog
 
-#### 0.9.1 (2022-07-18)
-- Thread is started automatically, no need to manually `.start()`
-
 #### 0.9.0 (2022-07-13)
 - Separate animation logic from protocol logic
 - Change date format to ISO 8601
 - Implement KiNet (thanks @jjhuff)
 - Implement e1.31 sACN (thanks @RichUncleCody)
+- Thread is started automatically, no need to manually `.start()`
 
 
 #### 0.8.4 (2022-07-13)
