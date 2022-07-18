@@ -135,3 +135,36 @@ class ArtNetClient(DmxClient):
         if show_description:
             log.debug(out_desc)
         log.debug(out)
+
+
+class KiNetClient(DmxClient):
+    """
+    Interface with a KiNet device
+    """
+
+    def __init__(self, host: str, port: int):
+        """
+        :param host: IP of the Art-Net Node
+        :param port: Port of the Art-Net Node
+        """
+        super().__init__(host, port)
+
+        self.__socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
+
+        packet = bytearray()
+        packet.extend(struct.pack(">IHH", 0x0401DC4A, 0x0100, 0x0101))  # Magic, version, type
+        packet.extend(
+            struct.pack(">IBBHI", 0, 0, 0, 0, 0xFFFFFFFF)
+        )  # sequence, port, padding, flags, timer
+        self.__base_packet = packet
+
+    def update(self, universe, universe_nr):
+        """
+        Send the current state of DMX values to the gateway via UDP packet.
+        """
+
+        packet = self.__base_packet[:]
+        packet.extend(struct.pack("B", universe_nr))  # Universe
+        packet.extend(universe.data)
+        self.__socket.sendto(packet, (self.__host, self.__port))
+        log.debug(f"Sending Art-Net frame to {self.__host}:{self.__port}")

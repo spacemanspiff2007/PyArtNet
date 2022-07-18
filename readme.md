@@ -113,6 +113,18 @@ channel = universe.add_channel(start=1, width=3, channel_type=DmxChannel16Bit)
 channel.add_fade([0xFFFF, 0, 0], 5000)
 ````
 
+## Alternative DMX Clients
+
+A KiNet client is also supported.
+
+````python
+from pyartnet import AnimationNode, KiNetClient
+
+kinet_client = KiNetClient('IP')
+kinet_node = AnimationNode(kinet_client)
+````
+
+
 
 # Changelog
 
