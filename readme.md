@@ -16,7 +16,6 @@ from pyartnet import AnimationNode, ArtNetClient
 # Run this code in your async function
 client = ArtNetClient('IP')
 node = AnimationNode(client)
-await node.start()
 
 # Create universe 0
 universe = node.add_universe(0)
@@ -100,7 +99,6 @@ from pyartnet import AnimationNode, ArtNetClient, DmxChannel16Bit
 
 client = ArtNetClient('IP')
 node = AnimationNode(client)
-await node.start()
 
 # Create universe 0
 universe = node.add_universe(1)
@@ -119,6 +117,7 @@ channel.add_fade([0xFFFF, 0, 0], 5000)
 #### 0.9.0 (2022-07-13)
 - Separate animation logic from protocol logic
 - Change date format to ISO 8601
+- Thread is started automatically, no need to manually `.start()`
 
 
 #### 0.8.4 (2022-07-13)

@@ -3,7 +3,6 @@ import logging
 from typing import Dict, Type
 
 import pyartnet
-
 from .errors import ChannelExistsError, ChannelNotFoundError, OverlappingChannelError
 
 log = logging.getLogger('pyartnet.DmxUniverse')
@@ -59,7 +58,7 @@ class DmxUniverse:
                 if start <= i <= chan.stop:
                     raise OverlappingChannelError(f'New channel {channel_name} is overlapping with channel {_n:s}!')
 
-        # Keep track of highest channel so we can pad
+        # Keep track of the highest channel so we can pad
         highest_was = self.highest_channel
         self.highest_channel = max(self.highest_channel, chan.stop)
 
@@ -99,6 +98,13 @@ class DmxUniverse:
     async def wait_for_fades(self):
         while self.__fade_running:
             await asyncio.sleep(self._artnet_node.sleep_time)
+
+    async def animation_thread_start(self):
+        await self._artnet_node.start()
+
+    @property
+    def sleep_time(self):
+        return self._artnet_node.sleep_time
 
     # -----------------------------------------------------------
     # emulate container

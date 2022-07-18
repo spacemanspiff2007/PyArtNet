@@ -69,7 +69,7 @@ class DmxChannel:
                     val = (obj >> 8 * (i - 1)) & 0xFF
                     yield val
 
-    def add_fade(self, target_values: Iterable[Union[int, FadeBase]],
+    async def add_fade(self, target_values: Iterable[Union[int, FadeBase]],
                  duration_ms: int, fade_class: Type[FadeBase] = LinearFade):
 
         fade_objs: List[FadeBase] = []
@@ -90,8 +90,8 @@ class DmxChannel:
             raise ValueCountDoesNotMatchChannelWidthError(
                 f'Not enough fade values specified, expected {self.width} but got {len(fade_objs)}!')
 
-        # calculate how much steps we will be having
-        step_time_ms = self.__universe._artnet_node.sleep_time * 1000
+        # calculate how many steps we will be having
+        step_time_ms = self.__universe.sleep_time * 1000
         duration_ms = max(duration_ms, step_time_ms)
         self.__step_max = math.ceil(duration_ms / step_time_ms)
         self.__step_is = 0
@@ -111,11 +111,12 @@ class DmxChannel:
                 ), [])
 
         self.__fade_running = True
+        await self.__universe.animation_thread_start()
         return None
 
     async def wait_till_fade_complete(self):
         while self.__fade_running:
-            await asyncio.sleep(self.__universe._artnet_node.sleep_time)
+            await asyncio.sleep(self.__universe.sleep_time)
 
     def cancel_fades(self):
         self.__fade_running = False

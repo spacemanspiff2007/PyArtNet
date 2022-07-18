@@ -17,11 +17,11 @@ async def test_channel_single_step(running_artnet_node: PatchedAnimationNode):
     universe = running_artnet_node.add_universe(0)
     channel = universe.add_channel(1, 1)
 
-    channel.add_fade([255], 0)
+    await channel.add_fade([255], 0)
     await channel.wait_till_fade_complete()
     assert channel.get_channel_values() == [255]
 
-    channel.add_fade([0], 0)
+    await channel.add_fade([0], 0)
     await channel.wait_till_fade_complete()
     assert channel.get_channel_values() == [0]
 
@@ -34,11 +34,11 @@ async def test_channel_double_step(running_artnet_node: PatchedAnimationNode):
     universe = running_artnet_node.add_universe(0)
     channel = universe.add_channel(1, 1)
 
-    channel.add_fade([255], 2)
+    await channel.add_fade([255], 2)
     await channel.wait_till_fade_complete()
     assert channel.get_channel_values() == [255]
 
-    channel.add_fade([0], 2)
+    await channel.add_fade([0], 2)
     await channel.wait_till_fade_complete()
     assert channel.get_channel_values() == [0]
 
@@ -55,11 +55,11 @@ async def test_channel_output_correction_continue(running_artnet_node: PatchedAn
     channel = universe.add_channel(1, 1)
     channel.output_correction = corr
 
-    channel.add_fade([128], 0)
+    await channel.add_fade([128], 0)
     await channel.wait_till_fade_complete()
     assert channel.get_channel_values() == [dst_val]
 
-    channel.add_fade([255], 50)
+    await channel.add_fade([255], 50)
     await channel.wait_till_fade_complete()
     assert channel.get_channel_values() == [255]
 
@@ -73,7 +73,7 @@ async def test_channel_with_3(running_artnet_node: PatchedAnimationNode):
     universe = running_artnet_node.add_universe(0)
     channel = universe.add_channel(1, 3)
 
-    channel.add_fade([100, 150, 200], 5)
+    await channel.add_fade([100, 150, 200], 5)
     await channel.wait_till_fade_complete()
     assert channel.get_channel_values() == [100, 150, 200]
 
@@ -82,7 +82,7 @@ async def test_channel_with_3(running_artnet_node: PatchedAnimationNode):
     ]
     running_artnet_node.values.clear()
 
-    channel.add_fade([0, 0, 0], 2)
+    await channel.add_fade([0, 0, 0], 2)
     await channel.wait_till_fade_complete()
     assert channel.get_channel_values() == [0, 0, 0]
 
@@ -96,16 +96,16 @@ async def test_fade_errors(running_artnet_node: PatchedAnimationNode):
     channel = universe.add_channel(1, 3)
 
     with pytest.raises(ValueCountDoesNotMatchChannelWidthError) as e:
-        channel.add_fade([100, 150, 200, 100], 5)
+        await channel.add_fade([100, 150, 200, 100], 5)
     assert str(e.value) == 'Not enough fade values specified, expected 3 but got 4!'
 
     with pytest.raises(ChannelValueOutOfBounds) as e:
-        channel.add_fade([100, 150, 600], 5)
+        await channel.add_fade([100, 150, 600], 5)
     assert str(e.value) == 'Target value out of bounds! 0 <= 600 <= 255'
 
     channel = universe.add_channel(4, 3, channel_type=DmxChannel16Bit)
     with pytest.raises(ChannelValueOutOfBounds) as e:
-        channel.add_fade([100, 150, 70_000], 5)
+        await channel.add_fade([100, 150, 70_000], 5)
     assert str(e.value) == 'Target value out of bounds! 0 <= 70000 <= 65535'
 
 
@@ -117,7 +117,7 @@ async def test_channel_cb(running_artnet_node: PatchedAnimationNode):
     channel.callback_fade_finished = cb_f = Mock()
     channel.callback_value_changed = cb_v = Mock()
 
-    channel.add_fade([100], 5)
+    await channel.add_fade([100], 5)
     await channel.wait_till_fade_complete()
 
     assert cb_f.call_count == 1
@@ -132,7 +132,7 @@ async def test_channel_wait_till_complete(running_artnet_node: PatchedAnimationN
     universe = running_artnet_node.add_universe(0)
     channel = universe.add_channel(1, 1)
 
-    channel.add_fade([255], 500)
+    await channel.add_fade([255], 500)
 
     start = time.time()
     await channel.wait_till_fade_complete()
@@ -149,7 +149,7 @@ async def test_byte_iterator(running_artnet_node: PatchedAnimationNode):
 
     for i, obj in enumerate(([10], [20, 30], [255, 254, 253, 252, 251])):
         channel = universe.add_channel(5 * i + 1, len(obj))
-        channel.add_fade(obj, 0)
+        await channel.add_fade(obj, 0)
         await channel.wait_till_fade_complete()
         assert channel.get_channel_values() == obj
         for soll, ist in zip_longest(obj, channel.get_bytes()):
@@ -166,7 +166,7 @@ async def test_byte_iterator(running_artnet_node: PatchedAnimationNode):
 
     for i, obj in enumerate(target_vals):
         channel = universe.add_channel(10 * i + 50, len(obj), channel_type=pyartnet.DmxChannel16Bit)
-        channel.add_fade(obj, 0)
+        await channel.add_fade(obj, 0)
         await channel.wait_till_fade_complete()
         assert channel.get_channel_values() == obj
         for soll, ist in zip_longest(target_bytes[i], list(channel.get_bytes())):
