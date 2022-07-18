@@ -131,6 +131,7 @@ sacn_node = AnimationNode(sacn_client)
 #### 0.9.0 (2022-07-13)
 - Separate animation logic from protocol logic
 - Change date format to ISO 8601
+- Implement e1.31 sACN (thanks @RichUncleCody)
 
 
 #### 0.8.4 (2022-07-13)
