@@ -100,6 +100,9 @@ class DmxUniverse:
         while self.__fade_running:
             await asyncio.sleep(self._artnet_node.sleep_time)
 
+    def animation_thread_start(self):
+        await self._artnet_node.start()
+
     # -----------------------------------------------------------
     # emulate container
     def __len__(self):

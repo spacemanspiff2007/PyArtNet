@@ -64,6 +64,9 @@ class AnimationNode:
                         if time.time() - last_update > self.refresh_every:
                             self.update()
                             last_update = time.time()
+                    else:
+                        # Stop thread
+                        return None
             except Exception as e:
                 log.error(f'Error in worker {e.__str__()}')
                 for line in format_exc().splitlines():

@@ -111,6 +111,7 @@ class DmxChannel:
                 ), [])
 
         self.__fade_running = True
+        self.__universe.animation_thread_start()
         return None
 
     async def wait_till_fade_complete(self):
