@@ -104,9 +104,9 @@ class DmxChannel:
             self.__fades[i] = fade
 
         if log.isEnabledFor(logging.DEBUG):
-            log.log(logging.DEBUG, f'Fade with {self.__step_max} steps:', [])
+            log._log(logging.DEBUG, f'Fade with {self.__step_max} steps:', [])
             for i in range(self.width):
-                log.log(logging.DEBUG, 'CH {}: {:03d} -> {:03d} | {}'.format(
+                log._log(logging.DEBUG, 'CH {}: {:03d} -> {:03d} | {}'.format(
                     self.start + i, self.__val_raw_i[i], self.__fades[i].val_target, self.__fades[i].debug_initialize()
                 ), [])
 
