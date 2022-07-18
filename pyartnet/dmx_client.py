@@ -135,3 +135,58 @@ class ArtNetClient(DmxClient):
         if show_description:
             log.debug(out_desc)
         log.debug(out)
+
+
+class SacnClient(DmxClient):
+    """
+    Interface with a sACN device
+    """
+
+    def __init__(self, host: str, port: int):
+        """
+        :param host: IP of the Art-Net Node
+        :param port: Port of the Art-Net Node
+        """
+        super().__init__(host, port)
+
+        # Initialise socket
+        self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
+
+        packet = bytearray()
+        # Root layer
+        packet.extend([0x00, 0x01, 0x00, 0x00])  # Preamble Size, Post-amble Size
+        packet.extend(map(ord, "ASC-E1.17"))  # Packet Identifier
+        packet.extend([0x00, 0x00, 0x00, 0x72, 0x57])  # padding x 3 , Flags, Length
+        packet.extend(struct.pack(">l", 4))  # Root Layer Vector
+        packet.extend(map(ord, "ThisIsMyCIDxxxxx"))  # CID, a unique identifier
+        # Framing layer
+        packet.extend([0x72, 0x57])  # Flags and length
+        packet.extend(struct.pack(">l", 2))  # Data type ID
+        packet.extend(map(ord, "-HA-DMX-Over-IP--HA-DMX-Over-IP--HA-DMX-Over-IP--HA-DMX-Over-IP-"))  # Source Name
+        packet.extend([0xFF])  # Priority
+        packet.extend(struct.pack(">H", 50))  # Synchronization universe
+        self.__base_packet = packet
+
+        self.__sequence = 0
+
+    def update(self, universe, universe_nr):
+        """
+        Send the current state of DMX values to the gateway via UDP packet.
+        """
+
+        packet = self.__base_packet[:111]
+
+        packet.extend(struct.pack(">B", self.__sequence))
+        self.__sequence += 1
+        if self.__sequence == 255:
+            self.__sequence = 1
+
+        packet.extend([0x00])  # Options
+        packet.extend(struct.pack(">H", universe_nr))  # UNIVERSE
+        # Data layer
+        packet.extend([0x72, 0x0d, 0x02, 0xa1, 0x00, 0x00, 0x00, 0x01, 0x02, 0x01, 0x00])
+
+        packet.extend(universe.data)
+
+        self._socket.sendto(packet, (self.__host, self.__port))
+        log.debug(f"Sending sACN frame to {self.__host}:{self.__port}")
