@@ -14,6 +14,11 @@ log = logging.getLogger('pyartnet.ArtNetNode')
 
 
 class ArtNetNode:
+    # The maximum 44fps is for DMX512 with full 512 channels.
+    # More is possible with less channels in a universe or with other
+    # ArtNet controllers e.g. for some LED strips output protocols.
+    MAX_FPS = 44
+
     def __init__(self, host: str, port: int = 0x1936, max_fps: int = 25,
                  refresh_every: int = 2, sequence_counter: bool = True, broadcast: bool = False):
         """
@@ -45,8 +50,7 @@ class ArtNetNode:
 
         self.__task = None
 
-        # Maximum fps for DMX is 44fps, more makes no sense
-        max_fps = max(1, min(max_fps, 44))
+        max_fps = max(1, min(max_fps, self.MAX_FPS))
         self.sleep_time = 1 / max_fps
 
         self.refresh_every = refresh_every
