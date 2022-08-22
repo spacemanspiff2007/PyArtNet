@@ -68,7 +68,7 @@ class ArtNetNode:
 
     async def __worker(self):
         log.debug('Worker started')
-        last_update = time.time()
+        last_update = 0.0
 
         while True:
             await asyncio.sleep(self.sleep_time)

@@ -1,3 +1,4 @@
+import asyncio
 import time
 from itertools import zip_longest
 from unittest.mock import Mock
@@ -207,3 +208,15 @@ def test_channel_max_values():
     univ.add_channel(20, 1, channel_type=pyartnet.DmxChannel16Bit).add_fade([0xFFFF], 0)
     univ.add_channel(30, 1, channel_type=pyartnet.DmxChannel24Bit).add_fade([0xFFFFFF], 0)
     univ.add_channel(40, 1, channel_type=pyartnet.DmxChannel32Bit).add_fade([0xFFFFFFFF], 0)
+
+
+@pytest.mark.asyncio
+async def test_can_turn_lights_off(running_artnet_node: PatchedArtNetNode):
+
+    # check that a zero packet is sent initially if a zero fade or no fade is used
+    running_artnet_node.refresh_every = 2
+    universe = running_artnet_node.add_universe(0)
+    channel = universe.add_channel(1, 1)
+    channel.add_fade([0], 0)  # empty fade is not important to can turn lights off
+    await asyncio.sleep(0.01)
+    assert running_artnet_node.values == [[0, 0]]
