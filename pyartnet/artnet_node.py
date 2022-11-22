@@ -15,7 +15,8 @@ log = logging.getLogger('pyartnet.ArtNetNode')
 
 class ArtNetNode:
     def __init__(self, host: str, port: int = 0x1936, max_fps: int = 25,
-                 refresh_every: int = 2, sequence_counter: bool = True, broadcast: bool = False):
+                 refresh_every: int = 2, sequence_counter: bool = True,
+                 broadcast: bool = False, source_port = None, source_ip = None):
         """
         :param host: IP of the Art-Net Node
         :param port: Port of the Art-Net Node
@@ -26,12 +27,18 @@ class ArtNetNode:
         """
         self.__host = host
         self.__port = port
+        self.__source_port = source_port
+        self.__source_ip = source_ip
 
         self.__sequence_counter = 255 if sequence_counter else 0
 
         self.__universe = {}  # type: typing.Dict[int, DmxUniverse]
 
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
+
+        if self.__source_ip is not None and self.__source_ip is not None:
+            self._socket.bind((self.__source_ip, self.__source_port))
+
         self._socket.setblocking(False)
         if broadcast:
             self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
