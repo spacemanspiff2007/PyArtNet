@@ -4,75 +4,91 @@ import contextlib
 import logging
 import socket
 import struct
-import time
-from typing import Final, Union, Optional
-from asyncio import Task
+from time import monotonic
+from typing import Final, Union, Optional, Protocol
+from asyncio import Task, create_task, sleep
 from traceback import format_exc
+
 
 log = logging.getLogger('pyartnet.ArtNetNode')
 
 
 class BaseNode:
-    def __init__(self, host: str, port: int, max_fps: Union[int, float] = 25, refresh_every: Union[int, float] = 2):
-        self._host: Final = host
+    def __init__(self, ip: str, port: int,
+                 refresh_every: Union[int, float] = 2, sequence_counter=True,
+                 source_ip: Optional[str] = None, source_port: Optional[int] = None):
+        super().__init__()
+
+        self._ip: Final = ip
         self._port: Final = port
 
-        self._base_packet: bytearray = bytearray()
+        # socket setup
         self._socket: Final = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
-        self._socket.setblocking(False)
+        self._socket.setblocking(False)  # nonblocking for true asyncio
 
-        max_fps = max(1, min(max_fps, 100))
-        self._send_sleep: float = 1 / max_fps
-        self._send_refresh: float = max(1, refresh_every)
-        self._send_task: Optional[Task] = None
+        # option to set source port/ip
+        if source_ip is not None and source_port is not None:
+            self._socket.bind((source_ip, source_port))
 
-        self.__universe = {}  # type: typing.Dict[int, DmxUniverse]
+        # udp packet data
+        self._packet_base: Union[bytearray, bytes] = bytearray()
 
-    def send_data(self):
+        # refresh
+        self._refresh_every: float = max(0.1, refresh_every)
+        self._refresh_task: Optional[Task] = None
+        self._last_send: float = 0
+
+        self._sequence_ctr = 1 if sequence_counter else 0
+
+    def prepare_data(self, values: bytearray):
         raise NotImplementedError()
 
+    def send_data(self, data: Union[bytearray, bytes]) -> int:
+
+        ret = self._socket.sendto(self._packet_base + data, (self._ip, self._port))
+
+        self._last_send = monotonic()
+
+        # sequence counter only when enabled
+        if ctr := self._sequence_ctr:
+            ctr += 1
+            if ctr > 255:
+                ctr = 1
+            self._sequence_ctr = ctr
+
+        return ret
+
     async def start(self):
-        if self._send_task:
+        if self._refresh_task:
             return None
-        self._send_task = asyncio.create_task(self._worker_task())
+        self._refresh_task = create_task(self._periodic_refresh_task())
 
     async def stop(self):
-        if self._send_task is None:
+        if self._refresh_task is None:
             return None
-        self._send_task.cancel()
-        await self._send_task
+        # variable gets set to None in the task
+        self._refresh_task.cancel()
+        await self._refresh_task
 
-    async def _worker_logic(self):
-        last_update = time.time()
-
+    async def _periodic_refresh_worker(self):
         while True:
-            await asyncio.sleep(self._send_sleep)
+            diff = monotonic() - self._last_send
+            if diff < self._refresh_every:
+                await sleep(diff)
+                continue
 
-            fades_running = False
-            for u in self.__universe.values():
-                if u.process():
-                    fades_running = True
+            self.prepare_data()
 
-            if fades_running:
-                self.send_data()
-                last_update = time.time()
-            else:
-                if self._send_refresh > 0:
-                    # refresh data all 2 secs
-                    if time.time() - last_update > self._send_refresh:
-                        self.send_data()
-                        last_update = time.time()
-
-    async def _worker_task(self):
-        log.debug(f'Started worker for {self._host:s}')
+    async def _periodic_refresh_task(self):
+        log.debug(f'Started worker for {self._ip:s}')
         try:
             while True:
                 try:
-                    await self._worker_logic()
+                    await self._periodic_refresh_worker()
                 except Exception:
-                    log.error(f'Error in worker for {self._host}:')
+                    log.error(f'Error in worker for {self._ip:s}:')
                     for line in format_exc().splitlines():
                         log.error(line)
         finally:
-            self._send_task = None
-            log.debug(f'Stopped worker for {self._host:s}')
+            self._refresh_task = None
+            log.debug(f'Stopped worker for {self._ip:s}')
