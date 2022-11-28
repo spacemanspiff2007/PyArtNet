@@ -28,3 +28,7 @@ class ChannelValueOutOfBounds(PyArtNetError):
 
 class ValueCountDoesNotMatchChannelWidthError(PyArtNetError):
     pass
+
+
+class InvalidUniverseAddress(PyArtNetError):
+    pass

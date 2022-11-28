@@ -5,12 +5,14 @@ import logging
 import socket
 import struct
 from time import monotonic
-from typing import Final, Union, Optional, Protocol
+from typing import Final, Union, Optional, Protocol, TypeVar, List
 from asyncio import Task, create_task, sleep
 from traceback import format_exc
-
+import pyartnet
 
 log = logging.getLogger('pyartnet.ArtNetNode')
+
+TYPE_NODE = TypeVar('TYPE_NODE', bound='BaseNode')
 
 
 class BaseNode:
@@ -40,7 +42,10 @@ class BaseNode:
 
         self._sequence_ctr = 1 if sequence_counter else 0
 
-    def prepare_data(self, values: bytearray):
+        # containing universes
+        self._universes: List[pyartnet.node.Universe] = []
+
+    def send_universe(self, universe: int, values: bytearray):
         raise NotImplementedError()
 
     def send_data(self, data: Union[bytearray, bytes]) -> int:

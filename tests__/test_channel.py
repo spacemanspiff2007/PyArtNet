@@ -173,31 +173,6 @@ async def test_byte_iterator(running_artnet_node: PatchedArtNetNode):
             assert soll == ist
 
 
-def test_channel_boundaries():
-    node = pyartnet.ArtNetNode(host='')
-    univ = pyartnet.DmxUniverse(node)
-
-    with pytest.raises(pyartnet.errors.ChannelOutOfUniverseError) as r:
-        pyartnet.DmxChannel(univ, 0, 1)
-    assert str(r.value) == 'Start position of channel out of universe (1..512): 0'
-    pyartnet.DmxChannel(univ, 1, 1)
-
-    with pytest.raises(pyartnet.errors.ChannelOutOfUniverseError) as r:
-        pyartnet.DmxChannel(univ, 513, 1)
-    assert str(r.value) == 'Start position of channel out of universe (1..512): 513'
-    pyartnet.DmxChannel(univ, 512, 1)
-
-    with pytest.raises(pyartnet.errors.ChannelOutOfUniverseError) as r:
-        pyartnet.DmxChannel(univ, 512, 2)
-    assert str(r.value) == 'End position of channel out of universe (1..512): start: 512 width: 2 * 2bytes -> 513'
-    pyartnet.DmxChannel(univ, 511, 2)
-
-    # 16 Bit Channels
-    with pytest.raises(pyartnet.errors.ChannelOutOfUniverseError) as r:
-        pyartnet.DmxChannel16Bit(univ, 512, 1)
-    assert str(r.value) == 'End position of channel out of universe (1..512): start: 512 width: 1 * 2bytes -> 513'
-    pyartnet.DmxChannel16Bit(univ, 511, 1)
-
 
 def test_channel_max_values():
     node = pyartnet.ArtNetNode(host='')

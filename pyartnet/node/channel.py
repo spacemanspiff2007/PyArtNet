@@ -8,9 +8,8 @@ from pyartnet.errors import ChannelValueOutOfBounds, ValueCountDoesNotMatchChann
     ChannelWidthInvalid
 from pyartnet.fades import FadeBase, LinearFade
 
-from .animation_node import TYPE_ANIMATION_NODE
 from array import array
-from pyartnet.nodes.node_universe import DmxUniverse
+from .universe import Universe
 from pyartnet.output_correction import linear
 
 log = logging.getLogger('pyartnet.DmxChannel')
@@ -24,11 +23,11 @@ ARRAY_TYPE: Final = {
 }
 
 
-HINT_CHANNEL = TypeVar('HINT_CHANNEL', bound='ChannelBytes')
+TYPE_CHANNEL = TypeVar('TYPE_CHANNEL', bound='Channel')
 
 
-class ChannelBytes:
-    def __init__(self, universe: DmxUniverse,
+class Channel:
+    def __init__(self, universe: Universe,
                  start: int, width: int,
                  byte_size: int = 1, byte_order: Literal['big', 'little'] = 'little'):
 
@@ -100,7 +99,7 @@ class ChannelBytes:
         byte_order = self._byte_order
         byte_size = self._byte_size
 
-        start = self._start
+        start = self._start - 1  # universe starts count with 1
         for value in self._values_act:
             buf[start: start + byte_size] = value.to_bytes(byte_size, byte_order, signed=False)
             start += byte_size

@@ -1,23 +1,34 @@
 import asyncio
 import logging
+from time import monotonic
 from typing import Dict, Type, Final
 
 import pyartnet
-from .animation_node import TYPE_ANIMATION_NODE
+from .base_node import TYPE_NODE
 
-from pyartnet.errors import ChannelExistsError, ChannelNotFoundError, OverlappingChannelError
+from pyartnet.errors import ChannelExistsError, ChannelNotFoundError, OverlappingChannelError, InvalidUniverseAddress
 
 log = logging.getLogger('pyartnet.DmxUniverse')
 
 
-class DmxUniverse:
-    def __init__(self, node: TYPE_ANIMATION_NODE):
+class Universe:
+    def __init__(self, node: TYPE_NODE, universe: int = 0):
+        if not 0 <= universe <= 32767:
+            raise InvalidUniverseAddress()
+
         self._parent_node: Final = node
+        self._universe: Final = universe
+
         self._data: bytearray = bytearray()
+        self._last_send: float = 0
 
         self._channels: Dict[str, pyartnet.DmxChannel] = {}
 
         self.output_correction = None
+
+    def send_data(self):
+        self._parent_node.send_universe(self._universe, self._data)
+        self._last_send = monotonic()
 
     def get_channel(self, channel_name: str) -> pyartnet.DmxChannel:
         if not isinstance(channel_name, str):
