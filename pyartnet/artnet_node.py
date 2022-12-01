@@ -37,6 +37,7 @@ class ArtNetNode:
         self._socket = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
 
         if self.__source_ip is not None and self.__source_ip is not None:
+            self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self._socket.bind((self.__source_ip, self.__source_port))
 
         self._socket.setblocking(False)
