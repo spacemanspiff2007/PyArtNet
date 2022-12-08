@@ -2,25 +2,42 @@ import asyncio
 import binascii
 import contextlib
 import logging
-import socket
 import struct
 from time import monotonic
-from typing import Final, Union, Optional, Protocol, TypeVar, List
+from typing import Final, Union, Optional, Protocol, TypeVar, List, Tuple, cast
 from asyncio import Task, create_task, sleep
 from traceback import format_exc
 import pyartnet
+import socket
+from .output_correction import OutputCorrection
 
 log = logging.getLogger('pyartnet.ArtNetNode')
 
 TYPE_NODE = TypeVar('TYPE_NODE', bound='BaseNode')
 
 
-class BaseNode:
-    def __init__(self, ip: str, port: int,
-                 refresh_every: Union[int, float] = 2, sequence_counter=True,
-                 source_ip: Optional[str] = None, source_port: Optional[int] = None):
+CREATE_TASK = create_task   # easy way to add a different way to schedule tasks (e.g. thread safe)
+
+
+class BaseNodeJob:
+    def __init__(self):
+        self.is_done = False
+
+    def process(self):
+        raise NotImplementedError()
+
+TYPE_JOB = TypeVar('TYPE_JOB', bound=BaseNodeJob)
+
+
+class BaseNode(OutputCorrection):
+    def __init__(self, ip: str, port: int, *,
+                 max_fps: int = 25,
+                 refresh_every: Union[int, float] = 2,
+                 sequence_counter=True,
+                 source_address: Optional[Tuple[str, int]] = None):
         super().__init__()
 
+        # Destination
         self._ip: Final = ip
         self._port: Final = port
 
@@ -29,21 +46,30 @@ class BaseNode:
         self._socket.setblocking(False)  # nonblocking for true asyncio
 
         # option to set source port/ip
-        if source_ip is not None and source_port is not None:
-            self._socket.bind((source_ip, source_port))
+        if source_address is not None:
+            self._socket.bind(source_address)
 
-        # udp packet data
-        self._packet_base: Union[bytearray, bytes] = bytearray()
-
-        # refresh
+        # refresh task
         self._refresh_every: float = max(0.1, refresh_every)
         self._refresh_task: Optional[Task] = None
-        self._last_send: float = 0
 
+        # fade task
+        self._process_every: float = 1 / max(1, max_fps)
+        self._process_task: Optional[Task] = None
+        self._process_jobs: List[TYPE_JOB] = []
+
+        # packet data
+        self._packet_base: Union[bytearray, bytes] = bytearray()
+        self._last_send: float = 0
         self._sequence_ctr = 1 if sequence_counter else 0
 
         # containing universes
-        self._universes: List[pyartnet.node.Universe] = []
+        self._universes: List['pyartnet.node.Universe'] = []
+
+    def _apply_output_correction(self):
+        for u in self._universes:
+            # noinspection PyProtectedMember
+            u._apply_output_correction()
 
     def send_universe(self, universe: int, values: bytearray):
         raise NotImplementedError()
@@ -63,26 +89,79 @@ class BaseNode:
 
         return ret
 
+    def _start_process_task(self):
+        if self._process_task is None:
+            return None
+        self._process_task = CREATE_TASK(self._process_values_task(), name=f'Process task {self._ip}:{self._port}')
+
+    async def _process_values_task(self):
+        log.debug(f'Started process task {self._ip:s}')
+
+        # wait a little, so we can schedule multiple tasks/updates, and they all start together
+        await sleep(0.01)
+
+        idle_ct = 0
+        try:
+            while idle_ct < 5:
+                idle_ct += 1
+
+                # process jobs
+                to_remove = []
+                for job in self._process_jobs:  # type: TYPE_JOB
+                    job.process()
+                    idle_ct = 0
+
+                    if job.is_done:
+                        to_remove.append(job)
+
+                if to_remove:
+                    for job in to_remove:
+                        self._process_jobs.remove(job)
+
+                # send data of universe
+                for universe in self._universes:
+                    # noinspection PyProtectedMember
+                    if not universe._data_changed:
+                        continue
+                    universe.send_data()
+                    idle_ct = 0
+
+                await sleep(self._process_every)
+        finally:
+            self._process_task = None
+            log.debug(f'Stopped process task {self._ip:s}')
+
     async def start(self):
         if self._refresh_task:
-            return None
-        self._refresh_task = create_task(self._periodic_refresh_task())
+            return False
+        self._refresh_task = CREATE_TASK(self._periodic_refresh_task(), name=f'Refresh task {self._ip}:{self._port}')
+        return True
 
     async def stop(self):
         if self._refresh_task is None:
-            return None
-        # variable gets set to None in the task
+            return False
+
         self._refresh_task.cancel()
+        # variable gets set to None in the task
+        # That's why it's also necessary to await it
         await self._refresh_task
+        return True
 
     async def _periodic_refresh_worker(self):
         while True:
-            diff = monotonic() - self._last_send
+            # sync the refresh messages
+            next_refresh = monotonic()
+            for u in self._universes:
+                # noinspection PyProtectedMember
+                next_refresh = min(next_refresh, u._last_send)
+
+            diff = monotonic() - next_refresh
             if diff < self._refresh_every:
                 await sleep(diff)
                 continue
 
-            self.prepare_data()
+            for u in self._universes:
+                u.send_data()
 
     async def _periodic_refresh_task(self):
         log.debug(f'Started worker for {self._ip:s}')

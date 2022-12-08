@@ -15,6 +15,8 @@ class DmxChannel:
     _CHANNEL_MAX: int = 256 ** _CHANNEL_SIZE - 1    # Max value of the channel
 
     def __init__(self, universe: 'pyartnet.DmxUniverse', start: int, width: int):
+        super().__init__()
+
         self.width: int = width
         byte_width: int = width * self._CHANNEL_SIZE
 

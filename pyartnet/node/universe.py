@@ -7,28 +7,49 @@ import pyartnet
 from .base_node import TYPE_NODE
 
 from pyartnet.errors import ChannelExistsError, ChannelNotFoundError, OverlappingChannelError, InvalidUniverseAddress
+from .output_correction import OutputCorrection
 
 log = logging.getLogger('pyartnet.DmxUniverse')
 
 
-class Universe:
+class Universe(OutputCorrection):
     def __init__(self, node: TYPE_NODE, universe: int = 0):
+        super().__init__()
+
         if not 0 <= universe <= 32767:
             raise InvalidUniverseAddress()
 
-        self._parent_node: Final = node
+        self._node: Final = node
         self._universe: Final = universe
 
         self._data: bytearray = bytearray()
+        self._data_changed = True
         self._last_send: float = 0
 
-        self._channels: Dict[str, pyartnet.DmxChannel] = {}
+        self._channels: Dict[str, pyartnet.node.TYPE_CHANNEL] = {}
 
-        self.output_correction = None
+    def _apply_output_correction(self):
+        for c in self._channels.values():   # type: pyartnet.node.TYPE_CHANNEL
+            # noinspection PyProtectedMember
+            c._apply_output_correction()
+
+    def channel_changed(self, channel: 'pyartnet.node.Channel'):
+        # update universe buffer
+        channel.to_buffer(self._data)
+
+        # signal that this universe has changed
+        self._data_changed = True
+
+        # start fade/refresh task if necessary
+        # noinspection PyProtectedMember
+        if self._node._process_task is None:
+            # noinspection PyProtectedMember
+            self._node._start_process_task()
 
     def send_data(self):
-        self._parent_node.send_universe(self._universe, self._data)
+        self._node.send_universe(self._universe, self._data)
         self._last_send = monotonic()
+        self._data_changed = False
 
     def get_channel(self, channel_name: str) -> pyartnet.DmxChannel:
         if not isinstance(channel_name, str):
@@ -40,11 +61,11 @@ class Universe:
             raise ChannelNotFoundError(f'Channel "{channel_name}" not found in the universe!') from None
 
     def add_channel(self, start: int, width: int, channel_name: str = '',
-                    channel_type: Type[pyartnet.DmxChannel] = pyartnet.DmxChannel) -> pyartnet.DmxChannel:
+                    channel_type: Type['pyartnet.node.TYPE_CHANNEL'] = pyartnet.DmxChannel) -> pyartnet.DmxChannel:
         assert isinstance(channel_name, str), type(channel_name)
         assert issubclass(channel_type, pyartnet.DmxChannel)
 
-        chan = channel_type(self, start, width)
+        chan = channel_type(self, start, width) # type: 'pyartnet.node.TYPE_CHANNEL'
 
         # build name if not supplied
         if not channel_name:
@@ -77,6 +98,9 @@ class Universe:
         # add channel to universe
         self._channels[channel_name] = chan
         log.debug(f'Added channel "{channel_name}": start: {start:d}, stop: {start + width - 1:d}')
+
+        # noinspection PyProtectedMember
+        chan._apply_output_correction()
         return chan
 
     # -----------------------------------------------------------

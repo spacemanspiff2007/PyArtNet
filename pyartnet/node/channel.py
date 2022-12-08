@@ -11,6 +11,7 @@ from pyartnet.fades import FadeBase, LinearFade
 from array import array
 from .universe import Universe
 from pyartnet.output_correction import linear
+from .output_correction import OutputCorrection
 
 log = logging.getLogger('pyartnet.DmxChannel')
 
@@ -26,10 +27,11 @@ ARRAY_TYPE: Final = {
 TYPE_CHANNEL = TypeVar('TYPE_CHANNEL', bound='Channel')
 
 
-class Channel:
+class Channel(OutputCorrection):
     def __init__(self, universe: Universe,
                  start: int, width: int,
                  byte_size: int = 1, byte_order: Literal['big', 'little'] = 'little'):
+        super().__init__()
 
         # Validate Boundaries
         if byte_size not in ARRAY_TYPE:
@@ -66,36 +68,53 @@ class Channel:
 
         # Parents
         self._parent_universe: Final = universe
-        self._parent_node: Final = universe._parent_node
+        self._parent_node: Final = universe._node
 
         # ---------------------------------------------------------------------
         # Values that can be set by the user
         # ---------------------------------------------------------------------
-        self.output_correction: Optional[Callable[[float, int], float]] = None
+        self._correction_current: Optional[Callable[[float, int], float]] = linear
+
+    def _apply_output_correction(self):
+        # default correction is linear
+        self._correction_current = linear
+
+        # inherit correction if it is not set first from universe and then from the node
+        for obj in (self, self._parent_universe, self._parent_node):
+            if obj._correction_output is not None:
+                self._correction_current = obj._correction_output
+                return None
 
     def get_values(self) -> List[int]:
         return self._values_raw.tolist()
 
     def set_values(self, values: Iterable[Union[int, float]]):
         # get output correction function
-        correction: Callable[[float, int], float] = linear
-        if self.output_correction is not None:
-            correction = self.output_correction
-        elif self._parent_universe.output_correction is not None:
-            correction = self.output_correction
-
+        correction = self._correction_current
         value_max = self._value_max
+
+        changed = False
+        i: int = -1
         for i, val in enumerate(values):
             if not 0 <= val <= value_max:
                 raise ChannelValueOutOfBounds(f'Channel value out of bounds! 0 <= {val} <= {value_max:d}')
 
-            self._values_raw[i] = round(val)
-            if correction is not linear:
-                val = correction(val, self._value_max)
-            self._values_act[i] = round(val)
+            self._values_raw[i] = raw_new = round(val)
+            act_new = round(correction(val, value_max)) if correction is not linear else raw_new
+            if self._values_act[i] != act_new:
+                changed = True
+            self._values_act[i] = act_new
+
+        # check that we passed all values
+        i += 1
+        if i != self._width:
+            raise ValueCountDoesNotMatchChannelWidthError(
+                f'Not enough fade values specified, expected {self._width} but got {i}!')
+
+        if changed:
+            self._parent_universe.channel_changed(self)
 
     def to_buffer(self, buf: bytearray):
-
         byte_order = self._byte_order
         byte_size = self._byte_size
 
@@ -103,3 +122,6 @@ class Channel:
         for value in self._values_act:
             buf[start: start + byte_size] = value.to_bytes(byte_size, byte_order, signed=False)
             start += byte_size
+
+    def __repr__(self):
+        return f'<{self.__class__.__name__:s} {self._start}/{self._width} {self._byte_size * 8}bit>'
