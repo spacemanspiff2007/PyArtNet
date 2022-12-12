@@ -1,19 +1,18 @@
-import asyncio
 import logging
 from time import monotonic
-from typing import Dict, Type, Final
+from typing import Dict, Final, Literal
 
 import pyartnet
-from .base_node import TYPE_NODE
+from pyartnet.errors import ChannelExistsError, ChannelNotFoundError, InvalidUniverseAddress, OverlappingChannelError
 
-from pyartnet.errors import ChannelExistsError, ChannelNotFoundError, OverlappingChannelError, InvalidUniverseAddress
 from .output_correction import OutputCorrection
 
 log = logging.getLogger('pyartnet.DmxUniverse')
 
 
+# noinspection PyProtectedMember
 class Universe(OutputCorrection):
-    def __init__(self, node: TYPE_NODE, universe: int = 0):
+    def __init__(self, node: 'pyartnet.node.BaseNode', universe: int = 0):
         super().__init__()
 
         if not 0 <= universe <= 32767:
@@ -26,11 +25,10 @@ class Universe(OutputCorrection):
         self._data_changed = True
         self._last_send: float = 0
 
-        self._channels: Dict[str, pyartnet.node.TYPE_CHANNEL] = {}
+        self._channels: Dict[str, 'pyartnet.node.Channel'] = {}
 
     def _apply_output_correction(self):
-        for c in self._channels.values():   # type: pyartnet.node.TYPE_CHANNEL
-            # noinspection PyProtectedMember
+        for c in self._channels.values():
             c._apply_output_correction()
 
     def channel_changed(self, channel: 'pyartnet.node.Channel'):
@@ -43,15 +41,14 @@ class Universe(OutputCorrection):
         # start fade/refresh task if necessary
         # noinspection PyProtectedMember
         if self._node._process_task is None:
-            # noinspection PyProtectedMember
             self._node._start_process_task()
 
     def send_data(self):
-        self._node.send_universe(self._universe, self._data)
+        self._node._send_universe(self._universe, self._data)
         self._last_send = monotonic()
         self._data_changed = False
 
-    def get_channel(self, channel_name: str) -> pyartnet.DmxChannel:
+    def get_channel(self, channel_name: str) -> 'pyartnet.node.Channel':
         if not isinstance(channel_name, str):
             raise TypeError('Channel name must be str')
 
@@ -60,12 +57,12 @@ class Universe(OutputCorrection):
         except KeyError:
             raise ChannelNotFoundError(f'Channel "{channel_name}" not found in the universe!') from None
 
-    def add_channel(self, start: int, width: int, channel_name: str = '',
-                    channel_type: Type['pyartnet.node.TYPE_CHANNEL'] = pyartnet.DmxChannel) -> pyartnet.DmxChannel:
-        assert isinstance(channel_name, str), type(channel_name)
-        assert issubclass(channel_type, pyartnet.DmxChannel)
+    def add_channel(self,
+                    start: int, width: int,
+                    channel_name: str = '',
+                    byte_size: int = 1, byte_order: Literal['big', 'little'] = 'little') -> 'pyartnet.node.Channel':
 
-        chan = channel_type(self, start, width) # type: 'pyartnet.node.TYPE_CHANNEL'
+        chan = pyartnet.node.Channel(self, start, width)
 
         # build name if not supplied
         if not channel_name:
@@ -78,35 +75,45 @@ class Universe(OutputCorrection):
         # Make sure channels are not overlapping because they will overwrite each other
         # and this leads to unintended behavior
         for _n, _c in self._channels.items():
-            if _c.start > chan.stop or _c.stop < chan.start:
+            if _c._start > chan._stop or _c._stop < chan._start:
                 continue
-            for i in range(_c.start, _c.stop + 1):
-                if start <= i <= chan.stop:
+            for i in range(_c._start, _c._stop + 1):
+                if start <= i <= chan._stop:
                     raise OverlappingChannelError(f'New channel {channel_name} is overlapping with channel {_n:s}!')
 
-        # Calculate highest channel
-        highest_was = len(self._data)
-        highest_new = max(highest_was, chan.stop)
-        if highest_new % 2:
-            highest_new += 1
-
-        # pad universe with 0
-        if highest_was != highest_new:
-            for i in range(highest_new - highest_was):
-                self._data.append(0)
+        self._resize_universe(chan._stop)
 
         # add channel to universe
         self._channels[channel_name] = chan
         log.debug(f'Added channel "{channel_name}": start: {start:d}, stop: {start + width - 1:d}')
 
-        # noinspection PyProtectedMember
         chan._apply_output_correction()
         return chan
+
+    def _resize_universe(self, min_size: int):
+
+        new_size = max(min_size, 2)
+        for c in self._channels.values():
+            new_size = max(new_size, c._stop)
+        if new_size % 2:
+            new_size += 1
+
+        diff = new_size - len(self._data)
+        if not diff:
+            return None
+
+        if diff < 0:
+            for _ in range(- diff):
+                self._data.pop()
+        else:
+            for _ in range(diff):
+                # pad universe data with 0 is it's off
+                self._data.append(0)
 
     # -----------------------------------------------------------
     # emulate container
     def __len__(self):
         return len(self._channels)
 
-    def __getitem__(self, item: str) -> pyartnet.DmxChannel:
+    def __getitem__(self, item: str) -> 'pyartnet.node.Channel':
         return self.get_channel(item)

@@ -3,8 +3,8 @@ import logging
 import math
 from typing import Any, Callable, Iterable, List, Optional, Type, Union
 
-import pyartnet
-from pyartnet.errors import ChannelValueOutOfBounds, ValueCountDoesNotMatchChannelWidthError
+import pyartnet.node
+from pyartnet.errors import ChannelOutOfUniverseError, ChannelValueOutOfBounds, ValueCountDoesNotMatchChannelWidthError
 from pyartnet.fades import FadeBase, LinearFade
 
 log = logging.getLogger('pyartnet.DmxChannel')
@@ -14,7 +14,7 @@ class DmxChannel:
     _CHANNEL_SIZE: int = 1                          # Channel size in byte
     _CHANNEL_MAX: int = 256 ** _CHANNEL_SIZE - 1    # Max value of the channel
 
-    def __init__(self, universe: 'pyartnet.DmxUniverse', start: int, width: int):
+    def __init__(self, universe: 'pyartnet.node.Universe', start: int, width: int):
         super().__init__()
 
         self.width: int = width
@@ -24,14 +24,14 @@ class DmxChannel:
         self.stop: int = start + byte_width - 1
 
         if self.start < 1 or self.start > 512:
-            raise pyartnet.errors.ChannelOutOfUniverseError(
+            raise ChannelOutOfUniverseError(
                 f'Start position of channel out of universe (1..512): {self.start}')
 
         if width <= 0 or not isinstance(width, int):
             raise pyartnet.errors.ChannelWidthInvalid(f'Channel width must be int > 0: {width} ({type(width)})')
 
         if self.stop > 512:
-            raise pyartnet.errors.ChannelOutOfUniverseError(
+            raise ChannelOutOfUniverseError(
                 f'End position of channel out of universe (1..512): '
                 f'start: {self.start} width: {self.width} * {byte_width}bytes -> {self.stop}'
             )
@@ -45,8 +45,7 @@ class DmxChannel:
         self.__step_max = 0
         self.__step_is = 0
 
-        assert isinstance(universe, pyartnet.DmxUniverse)
-        self.__universe: pyartnet.DmxUniverse = universe
+        self._universe: pyartnet.node.Universe = universe
 
         # Output correction function
         self.output_correction = None

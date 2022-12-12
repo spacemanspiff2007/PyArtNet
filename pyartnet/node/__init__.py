@@ -1,3 +1,3 @@
-from .channel import TYPE_CHANNEL, Channel
+from .base_node import BaseNode
+from .channel import Channel, TYPE_CHANNEL
 from .universe import Universe
-from .base_node import TYPE_NODE, BaseNode

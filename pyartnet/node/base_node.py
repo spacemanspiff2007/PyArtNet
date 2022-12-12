@@ -1,19 +1,15 @@
-import asyncio
-import binascii
-import contextlib
 import logging
-import struct
-from time import monotonic
-from typing import Final, Union, Optional, Protocol, TypeVar, List, Tuple, cast
-from asyncio import Task, create_task, sleep
-from traceback import format_exc
-import pyartnet
 import socket
+from asyncio import create_task, sleep, Task
+from time import monotonic
+from traceback import format_exc
+from typing import Final, List, Optional, Tuple, Union
+
+import pyartnet
+
 from .output_correction import OutputCorrection
 
 log = logging.getLogger('pyartnet.ArtNetNode')
-
-TYPE_NODE = TypeVar('TYPE_NODE', bound='BaseNode')
 
 
 CREATE_TASK = create_task   # easy way to add a different way to schedule tasks (e.g. thread safe)
@@ -26,9 +22,8 @@ class BaseNodeJob:
     def process(self):
         raise NotImplementedError()
 
-TYPE_JOB = TypeVar('TYPE_JOB', bound=BaseNodeJob)
 
-
+# noinspection PyProtectedMember
 class BaseNode(OutputCorrection):
     def __init__(self, ip: str, port: int, *,
                  max_fps: int = 25,
@@ -40,6 +35,7 @@ class BaseNode(OutputCorrection):
         # Destination
         self._ip: Final = ip
         self._port: Final = port
+        self._dst: Final = (self._ip, self._port)
 
         # socket setup
         self._socket: Final = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
@@ -56,7 +52,7 @@ class BaseNode(OutputCorrection):
         # fade task
         self._process_every: float = 1 / max(1, max_fps)
         self._process_task: Optional[Task] = None
-        self._process_jobs: List[TYPE_JOB] = []
+        self._process_jobs: List[BaseNodeJob] = []
 
         # packet data
         self._packet_base: Union[bytearray, bytes] = bytearray()
@@ -68,15 +64,14 @@ class BaseNode(OutputCorrection):
 
     def _apply_output_correction(self):
         for u in self._universes:
-            # noinspection PyProtectedMember
             u._apply_output_correction()
 
-    def send_universe(self, universe: int, values: bytearray):
+    def _send_universe(self, universe: int, values: bytearray):
         raise NotImplementedError()
 
-    def send_data(self, data: Union[bytearray, bytes]) -> int:
+    def _send_data(self, data: Union[bytearray, bytes]) -> int:
 
-        ret = self._socket.sendto(self._packet_base + data, (self._ip, self._port))
+        ret = self._socket.sendto(self._packet_base + data, self._dst)
 
         self._last_send = monotonic()
 
@@ -102,12 +97,12 @@ class BaseNode(OutputCorrection):
 
         idle_ct = 0
         try:
-            while idle_ct < 5:
+            while idle_ct < 10:
                 idle_ct += 1
 
                 # process jobs
                 to_remove = []
-                for job in self._process_jobs:  # type: TYPE_JOB
+                for job in self._process_jobs:
                     job.process()
                     idle_ct = 0
 
@@ -120,7 +115,6 @@ class BaseNode(OutputCorrection):
 
                 # send data of universe
                 for universe in self._universes:
-                    # noinspection PyProtectedMember
                     if not universe._data_changed:
                         continue
                     universe.send_data()
@@ -152,7 +146,6 @@ class BaseNode(OutputCorrection):
             # sync the refresh messages
             next_refresh = monotonic()
             for u in self._universes:
-                # noinspection PyProtectedMember
                 next_refresh = min(next_refresh, u._last_send)
 
             diff = monotonic() - next_refresh

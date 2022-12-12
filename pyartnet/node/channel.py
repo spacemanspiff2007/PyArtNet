@@ -1,17 +1,13 @@
-import asyncio
 import logging
-import math
-from typing import Any, Callable, Iterable, List, Optional, Type, Union, Final, Literal, TypeVar
-
-import pyartnet
-from pyartnet.errors import ChannelValueOutOfBounds, ValueCountDoesNotMatchChannelWidthError, ChannelOutOfUniverseError, \
-    ChannelWidthInvalid
-from pyartnet.fades import FadeBase, LinearFade
-
 from array import array
-from .universe import Universe
+from typing import Callable, Final, Iterable, List, Literal, TypeVar, Union
+
+from pyartnet.errors import ChannelOutOfUniverseError, ChannelValueOutOfBounds, \
+    ChannelWidthInvalid, ValueCountDoesNotMatchChannelWidthError
 from pyartnet.output_correction import linear
+
 from .output_correction import OutputCorrection
+from .universe import Universe
 
 log = logging.getLogger('pyartnet.DmxChannel')
 
@@ -22,9 +18,6 @@ ARRAY_TYPE: Final = {
     3: 'L',  # unsigned long: min size 4 bytes
     4: 'L'   # unsigned long: min size 4 bytes
 }
-
-
-TYPE_CHANNEL = TypeVar('TYPE_CHANNEL', bound='Channel')
 
 
 class Channel(OutputCorrection):
@@ -73,7 +66,7 @@ class Channel(OutputCorrection):
         # ---------------------------------------------------------------------
         # Values that can be set by the user
         # ---------------------------------------------------------------------
-        self._correction_current: Optional[Callable[[float, int], float]] = linear
+        self._correction_current: Callable[[float, int], float] = linear
 
     def _apply_output_correction(self):
         # default correction is linear
@@ -125,3 +118,6 @@ class Channel(OutputCorrection):
 
     def __repr__(self):
         return f'<{self.__class__.__name__:s} {self._start}/{self._width} {self._byte_size * 8}bit>'
+
+
+TYPE_CHANNEL = TypeVar('TYPE_CHANNEL', bound=Channel)
