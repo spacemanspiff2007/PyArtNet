@@ -7,7 +7,7 @@ import setuptools  # type: ignore
 # Load version number without importing HABApp
 def load_version() -> str:
     version: typing.Dict[str, str] = {}
-    with open("pyartnet/__version__.py") as fp:
+    with open("src/pyartnet/__version__.py") as fp:
         exec(fp.read(), version)
     assert version['__version__'], version
     return version['__version__']
