@@ -78,9 +78,9 @@ class BaseNode(OutputCorrection):
         return ret
 
     def _start_process_task(self):
-        if self._process_task is None:
+        if self._process_task is not None:
             return None
-        self._process_task = CREATE_TASK(self._process_values_task(), name=f'Process task {self._name:S}')
+        self._process_task = CREATE_TASK(self._process_values_task(), name=f'Process task {self._name:s}')
 
     async def _process_values_task(self):
         log.debug(f'Started process task {self._name:s}')
@@ -90,7 +90,7 @@ class BaseNode(OutputCorrection):
 
         idle_ct = 0
         try:
-            while idle_ct < 10:
+            while idle_ct < 5:
                 idle_ct += 1
 
                 # process jobs

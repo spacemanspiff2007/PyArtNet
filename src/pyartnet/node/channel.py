@@ -1,16 +1,19 @@
 import logging
 from array import array
-from typing import Any, Callable, Final, Iterable, List, Literal, Optional, Union
+from logging import DEBUG as LVL_DEBUG
+from math import ceil
+from typing import Any, Callable, Final, Iterable, List, Literal, Optional, Type, Union
 
 from pyartnet.errors import ChannelOutOfUniverseError, ChannelValueOutOfBounds, \
     ChannelWidthInvalid, ValueCountDoesNotMatchChannelWidthError
 from pyartnet.output_correction import linear
 
+from ..fades import FadeBase, LinearFade
 from .channel_fade import ChannelBoundFade
 from .output_correction import OutputCorrection
 from .universe import Universe
 
-log = logging.getLogger('pyartnet.DmxChannel')
+log = logging.getLogger('pyartnet.Channel')
 
 
 
@@ -56,6 +59,7 @@ class Channel(OutputCorrection):
         self._byte_size: Final = byte_size
         self._byte_order: Final = byte_order
         self._value_max: Final = 256 ** self._byte_size - 1
+        self._buf_start: Final = self._start - 1
 
         null_vals = [0 for _ in range(self._width)]
         self._values_raw: array[int] = array(ARRAY_TYPE[self._byte_size], null_vals)    # uncorrected values
@@ -120,10 +124,55 @@ class Channel(OutputCorrection):
         byte_order = self._byte_order
         byte_size = self._byte_size
 
-        start = self._start - 1  # universe starts count with 1
+        start = self._buf_start
         for value in self._values_act:
             buf[start: start + byte_size] = value.to_bytes(byte_size, byte_order, signed=False)
             start += byte_size
 
+    # noinspection PyProtectedMember
+    def add_fade(self, values: Iterable[Union[int, FadeBase]], duration_ms: int,
+                 fade_class: Type[FadeBase] = LinearFade):
+
+        if self._current_fade is not None:
+            self._current_fade.remove()
+
+        # calculate how much steps we will be having
+        step_time_ms = self._parent_node._process_every * 1000
+        duration_ms = max(duration_ms, step_time_ms)
+        fade_steps: int = ceil(duration_ms / step_time_ms)
+
+        # build fades
+        fades: List[FadeBase] = []
+        i: int = -1
+        for i, val in enumerate(values):
+            # default is linear
+            k = fade_class(val) if not isinstance(val, FadeBase) else val
+            fades.append(k)
+
+            if not 0 <= k.val_target <= self._value_max:
+                raise ChannelValueOutOfBounds(f'Target value out of bounds! 0 <= {k.val_target} <= {self._value_max}')
+
+            k.initialize(fade_steps)
+
+        # check that we passed all values
+        i += 1
+        if i != self._width:
+            raise ValueCountDoesNotMatchChannelWidthError(
+                f'Not enough fade values specified, expected {self._width} but got {i}!')
+
+        # Add to scheduling
+        self._current_fade = ChannelBoundFade(self, fades)
+        self._parent_node._process_jobs.append(self._current_fade)
+
+        # start fade/refresh task if necessary
+        if self._parent_node._process_task is None:
+            self._parent_node._start_process_task()
+
+        if log.isEnabledFor(LVL_DEBUG):
+            log.debug(f'Added fade with {fade_steps} steps:')
+            for i, fade in enumerate(fades):
+                log.debug(f'CH {self._start + i}: {self._values_raw[i]:03d} -> {fade.val_target:03d}'
+                          f' | {fade.debug_initialize():s}')
+
     def __repr__(self):
-        return f'<{self.__class__.__name__:s} {self._start}/{self._width} {self._byte_size * 8}bit>'
+        return f'<{self.__class__.__name__:s} {self._start:d}/{self._width:d} {self._byte_size * 8:d}bit>'

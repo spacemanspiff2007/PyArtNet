@@ -8,6 +8,7 @@ if TYPE_CHECKING:
 log = logging.getLogger('pyartnet.DmxChannel')
 
 
+# noinspection PyProtectedMember
 class ChannelBoundFade:
     def __init__(self, channel: 'pyartnet.node.Channel', fades: Iterable['pyartnet.fades.FadeBase']):
         super().__init__()
@@ -32,7 +33,6 @@ class ChannelBoundFade:
         self.is_done = finished
         self.channel.set_values(self.values)
 
-    # noinspection PyProtectedMember
     def remove(self):
         node = self.channel._parent_node
 
@@ -52,3 +52,12 @@ class ChannelBoundFade:
 
         if c.callback_fade_finished is not None:
             c.callback_fade_finished(c)
+
+    def __repr__(self):
+        # Channel part
+        if self.channel is not None:
+            channel_part = f'channel={self.channel._start:d}/{self.channel._width:d}'
+        else:
+            channel_part = 'channel=None'
+
+        return f'<{self.__class__.__name__:s} {channel_part}, is_done={self.is_done}>'
