@@ -3,6 +3,7 @@ from unittest.mock import Mock
 import pytest
 
 from pyartnet.errors import ChannelOutOfUniverseError, ChannelValueOutOfBounds
+from pyartnet.node import Universe
 from pyartnet.node.channel import Channel
 
 
@@ -58,3 +59,17 @@ def test_set_value_invalid():
         b.set_values([0, 0, 65536])
     assert str(e.value) == 'Channel value out of bounds! 0 <= 65536 <= 65535'
     b.set_values([0, 0, 65535])
+
+
+def test_values_add_channel(universe: Universe):
+    u = universe.add_channel(1, 2, byte_size=3, byte_order='big')
+    assert u._start == 1
+    assert u._width == 2
+    assert u._byte_size == 3
+    assert u._byte_order == 'big'
+
+    u = universe.add_channel(10, 5, byte_size=2, byte_order='little')
+    assert u._start == 10
+    assert u._width == 5
+    assert u._byte_size == 2
+    assert u._byte_order == 'little'

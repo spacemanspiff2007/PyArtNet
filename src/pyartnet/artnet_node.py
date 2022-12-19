@@ -5,7 +5,6 @@ import logging
 import socket
 import struct
 import time
-import typing
 from traceback import format_exc
 
 from .dmx_universe import DmxUniverse

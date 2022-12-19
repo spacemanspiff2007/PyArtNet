@@ -7,7 +7,7 @@ from pyartnet.errors import ChannelExistsError, ChannelNotFoundError, InvalidUni
 
 from .output_correction import OutputCorrection
 
-log = logging.getLogger('pyartnet.DmxUniverse')
+log = logging.getLogger('pyartnet.Universe')
 
 
 # noinspection PyProtectedMember
@@ -62,7 +62,7 @@ class Universe(OutputCorrection):
                     channel_name: str = '',
                     byte_size: int = 1, byte_order: Literal['big', 'little'] = 'little') -> 'pyartnet.node.Channel':
 
-        chan = pyartnet.node.Channel(self, start, width)
+        chan = pyartnet.node.Channel(self, start, width, byte_size=byte_size, byte_order=byte_order)
 
         # build name if not supplied
         if not channel_name:
