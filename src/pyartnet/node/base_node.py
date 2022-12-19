@@ -3,10 +3,11 @@ import socket
 from asyncio import create_task, sleep, Task
 from time import monotonic
 from traceback import format_exc
-from typing import Final, List, Optional, Tuple, Union
+from typing import Dict, Final, List, Optional, Tuple, Union
 
 import pyartnet
 
+from ..errors import DuplicateUniverseError, UniverseNotFoundError
 from .output_correction import OutputCorrection
 
 log = logging.getLogger('pyartnet.ArtNetNode')
@@ -53,7 +54,8 @@ class BaseNode(OutputCorrection):
         self._sequence_ctr = 1 if sequence_counter else 0
 
         # containing universes
-        self._universes: List['pyartnet.node.Universe'] = []
+        self._universes: Tuple['pyartnet.node.Universe', ...] = tuple()
+        self._universe_map: Dict[int, 'pyartnet.node.Universe'] = {}
 
     def _apply_output_correction(self):
         for u in self._universes:
@@ -163,3 +165,34 @@ class BaseNode(OutputCorrection):
         finally:
             self._refresh_task = None
             log.debug(f'Stopped worker for {self._name:s}')
+
+    def get_universe(self, nr: int) -> 'pyartnet.node.Universe':
+        if not isinstance(nr, int) or not nr >= 0:
+            raise ValueError('Universe must be an int >= 0!')
+        nr = int(nr)
+
+        try:
+            return self._universe_map[nr]
+        except KeyError:
+            raise UniverseNotFoundError(f'Universe {nr:d} not found!') from None
+
+    def add_universe(self, nr: int = 0) -> 'pyartnet.node.Universe':
+        """Creates a new universe and adds it to the node"""
+        if not isinstance(nr, int) or not nr >= 0:
+            raise ValueError('Universe must be an int >= 0!')
+        nr = int(nr)
+
+        if nr in self._universe_map:
+            raise DuplicateUniverseError(f'Universe {nr:d} does already exist!')
+
+        # add to data
+        self._universe_map[nr] = universe = pyartnet.node.Universe(self, nr)
+        self._universes = tuple(u for _, u in sorted(self._universe_map.items()))   # ascending
+
+        return universe
+
+    def __getitem__(self, nr: int) -> 'pyartnet.node.Universe':
+        return self.get_universe(nr)
+
+    def __len__(self):
+        return len(self._universes)

@@ -1,6 +1,7 @@
 import pytest
 
 from pyartnet import errors
+from pyartnet.errors import ChannelNotFoundError
 from pyartnet.node import Universe
 
 
@@ -44,3 +45,24 @@ def test_universe_resize(universe: Universe):
     universe._channels.popitem()
     universe.add_channel(2, 1)
     assert universe._data == b'\x00\x00'
+
+
+def test_access(universe: Universe):
+
+    with pytest.raises(ChannelNotFoundError) as e:
+        universe.get_channel('1')
+    assert str(e.value) == 'Channel "1" not found in the universe!'
+
+    with pytest.raises(ChannelNotFoundError) as e:
+        universe.get_channel('1/1')
+    assert str(e.value) == 'Channel "1/1" not found in the universe!'
+
+    c = universe.add_channel(1, 1)
+    assert len(universe) == 1
+    assert universe.get_channel('1/1') is c
+    assert universe['1/1'] is c
+
+    c = universe.add_channel(2, 1)
+    assert len(universe) == 2
+    assert universe.get_channel('2/1') is c
+    assert universe['2/1'] is c

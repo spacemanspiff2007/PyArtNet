@@ -2,6 +2,24 @@ class PyArtNetError(Exception):
     pass
 
 
+# -----------------------------------------------------------------------------
+# Universe Errors
+# -----------------------------------------------------------------------------
+class InvalidUniverseAddress(PyArtNetError):
+    pass
+
+
+class DuplicateUniverseError(PyArtNetError):
+    pass
+
+
+class UniverseNotFoundError(PyArtNetError):
+    pass
+
+
+# -----------------------------------------------------------------------------
+# Channel Errors
+# -----------------------------------------------------------------------------
 class ChannelExistsError(PyArtNetError):
     pass
 
@@ -27,8 +45,4 @@ class ChannelValueOutOfBounds(PyArtNetError):
 
 
 class ValueCountDoesNotMatchChannelWidthError(PyArtNetError):
-    pass
-
-
-class InvalidUniverseAddress(PyArtNetError):
     pass
