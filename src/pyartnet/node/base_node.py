@@ -15,14 +15,6 @@ log = logging.getLogger('pyartnet.ArtNetNode')
 CREATE_TASK = create_task   # easy way to add a different way to schedule tasks (e.g. thread safe)
 
 
-class BaseNodeJob:
-    def __init__(self):
-        self.is_done = False
-
-    def process(self):
-        raise NotImplementedError()
-
-
 # noinspection PyProtectedMember
 class BaseNode(OutputCorrection):
     def __init__(self, ip: str, port: int, *,
@@ -36,6 +28,7 @@ class BaseNode(OutputCorrection):
         self._ip: Final = ip
         self._port: Final = port
         self._dst: Final = (self._ip, self._port)
+        self._name: Final = f'{self._ip:s}:{self._port}'
 
         # socket setup
         self._socket: Final = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
@@ -52,7 +45,7 @@ class BaseNode(OutputCorrection):
         # fade task
         self._process_every: float = 1 / max(1, max_fps)
         self._process_task: Optional[Task] = None
-        self._process_jobs: List[BaseNodeJob] = []
+        self._process_jobs: List['pyartnet.node.ChannelBoundFade'] = []
 
         # packet data
         self._packet_base: Union[bytearray, bytes] = bytearray()
@@ -87,10 +80,10 @@ class BaseNode(OutputCorrection):
     def _start_process_task(self):
         if self._process_task is None:
             return None
-        self._process_task = CREATE_TASK(self._process_values_task(), name=f'Process task {self._ip}:{self._port}')
+        self._process_task = CREATE_TASK(self._process_values_task(), name=f'Process task {self._name:S}')
 
     async def _process_values_task(self):
-        log.debug(f'Started process task {self._ip:s}')
+        log.debug(f'Started process task {self._name:s}')
 
         # wait a little, so we can schedule multiple tasks/updates, and they all start together
         await sleep(0.01)
@@ -109,10 +102,6 @@ class BaseNode(OutputCorrection):
                     if job.is_done:
                         to_remove.append(job)
 
-                if to_remove:
-                    for job in to_remove:
-                        self._process_jobs.remove(job)
-
                 # send data of universe
                 for universe in self._universes:
                     if not universe._data_changed:
@@ -120,15 +109,20 @@ class BaseNode(OutputCorrection):
                     universe.send_data()
                     idle_ct = 0
 
+                if to_remove:
+                    for job in to_remove:
+                        self._process_jobs.remove(job)
+                        job.fade_complete()
+
                 await sleep(self._process_every)
         finally:
             self._process_task = None
-            log.debug(f'Stopped process task {self._ip:s}')
+            log.debug(f'Stopped process task {self._name:s}')
 
     async def start(self):
         if self._refresh_task:
             return False
-        self._refresh_task = CREATE_TASK(self._periodic_refresh_task(), name=f'Refresh task {self._ip}:{self._port}')
+        self._refresh_task = CREATE_TASK(self._periodic_refresh_task(), name=f'Refresh task {self._name:s}')
         return True
 
     async def stop(self):
@@ -157,15 +151,15 @@ class BaseNode(OutputCorrection):
                 u.send_data()
 
     async def _periodic_refresh_task(self):
-        log.debug(f'Started worker for {self._ip:s}')
+        log.debug(f'Started worker for {self._name:s}')
         try:
             while True:
                 try:
                     await self._periodic_refresh_worker()
                 except Exception:
-                    log.error(f'Error in worker for {self._ip:s}:')
+                    log.error(f'Error in worker for {self._name:s}:')
                     for line in format_exc().splitlines():
                         log.error(line)
         finally:
             self._refresh_task = None
-            log.debug(f'Stopped worker for {self._ip:s}')
+            log.debug(f'Stopped worker for {self._name:s}')

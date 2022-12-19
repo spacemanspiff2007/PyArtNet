@@ -1,22 +1,24 @@
 import logging
 from array import array
-from typing import Callable, Final, Iterable, List, Literal, TypeVar, Union
+from typing import Any, Callable, Final, Iterable, List, Literal, Optional, Union
 
 from pyartnet.errors import ChannelOutOfUniverseError, ChannelValueOutOfBounds, \
     ChannelWidthInvalid, ValueCountDoesNotMatchChannelWidthError
 from pyartnet.output_correction import linear
 
+from .channel_fade import ChannelBoundFade
 from .output_correction import OutputCorrection
 from .universe import Universe
 
 log = logging.getLogger('pyartnet.DmxChannel')
 
 
+
 ARRAY_TYPE: Final = {
-    1: 'B',  # unsigned char: min size 1 byte
+    1: 'B',  # unsigned char : min size 1 byte
     2: 'H',  # unsigned short: min size 2 bytes
-    3: 'L',  # unsigned long: min size 4 bytes
-    4: 'L'   # unsigned long: min size 4 bytes
+    3: 'L',  # unsigned long : min size 4 bytes
+    4: 'L'   # unsigned long : min size 4 bytes
 }
 
 
@@ -63,10 +65,17 @@ class Channel(OutputCorrection):
         self._parent_universe: Final = universe
         self._parent_node: Final = universe._node
 
+        self._correction_current: Callable[[float, int], float] = linear
+
+        # Fade
+        self._current_fade: Optional[ChannelBoundFade] = None
+
         # ---------------------------------------------------------------------
         # Values that can be set by the user
         # ---------------------------------------------------------------------
-        self._correction_current: Callable[[float, int], float] = linear
+        # Callbacks
+        self.callback_fade_finished: Optional[Callable[[Channel], Any]] = None
+
 
     def _apply_output_correction(self):
         # default correction is linear
@@ -118,6 +127,3 @@ class Channel(OutputCorrection):
 
     def __repr__(self):
         return f'<{self.__class__.__name__:s} {self._start}/{self._width} {self._byte_size * 8}bit>'
-
-
-TYPE_CHANNEL = TypeVar('TYPE_CHANNEL', bound=Channel)
