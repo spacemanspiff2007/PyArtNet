@@ -37,6 +37,7 @@ class BaseNode(OutputCorrection):
 
         # option to set source port/ip
         if source_address is not None:
+            self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self._socket.bind(source_address)
 
         # refresh task
@@ -61,7 +62,7 @@ class BaseNode(OutputCorrection):
         for u in self._universes:
             u._apply_output_correction()
 
-    def _send_universe(self, universe: int, values: bytearray):
+    def _send_universe(self, universe: int, byte_values: int, values: bytearray):
         raise NotImplementedError()
 
     def _send_data(self, data: Union[bytearray, bytes]) -> int:
@@ -117,6 +118,10 @@ class BaseNode(OutputCorrection):
                         job.fade_complete()
 
                 await sleep(self._process_every)
+        except Exception:
+            log.error(f'Error in worker for {self._name:s}:')
+            for line in format_exc().splitlines():
+                log.error(line)
         finally:
             self._process_task = None
             log.debug(f'Stopped process task {self._name:s}')

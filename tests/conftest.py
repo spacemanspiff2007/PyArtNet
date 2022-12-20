@@ -1,3 +1,4 @@
+import logging
 from asyncio import sleep
 from time import monotonic
 from unittest.mock import Mock
@@ -15,7 +16,7 @@ class TestingNode(BaseNode):
         super().__init__(ip, port, max_fps=1_000 // STEP_MS)
         self.data = []
 
-    def _send_universe(self, universe: int, values: bytearray):
+    def _send_universe(self, universe: int, byte_values: int, values: bytearray):
         self.data.append(values.hex())
 
     async def sleep_steps(self, steps: int):
@@ -44,3 +45,13 @@ def node(monkeypatch):
 @pytest.fixture
 def universe(node: BaseNode):
     yield node.add_universe()
+
+
+@pytest.fixture(autouse=True)
+def ensure_no_errors(caplog):
+    yield
+    for rec in caplog.records:
+        assert rec.levelno <= logging.WARNING
+
+    # for msg in caplog.messages:
+    #     print(msg)

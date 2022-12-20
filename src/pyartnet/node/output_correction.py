@@ -3,6 +3,7 @@ from typing import Callable, Optional
 
 class OutputCorrection:
     def __init__(self):
+        super().__init__()
         self._correction_output: Optional[Callable[[float, int], float]] = None
 
     def set_output_correction(self, func: Optional[Callable[[float, int], float]]):

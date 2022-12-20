@@ -22,6 +22,7 @@ class Universe(OutputCorrection):
         self._universe: Final = universe
 
         self._data: bytearray = bytearray()
+        self._data_size: int = 0
         self._data_changed = True
         self._last_send: float = 0
 
@@ -44,7 +45,7 @@ class Universe(OutputCorrection):
             self._node._start_process_task()
 
     def send_data(self):
-        self._node._send_universe(self._universe, self._data)
+        self._node._send_universe(self._universe, self._data_size, self._data)
         self._last_send = monotonic()
         self._data_changed = False
 
@@ -98,10 +99,11 @@ class Universe(OutputCorrection):
         if new_size % 2:
             new_size += 1
 
-        diff = new_size - len(self._data)
+        diff = new_size - self._data_size
         if not diff:
             return None
 
+        self._data_size = new_size
         if diff < 0:
             for _ in range(- diff):
                 self._data.pop()

@@ -32,7 +32,7 @@ setuptools.setup(
     author="spaceman_spiff",
     # author_email="",
     description="Python wrappers for the Art-Net protocol to send DMX over Ethernet",
-    keywords='DMX, Art-Net, ArtNet',
+    keywords='DMX, Art-Net, ArtNet, sACN E1.31, E1.31, KiNet',
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/spacemanspiff2007/PyArtNet",
