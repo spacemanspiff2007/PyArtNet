@@ -134,7 +134,7 @@ class Channel(OutputCorrection):
                  fade_class: Type[FadeBase] = LinearFade):
 
         if self._current_fade is not None:
-            self._current_fade.remove()
+            self._current_fade.cancel()
 
         # calculate how much steps we will be having
         step_time_ms = self._parent_node._process_every * 1000

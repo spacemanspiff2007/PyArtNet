@@ -33,7 +33,7 @@ class ChannelBoundFade:
         self.is_done = finished
         self.channel.set_values(self.values)
 
-    def remove(self):
+    def cancel(self):
         node = self.channel._parent_node
 
         # remove from channel
