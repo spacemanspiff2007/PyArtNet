@@ -3,7 +3,7 @@ import socket
 from asyncio import create_task, sleep, Task
 from time import monotonic
 from traceback import format_exc
-from typing import Dict, Final, List, Optional, Tuple, Union
+from typing import Dict, Final, Generic, List, Optional, Tuple, TypeVar, Union
 
 import pyartnet
 
@@ -16,12 +16,14 @@ log = logging.getLogger('pyartnet.ArtNetNode')
 CREATE_TASK = create_task   # easy way to add a different way to schedule tasks (e.g. thread safe)
 
 
+TYPE_U = TypeVar('TYPE_U', bound='pyartnet.base.BaseUniverse')
+
+
 # noinspection PyProtectedMember
-class BaseNode(OutputCorrection):
+class BaseNode(Generic[TYPE_U], OutputCorrection):
     def __init__(self, ip: str, port: int, *,
                  max_fps: int = 25,
                  refresh_every: Union[int, float] = 2,
-                 sequence_counter=True,
                  source_address: Optional[Tuple[str, int]] = None):
         super().__init__()
 
@@ -47,22 +49,21 @@ class BaseNode(OutputCorrection):
         # fade task
         self._process_every: float = 1 / max(1, max_fps)
         self._process_task: Optional[Task] = None
-        self._process_jobs: List['pyartnet.node.ChannelBoundFade'] = []
+        self._process_jobs: List['pyartnet.base.ChannelBoundFade'] = []
 
         # packet data
         self._packet_base: Union[bytearray, bytes] = bytearray()
         self._last_send: float = 0
-        self._sequence_ctr = 1 if sequence_counter else 0
 
         # containing universes
-        self._universes: Tuple['pyartnet.node.Universe', ...] = tuple()
-        self._universe_map: Dict[int, 'pyartnet.node.Universe'] = {}
+        self._universes: Tuple[TYPE_U, ...] = tuple()
+        self._universe_map: Dict[int, TYPE_U] = {}
 
     def _apply_output_correction(self):
         for u in self._universes:
             u._apply_output_correction()
 
-    def _send_universe(self, universe: int, byte_values: int, values: bytearray):
+    def _send_universe(self, id: int, byte_size: int, values: bytearray, universe: 'pyartnet.base.BaseUniverse'):
         raise NotImplementedError()
 
     def _send_data(self, data: Union[bytearray, bytes]) -> int:
@@ -70,14 +71,6 @@ class BaseNode(OutputCorrection):
         ret = self._socket.sendto(self._packet_base + data, self._dst)
 
         self._last_send = monotonic()
-
-        # sequence counter only when enabled
-        if ctr := self._sequence_ctr:
-            ctr += 1
-            if ctr > 255:
-                ctr = 1
-            self._sequence_ctr = ctr
-
         return ret
 
     def _start_process_task(self):
@@ -171,32 +164,35 @@ class BaseNode(OutputCorrection):
             self._refresh_task = None
             log.debug(f'Stopped worker for {self._name:s}')
 
-    def get_universe(self, nr: int) -> 'pyartnet.node.Universe':
+    def get_universe(self, nr: int) -> TYPE_U:
         if not isinstance(nr, int) or not nr >= 0:
-            raise ValueError('Universe must be an int >= 0!')
+            raise ValueError('BaseUniverse must be an int >= 0!')
         nr = int(nr)
 
         try:
             return self._universe_map[nr]
         except KeyError:
-            raise UniverseNotFoundError(f'Universe {nr:d} not found!') from None
+            raise UniverseNotFoundError(f'BaseUniverse {nr:d} not found!') from None
 
-    def add_universe(self, nr: int = 0) -> 'pyartnet.node.Universe':
-        """Creates a new universe and adds it to the node"""
+    def add_universe(self, nr: int = 0) -> TYPE_U:
+        """Creates a new universe and adds it to the base"""
         if not isinstance(nr, int) or not nr >= 0:
-            raise ValueError('Universe must be an int >= 0!')
+            raise ValueError('BaseUniverse must be an int >= 0!')
         nr = int(nr)
 
         if nr in self._universe_map:
-            raise DuplicateUniverseError(f'Universe {nr:d} does already exist!')
+            raise DuplicateUniverseError(f'BaseUniverse {nr:d} does already exist!')
 
         # add to data
-        self._universe_map[nr] = universe = pyartnet.node.Universe(self, nr)
+        self._universe_map[nr] = universe = self._create_universe(self, nr)
         self._universes = tuple(u for _, u in sorted(self._universe_map.items()))   # ascending
 
         return universe
 
-    def __getitem__(self, nr: int) -> 'pyartnet.node.Universe':
+    def _create_universe(self, node: 'BaseNode', nr: int) -> TYPE_U:
+        raise NotImplementedError()
+
+    def __getitem__(self, nr: int) -> TYPE_U:
         return self.get_universe(nr)
 
     def __len__(self):

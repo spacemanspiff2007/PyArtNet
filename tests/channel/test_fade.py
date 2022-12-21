@@ -1,12 +1,12 @@
 import pytest
 
+from pyartnet.base import BaseUniverse
+from pyartnet.base.channel import Channel
 from pyartnet.errors import ChannelValueOutOfBounds, ValueCountDoesNotMatchChannelWidthError
-from pyartnet.node import Universe
-from pyartnet.node.channel import Channel
 from tests.conftest import STEP_MS, TestingNode
 
 
-async def test_single_step(node: TestingNode, universe: Universe, caplog):
+async def test_single_step(node: TestingNode, universe: BaseUniverse, caplog):
     caplog.set_level(0)
 
     a = Channel(universe, 1, 1)
@@ -28,7 +28,7 @@ async def test_single_step(node: TestingNode, universe: Universe, caplog):
     assert node.data == ['ff']
 
 
-async def test_single_fade(node: TestingNode, universe: Universe, caplog):
+async def test_single_fade(node: TestingNode, universe: BaseUniverse, caplog):
     caplog.set_level(0)
 
     a = Channel(universe, 1, 1)
@@ -50,7 +50,7 @@ async def test_single_fade(node: TestingNode, universe: Universe, caplog):
     assert node.data == ['01', '02']
 
 
-async def test_tripple_fade(node: TestingNode, universe: Universe, caplog):
+async def test_tripple_fade(node: TestingNode, universe: BaseUniverse, caplog):
     caplog.set_level(0)
 
     a = Channel(universe, 1, 3)
@@ -75,7 +75,7 @@ async def test_tripple_fade(node: TestingNode, universe: Universe, caplog):
 
 
 
-async def test_fade_errors(node: TestingNode, universe: Universe):
+async def test_fade_errors(node: TestingNode, universe: BaseUniverse):
     c = universe.add_channel(1, 1)
 
     with pytest.raises(ChannelValueOutOfBounds) as e:

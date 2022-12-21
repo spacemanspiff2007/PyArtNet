@@ -1,7 +1,7 @@
 from unittest.mock import Mock
 
-from pyartnet.node import Channel
-from pyartnet.node.channel_fade import ChannelBoundFade
+from pyartnet.base import Channel
+from pyartnet.base.channel_fade import ChannelBoundFade
 
 
 def test_repr():

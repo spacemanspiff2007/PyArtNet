@@ -11,7 +11,7 @@ from pyartnet.output_correction import linear
 from ..fades import FadeBase, LinearFade
 from .channel_fade import ChannelBoundFade
 from .output_correction import OutputCorrection
-from .universe import Universe
+from .universe import BaseUniverse
 
 log = logging.getLogger('pyartnet.Channel')
 
@@ -26,7 +26,7 @@ ARRAY_TYPE: Final = {
 
 
 class Channel(OutputCorrection):
-    def __init__(self, universe: Universe,
+    def __init__(self, universe: BaseUniverse,
                  start: int, width: int,
                  byte_size: int = 1, byte_order: Literal['big', 'little'] = 'little'):
         super().__init__()

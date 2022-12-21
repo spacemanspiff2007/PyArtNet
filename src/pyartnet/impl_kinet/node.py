@@ -3,7 +3,9 @@ from logging import DEBUG as LVL_DEBUG
 from struct import pack as s_pack
 from typing import Optional, Tuple, Union
 
-from pyartnet.node import BaseNode
+import pyartnet
+from pyartnet.base import BaseNode
+from pyartnet.errors import InvalidUniverseAddress
 
 # -----------------------------------------------------------------------------
 # Documentation for KiNet Protocol:
@@ -13,16 +15,14 @@ from pyartnet.node import BaseNode
 log = logging.getLogger('pyartnet.KiNetNode')
 
 
-class KiNetNode(BaseNode):
+class KiNetNode(BaseNode['pyartnet.impl_kinet.KiNetUniverse']):
     def __init__(self, ip: str, port: int, *,
                  max_fps: int = 25,
                  refresh_every: Union[int, float] = 2,
-                 sequence_counter=True,
                  source_address: Optional[Tuple[str, int]] = None):
         super().__init__(ip=ip, port=port,
                          max_fps=max_fps,
                          refresh_every=refresh_every,
-                         sequence_counter=sequence_counter,
                          source_address=source_address)
 
         # build base packet
@@ -31,9 +31,9 @@ class KiNetNode(BaseNode):
         packet.extend(s_pack(">IBBHI", 0, 0, 0, 0, 0xFFFFFFFF))     # sequence, port, padding, flags, timer
         self._packet_base = bytes(packet)
 
-    def _send_universe(self, universe: int, byte_values: int, values: bytearray):
+    def _send_universe(self, id: int, byte_size: int, values: bytearray, universe: 'pyartnet.base.KiNetUniverse'):
         packet = bytearray()
-        packet.append(byte_values)      # Universe
+        packet.append(byte_size)
         packet.extend(values)
 
         self._send_data(packet)
@@ -41,3 +41,8 @@ class KiNetNode(BaseNode):
         if log.isEnabledFor(LVL_DEBUG):
             # log complete packet
             log.debug(f"Sending KiNet frame to {self._ip}:{self._port}: {(self._packet_base + packet).hex()}")
+
+    def _create_universe(self, node: 'KiNetNode', nr: int) -> 'pyartnet.impl_kinet.KiNetUniverse':
+        if nr >= 32_768:
+            raise InvalidUniverseAddress()
+        return pyartnet.impl_kinet.KiNetUniverse(self, nr)

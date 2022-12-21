@@ -11,8 +11,8 @@ log = logging.getLogger('pyartnet.Universe')
 
 
 # noinspection PyProtectedMember
-class Universe(OutputCorrection):
-    def __init__(self, node: 'pyartnet.node.BaseNode', universe: int = 0):
+class BaseUniverse(OutputCorrection):
+    def __init__(self, node: 'pyartnet.base.BaseNode', universe: int = 0):
         super().__init__()
 
         if not 0 <= universe <= 32767:
@@ -26,13 +26,13 @@ class Universe(OutputCorrection):
         self._data_changed = True
         self._last_send: float = 0
 
-        self._channels: Dict[str, 'pyartnet.node.Channel'] = {}
+        self._channels: Dict[str, 'pyartnet.base.Channel'] = {}
 
     def _apply_output_correction(self):
         for c in self._channels.values():
             c._apply_output_correction()
 
-    def channel_changed(self, channel: 'pyartnet.node.Channel'):
+    def channel_changed(self, channel: 'pyartnet.base.Channel'):
         # update universe buffer
         channel.to_buffer(self._data)
 
@@ -45,11 +45,12 @@ class Universe(OutputCorrection):
             self._node._start_process_task()
 
     def send_data(self):
-        self._node._send_universe(self._universe, self._data_size, self._data)
+        self._node._send_universe(self._universe, self._data_size, self._data, self)
         self._last_send = monotonic()
         self._data_changed = False
 
-    def get_channel(self, channel_name: str) -> 'pyartnet.node.Channel':
+
+    def get_channel(self, channel_name: str) -> 'pyartnet.base.Channel':
         if not isinstance(channel_name, str):
             raise TypeError('Channel name must be str')
 
@@ -61,9 +62,9 @@ class Universe(OutputCorrection):
     def add_channel(self,
                     start: int, width: int,
                     channel_name: str = '',
-                    byte_size: int = 1, byte_order: Literal['big', 'little'] = 'little') -> 'pyartnet.node.Channel':
+                    byte_size: int = 1, byte_order: Literal['big', 'little'] = 'little') -> 'pyartnet.base.Channel':
 
-        chan = pyartnet.node.Channel(self, start, width, byte_size=byte_size, byte_order=byte_order)
+        chan = pyartnet.base.Channel(self, start, width, byte_size=byte_size, byte_order=byte_order)
 
         # build name if not supplied
         if not channel_name:
@@ -117,5 +118,5 @@ class Universe(OutputCorrection):
     def __len__(self):
         return len(self._channels)
 
-    def __getitem__(self, item: str) -> 'pyartnet.node.Channel':
+    def __getitem__(self, item: str) -> 'pyartnet.base.Channel':
         return self.get_channel(item)

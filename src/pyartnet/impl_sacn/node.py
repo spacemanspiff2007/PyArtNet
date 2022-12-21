@@ -4,7 +4,9 @@ from logging import DEBUG as LVL_DEBUG
 from typing import Final, Optional, Tuple, Union
 from uuid import uuid4
 
-from pyartnet.node import BaseNode
+import pyartnet.impl_sacn.universe
+from pyartnet.base import BaseNode
+from pyartnet.errors import InvalidUniverseAddress
 
 # -----------------------------------------------------------------------------
 # Documentation for E1.31 Protocol:
@@ -23,11 +25,10 @@ VECTOR_E131_DATA_PACKET: Final = b'\x00\x00\x00\x02'
 VECTOR_DMP_SET_PROPERTY: Final = 0x02
 
 
-class SacnNode(BaseNode):
+class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
     def __init__(self, ip: str, port: int, *,
                  max_fps: int = 25,
                  refresh_every: Union[int, float] = 2,
-                 sequence_counter=True,
                  source_address: Optional[Tuple[str, int]] = None,
 
                  # sACN E1.31 specific fields
@@ -36,7 +37,6 @@ class SacnNode(BaseNode):
         super().__init__(ip=ip, port=port,
                          max_fps=max_fps,
                          refresh_every=refresh_every,
-                         sequence_counter=sequence_counter,
                          source_address=source_address)
 
         # CID Field
@@ -74,35 +74,42 @@ class SacnNode(BaseNode):
         self._packet_base = packet
 
 
-    def _send_universe(self, universe: int, byte_values: int, values: bytearray):
+    def _send_universe(self, id: int, byte_size: int, values: bytearray,
+                       universe: 'pyartnet.impl_sacn.universe.SacnUniverse'):
         packet = bytearray()
 
         # Framing layer Part 2
-        packet.append(self._sequence_ctr)                       # 1 | Sequence,
+        packet.append(universe._sequence_ctr)                   # 1 | Sequence,
         packet.append(0x00)                                     # 1 | Options
-        packet.extend(universe.to_bytes(2, byteorder='big'))    # 2 | Universe Number
+        packet.extend(id.to_bytes(2, byteorder='big'))          # 2 | BaseUniverse Number
 
 
         # DMP Layer
-        dmp_length = ((11 + byte_values) | 0x7000).to_bytes(2, 'big')
+        dmp_length = ((11 + byte_size) | 0x7000).to_bytes(2, 'big')
         packet.extend(dmp_length)               # 2 | Flags and length
         packet.append(VECTOR_DMP_SET_PROPERTY)  # 1 | Vector
         packet.append(0xA1)                     # 1 | Address Type & Data Type
         packet.extend(b'\x00\x00')              # 2 | First Property Address
         packet.extend(b'\x00\x01')              # 2 | Address Increment
 
-        packet.extend(byte_values.to_bytes(2, 'big'))   #     2 | Property Value Count
+        packet.extend(byte_size.to_bytes(2, 'big'))     #     2 | Property Value Count
         packet.append(0x00)                             #     1 | Property Values - DMX Start Code
         packet.extend(values)                           # 0-512 | Property Values - DMX Data
 
 
         # Update length for base packet
         base_packet = self._packet_base
-        base_packet[16:18] = ((110 + byte_values) | 0x7000).to_bytes(2, 'big')  # root layer
-        base_packet[38:40] = (( 88 + byte_values) | 0x7000).to_bytes(2, 'big')  # framing layer
+        base_packet[16:18] = ((110 + byte_size) | 0x7000).to_bytes(2, 'big')    # root layer
+        base_packet[38:40] = (( 88 + byte_size) | 0x7000).to_bytes(2, 'big')    # framing layer
 
         self._send_data(packet)
 
         if log.isEnabledFor(LVL_DEBUG):
             # log complete packet
             log.debug(f"Sending sACN frame to {self._ip}:{self._port}: {(base_packet + packet).hex()}")
+
+
+    def _create_universe(self, node: 'SacnNode', nr: int) -> 'pyartnet.impl_sacn.SacnUniverse':
+        if nr >= 32_768:
+            raise InvalidUniverseAddress()
+        return pyartnet.impl_sacn.SacnUniverse(self, nr)

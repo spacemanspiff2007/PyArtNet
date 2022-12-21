@@ -10,9 +10,9 @@ log = logging.getLogger('pyartnet.DmxChannel')
 
 # noinspection PyProtectedMember
 class ChannelBoundFade:
-    def __init__(self, channel: 'pyartnet.node.Channel', fades: Iterable['pyartnet.fades.FadeBase']):
+    def __init__(self, channel: 'pyartnet.base.Channel', fades: Iterable['pyartnet.fades.FadeBase']):
         super().__init__()
-        self.channel: 'pyartnet.node.Channel' = channel
+        self.channel: 'pyartnet.base.Channel' = channel
 
         self.fades: Tuple['pyartnet.fades.FadeBase', ...] = tuple(fades)
         self.values: List[float] = [f.val_current for f in fades]

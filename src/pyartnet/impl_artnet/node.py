@@ -1,7 +1,9 @@
 import logging
 from typing import Optional, Tuple, Union
 
-from pyartnet.node import BaseNode
+import pyartnet
+from pyartnet.base import BaseNode
+from pyartnet.errors import InvalidUniverseAddress
 
 # -----------------------------------------------------------------------------
 # Documentation for ArtNet Protocol:
@@ -11,7 +13,7 @@ from pyartnet.node import BaseNode
 log = logging.getLogger('pyartnet.ArtNetNode')
 
 
-class ArtNetNode(BaseNode):
+class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
     def __init__(self, ip: str, port: int, *,
                  max_fps: int = 25,
                  refresh_every: Union[int, float] = 2,
@@ -20,8 +22,11 @@ class ArtNetNode(BaseNode):
         super().__init__(ip=ip, port=port,
                          max_fps=max_fps,
                          refresh_every=refresh_every,
-                         sequence_counter=sequence_counter,
                          source_address=source_address)
+
+        # ArtNet specific fields
+        self._sequence_ctr = 1 if sequence_counter else 0
+
 
         # build base packet
         packet = bytearray()
@@ -31,23 +36,38 @@ class ArtNetNode(BaseNode):
         packet.extend([0x00, 0x0e])  # Protocol version 14
         self._packet_base = bytes(packet)
 
-    def _send_universe(self, universe: int, byte_values: int, values: bytearray):
+    def _send_universe(self, id: int, byte_size: int, values: bytearray,
+                       universe: 'pyartnet.impl_artnet.ArtNetUniverse'):
+
         # pre allocate the bytearray
-        _size = 6 + byte_values
+        _size = 6 + byte_size
         packet = bytearray(_size)
 
         packet[0] = self._sequence_ctr                          # 1 | Sequence,
         packet[1] = 0x00                                        # 1 | Physical input port (not used)
-        packet[2:4] = universe.to_bytes(2, byteorder='little')  # 2 | Universe
+        packet[2:4] = id.to_bytes(2, byteorder='little')        # 2 | Universe
 
-        packet[4:6] = byte_values.to_bytes(2, 'big')            # 2       | Number of channels Big Endian
+        packet[4:6] = byte_size.to_bytes(2, 'big')              # 2       | Number of channels Big Endian
         packet[6: _size] = values                               # 0 - 512 | Channel values
 
         self._send_data(packet)
 
+        # Sequence Counter only when enabled
+        # For ArtNet the sequence counter is on the Node
+        if ctr := self._sequence_ctr:
+            ctr += 1
+            if ctr > 255:
+                ctr = 1
+            self._sequence_ctr = ctr
+
+        # log complete packet
         if log.isEnabledFor(logging.DEBUG):
-            # log complete packet
             self.__log_artnet_frame(self._packet_base + packet)
+
+    def _create_universe(self, node: 'ArtNetNode', nr: int) -> 'pyartnet.impl_artnet.ArtNetUniverse':
+        if nr >= 32_768:
+            raise InvalidUniverseAddress()
+        return pyartnet.impl_artnet.ArtNetUniverse(self, nr)
 
     def __log_artnet_frame(self, p: Union[bytearray, bytes]):
         """Log Artnet Frame"""

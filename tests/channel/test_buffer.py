@@ -1,7 +1,7 @@
 from typing import Iterable, Optional
 from unittest.mock import Mock
 
-from pyartnet.node.channel import Channel
+from pyartnet.base.channel import Channel
 
 
 def to_buf(c: Channel, v: Iterable[int], buf: Optional[bytearray] = None) -> bytearray:
