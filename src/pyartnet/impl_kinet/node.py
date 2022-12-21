@@ -31,7 +31,7 @@ class KiNetNode(BaseNode['pyartnet.impl_kinet.KiNetUniverse']):
         packet.extend(s_pack(">IBBHI", 0, 0, 0, 0, 0xFFFFFFFF))     # sequence, port, padding, flags, timer
         self._packet_base = bytes(packet)
 
-    def _send_universe(self, id: int, byte_size: int, values: bytearray, universe: 'pyartnet.base.KiNetUniverse'):
+    def _send_universe(self, id: int, byte_size: int, values: bytearray, universe: 'pyartnet.impl_kinet.KiNetUniverse'):
         packet = bytearray()
         packet.append(byte_size)
         packet.extend(values)
@@ -42,7 +42,7 @@ class KiNetNode(BaseNode['pyartnet.impl_kinet.KiNetUniverse']):
             # log complete packet
             log.debug(f"Sending KiNet frame to {self._ip}:{self._port}: {(self._packet_base + packet).hex()}")
 
-    def _create_universe(self, node: 'KiNetNode', nr: int) -> 'pyartnet.impl_kinet.KiNetUniverse':
+    def _create_universe(self, nr: int) -> 'pyartnet.impl_kinet.KiNetUniverse':
         if nr >= 32_768:
             raise InvalidUniverseAddress()
         return pyartnet.impl_kinet.KiNetUniverse(self, nr)

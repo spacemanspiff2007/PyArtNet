@@ -5,7 +5,7 @@ class LinearFade(FadeBase):
 
     def __init__(self, target: int):
         super().__init__(target)
-        self.factor = 1
+        self.factor: float = 1.0
 
     def debug_initialize(self) -> str:
         return f"step: {self.factor:+5.1f}"

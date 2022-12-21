@@ -137,7 +137,7 @@ class Channel(OutputCorrection):
             self._current_fade.cancel()
 
         # calculate how much steps we will be having
-        step_time_ms = self._parent_node._process_every * 1000
+        step_time_ms = int(self._parent_node._process_every * 1000)
         duration_ms = max(duration_ms, step_time_ms)
         fade_steps: int = ceil(duration_ms / step_time_ms)
 

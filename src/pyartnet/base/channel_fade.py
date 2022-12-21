@@ -38,7 +38,7 @@ class ChannelBoundFade:
 
         # remove from channel
         self.channel._current_fade = None
-        self.channel = None
+        self.channel = None  # type: ignore[assignment]
 
         # remove from node
         node._process_jobs.remove(self)
@@ -48,7 +48,7 @@ class ChannelBoundFade:
 
         # remove from channel
         self.channel._current_fade = None
-        self.channel = None
+        self.channel = None  # type: ignore[assignment]
 
         if c.callback_fade_finished is not None:
             c.callback_fade_finished(c)

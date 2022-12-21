@@ -63,7 +63,7 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
         for u in self._universes:
             u._apply_output_correction()
 
-    def _send_universe(self, id: int, byte_size: int, values: bytearray, universe: 'pyartnet.base.BaseUniverse'):
+    def _send_universe(self, id: int, byte_size: int, values: bytearray, universe: TYPE_U):
         raise NotImplementedError()
 
     def _send_data(self, data: Union[bytearray, bytes]) -> int:
@@ -184,12 +184,12 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
             raise DuplicateUniverseError(f'BaseUniverse {nr:d} does already exist!')
 
         # add to data
-        self._universe_map[nr] = universe = self._create_universe(self, nr)
+        self._universe_map[nr] = universe = self._create_universe(nr)
         self._universes = tuple(u for _, u in sorted(self._universe_map.items()))   # ascending
 
         return universe
 
-    def _create_universe(self, node: 'BaseNode', nr: int) -> TYPE_U:
+    def _create_universe(self, nr: int) -> TYPE_U:
         raise NotImplementedError()
 
     def __getitem__(self, nr: int) -> TYPE_U:

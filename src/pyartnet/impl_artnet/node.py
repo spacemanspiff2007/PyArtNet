@@ -57,7 +57,7 @@ class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
         if log.isEnabledFor(logging.DEBUG):
             self.__log_artnet_frame(self._packet_base + packet)
 
-    def _create_universe(self, node: 'ArtNetNode', nr: int) -> 'pyartnet.impl_artnet.ArtNetUniverse':
+    def _create_universe(self, nr: int) -> 'pyartnet.impl_artnet.ArtNetUniverse':
         if nr >= 32_768:
             raise InvalidUniverseAddress()
         return pyartnet.impl_artnet.ArtNetUniverse(self, nr)

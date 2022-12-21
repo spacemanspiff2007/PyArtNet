@@ -71,7 +71,7 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
         packet.extend(source_name_byte)             # 64 |Source Name
         packet.append(100)                          #  1 |Priority
         packet.extend(int(50).to_bytes(2, 'big'))   #  2 | Synchronization universe
-        self._packet_base = packet
+        self._packet_base: bytearray = packet
 
 
     def _send_universe(self, id: int, byte_size: int, values: bytearray,
@@ -109,7 +109,7 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
             log.debug(f"Sending sACN frame to {self._ip}:{self._port}: {(base_packet + packet).hex()}")
 
 
-    def _create_universe(self, node: 'SacnNode', nr: int) -> 'pyartnet.impl_sacn.SacnUniverse':
+    def _create_universe(self, nr: int) -> 'pyartnet.impl_sacn.SacnUniverse':
         if nr >= 32_768:
             raise InvalidUniverseAddress()
         return pyartnet.impl_sacn.SacnUniverse(self, nr)

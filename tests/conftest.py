@@ -35,8 +35,8 @@ class TestingNode(BaseNode):
                 raise AssertionError(f'Process task was not finished: {monotonic() - start:.5f}s {steps}Steps')
             await sleep(self._process_every)
 
-    def _create_universe(self, node: 'BaseNode', nr: int) -> TYPE_U:
-        return BaseUniverse(node, nr)
+    def _create_universe(self, nr: int) -> TYPE_U:
+        return BaseUniverse(self, nr)
 
 
 @pytest.fixture
