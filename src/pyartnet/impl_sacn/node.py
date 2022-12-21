@@ -110,6 +110,7 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
 
 
     def _create_universe(self, nr: int) -> 'pyartnet.impl_sacn.SacnUniverse':
-        if nr >= 32_768:
+        # 6.2.7 E1.31 Data Packet: Universe
+        if not 1 <= nr < 63_999:
             raise InvalidUniverseAddress()
         return pyartnet.impl_sacn.SacnUniverse(self, nr)
