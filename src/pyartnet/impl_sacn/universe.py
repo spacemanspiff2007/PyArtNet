@@ -11,4 +11,4 @@ class SacnUniverse(BaseUniverse):
         super().__init__(node, universe)
 
         # sACN has the sequence counter on the universe
-        self._sequence_ctr: Final = SequenceCounter(1)
+        self._sequence_ctr: Final = SequenceCounter()

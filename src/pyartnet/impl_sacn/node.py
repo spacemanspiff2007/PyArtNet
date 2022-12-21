@@ -58,8 +58,8 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
         packet = bytearray()
 
         # Root layer
-        packet.extend([0x00, 0x01])             #  2 | Preamble Size
-        packet.extend([0x00, 0x00])             #  2 | Post-amble Size
+        packet.extend(b'\x00\x10')              #  2 | Preamble Size
+        packet.extend(b'\x00\x00')              #  2 | Post-amble Size
         packet.extend(ACN_PACKET_IDENTIFIER)    # 12 | Packet Identifier
         packet.extend([0x72, 0x57])             #  2 | Flags, Length
         packet.extend(VECTOR_ROOT_E131_DATA)    #  4 | Vector
@@ -71,12 +71,16 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
         packet.extend(source_name_byte)             # 64 |Source Name
         packet.append(100)                          #  1 |Priority
         packet.extend(int(50).to_bytes(2, 'big'))   #  2 | Synchronization universe
+
         self._packet_base: bytearray = packet
 
 
     def _send_universe(self, id: int, byte_size: int, values: bytearray,
                        universe: 'pyartnet.impl_sacn.universe.SacnUniverse'):
         packet = bytearray()
+
+        # DMX Start Code is not included in the byte size from the universe
+        prop_count = byte_size + 1
 
         # Framing layer Part 2
         packet.append(universe._sequence_ctr.value)             # 1 | Sequence,
@@ -85,22 +89,23 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
 
 
         # DMP Layer
-        dmp_length = ((11 + byte_size) | 0x7000).to_bytes(2, 'big')
+        dmp_length = ((10 + prop_count) | 0x7000).to_bytes(2, 'big')
         packet.extend(dmp_length)               # 2 | Flags and length
         packet.append(VECTOR_DMP_SET_PROPERTY)  # 1 | Vector
         packet.append(0xA1)                     # 1 | Address Type & Data Type
         packet.extend(b'\x00\x00')              # 2 | First Property Address
         packet.extend(b'\x00\x01')              # 2 | Address Increment
 
-        packet.extend(byte_size.to_bytes(2, 'big'))     #     2 | Property Value Count
+
+        packet.extend(prop_count.to_bytes(2, 'big'))    #     2 | Property Value Count
         packet.append(0x00)                             #     1 | Property Values - DMX Start Code
         packet.extend(values)                           # 0-512 | Property Values - DMX Data
 
 
         # Update length for base packet
         base_packet = self._packet_base
-        base_packet[16:18] = ((110 + byte_size) | 0x7000).to_bytes(2, 'big')    # root layer
-        base_packet[38:40] = (( 88 + byte_size) | 0x7000).to_bytes(2, 'big')    # framing layer
+        base_packet[16:18] = ((109 + prop_count) | 0x7000).to_bytes(2, 'big')   # root layer
+        base_packet[38:40] = (( 87 + prop_count) | 0x7000).to_bytes(2, 'big')   # framing layer
 
         self._send_data(packet)
 
