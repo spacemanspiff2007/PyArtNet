@@ -36,7 +36,8 @@ class KiNetNode(BaseNode):
         packet.append(byte_values)      # Universe
         packet.extend(values)
 
-        self._send_data(self._packet_base + packet)
+        self._send_data(packet)
 
         if log.isEnabledFor(LVL_DEBUG):
-            log.debug(f"Sending sACN frame to {self._ip}:{self._port}: {(self._packet_base + packet).hex()}")
+            # log complete packet
+            log.debug(f"Sending KiNet frame to {self._ip}:{self._port}: {(self._packet_base + packet).hex()}")

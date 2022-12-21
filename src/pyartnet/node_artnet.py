@@ -32,17 +32,21 @@ class ArtNetNode(BaseNode):
         self._packet_base = bytes(packet)
 
     def _send_universe(self, universe: int, byte_values: int, values: bytearray):
-        packet = bytearray()
-        packet.append(self._sequence_ctr)  # Sequence,
-        packet.append(0x00)  # Physical
-        packet.extend(universe.to_bytes(2, byteorder='little'))
+        # pre allocate the bytearray
+        _size = 6 + byte_values
+        packet = bytearray(_size)
 
-        packet.extend(byte_values.to_bytes(2, 'big'))  # Pack the number of channels Big endian
-        packet.extend(values)
+        packet[0] = self._sequence_ctr                          # 1 | Sequence,
+        packet[1] = 0x00                                        # 1 | Physical input port (not used)
+        packet[2:4] = universe.to_bytes(2, byteorder='little')  # 2 | Universe
+
+        packet[4:6] = byte_values.to_bytes(2, 'big')            # 2       | Number of channels Big Endian
+        packet[6: _size] = values                               # 0 - 512 | Channel values
 
         self._send_data(packet)
 
         if log.isEnabledFor(logging.DEBUG):
+            # log complete packet
             self.__log_artnet_frame(self._packet_base + packet)
 
     def __log_artnet_frame(self, p: Union[bytearray, bytes]):

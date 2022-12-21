@@ -101,7 +101,8 @@ class SacnNode(BaseNode):
         base_packet[16:18] = ((110 + byte_values) | 0x7000).to_bytes(2, 'big')  # root layer
         base_packet[38:40] = (( 88 + byte_values) | 0x7000).to_bytes(2, 'big')  # framing layer
 
-        self._send_data(self._packet_base + packet)
+        self._send_data(packet)
 
         if log.isEnabledFor(LVL_DEBUG):
+            # log complete packet
             log.debug(f"Sending sACN frame to {self._ip}:{self._port}: {(base_packet + packet).hex()}")

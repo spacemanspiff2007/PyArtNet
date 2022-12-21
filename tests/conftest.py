@@ -50,8 +50,9 @@ def universe(node: BaseNode):
 @pytest.fixture(autouse=True)
 def ensure_no_errors(caplog):
     yield
+
     for rec in caplog.records:
-        assert rec.levelno <= logging.WARNING
+        assert rec.levelno <= logging.WARNING, rec
 
     # for msg in caplog.messages:
     #     print(msg)

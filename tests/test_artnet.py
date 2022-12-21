@@ -18,7 +18,7 @@ def patch_artnet_node(monkeypatch):
 async def test_arnet(node: TestingNode, caplog, cls):
     caplog.set_level(logging.DEBUG)
 
-    n = SacnNode('ip', 9999)
+    n = cls('ip', 9999)
     u = n.add_universe(1)
     c = u.add_channel(1, 1)
 
