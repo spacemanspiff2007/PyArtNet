@@ -84,7 +84,7 @@ class SacnNode(BaseNode):
 
 
         # DMP Layer
-        dmp_length = ((10 + byte_values) | 0x7000).to_bytes(2, 'big')
+        dmp_length = ((11 + byte_values) | 0x7000).to_bytes(2, 'big')
         packet.extend(dmp_length)               # 2 | Flags and length
         packet.append(VECTOR_DMP_SET_PROPERTY)  # 1 | Vector
         packet.append(0xA1)                     # 1 | Address Type & Data Type
@@ -92,15 +92,16 @@ class SacnNode(BaseNode):
         packet.extend(b'\x00\x01')              # 2 | Address Increment
 
         packet.extend(byte_values.to_bytes(2, 'big'))   #     2 | Property Value Count
-        packet.extend(values)                           # 1-513 | Property Values
+        packet.append(0x00)                             #     1 | Property Values - DMX Start Code
+        packet.extend(values)                           # 0-512 | Property Values - DMX Data
 
 
-        # set length for base packet, too
+        # Update length for base packet
         base_packet = self._packet_base
-        base_packet[16:18] = ((109 + byte_values) | 0x7000).to_bytes(2, 'big')  # root layer
-        base_packet[38:40] = (( 87 + byte_values) | 0x7000).to_bytes(2, 'big')  # framing layer
+        base_packet[16:18] = ((110 + byte_values) | 0x7000).to_bytes(2, 'big')  # root layer
+        base_packet[38:40] = (( 88 + byte_values) | 0x7000).to_bytes(2, 'big')  # framing layer
 
-        self._send_data(packet)
+        self._send_data(self._packet_base + packet)
 
         if log.isEnabledFor(LVL_DEBUG):
             log.debug(f"Sending sACN frame to {self._ip}:{self._port}: {(base_packet + packet).hex()}")

@@ -7,7 +7,7 @@ from pyartnet.node import BaseNode
 
 # -----------------------------------------------------------------------------
 # Documentation for KiNet Protocol:
-# https://artisticlicence.com/support-and-resources/art-net-4/
+# todo: find links
 # -----------------------------------------------------------------------------
 
 log = logging.getLogger('pyartnet.KiNetNode')
@@ -36,7 +36,7 @@ class KiNetNode(BaseNode):
         packet.append(byte_values)      # Universe
         packet.extend(values)
 
-        self._send_data(packet)
+        self._send_data(self._packet_base + packet)
 
         if log.isEnabledFor(LVL_DEBUG):
             log.debug(f"Sending sACN frame to {self._ip}:{self._port}: {(self._packet_base + packet).hex()}")
