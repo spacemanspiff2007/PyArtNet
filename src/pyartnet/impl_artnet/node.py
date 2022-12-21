@@ -1,8 +1,9 @@
 import logging
-from typing import Optional, Tuple, Union
+from typing import Final, Optional, Tuple, Union
 
 import pyartnet
 from pyartnet.base import BaseNode
+from pyartnet.base.seq_counter import SequenceCounter
 from pyartnet.errors import InvalidUniverseAddress
 
 # -----------------------------------------------------------------------------
@@ -25,7 +26,7 @@ class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
                          source_address=source_address)
 
         # ArtNet specific fields
-        self._sequence_ctr = 1 if sequence_counter else 0
+        self._sequence_ctr: Final = SequenceCounter(1) if sequence_counter else SequenceCounter(0, 0)
 
 
         # build base packet
@@ -43,7 +44,7 @@ class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
         _size = 6 + byte_size
         packet = bytearray(_size)
 
-        packet[0] = self._sequence_ctr                          # 1 | Sequence,
+        packet[0] = self._sequence_ctr.value                    # 1 | Sequence,
         packet[1] = 0x00                                        # 1 | Physical input port (not used)
         packet[2:4] = id.to_bytes(2, byteorder='little')        # 2 | Universe
 
@@ -51,14 +52,6 @@ class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
         packet[6: _size] = values                               # 0 - 512 | Channel values
 
         self._send_data(packet)
-
-        # Sequence Counter only when enabled
-        # For ArtNet the sequence counter is on the Node
-        if ctr := self._sequence_ctr:
-            ctr += 1
-            if ctr > 255:
-                ctr = 1
-            self._sequence_ctr = ctr
 
         # log complete packet
         if log.isEnabledFor(logging.DEBUG):

@@ -79,7 +79,7 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
         packet = bytearray()
 
         # Framing layer Part 2
-        packet.append(universe._sequence_ctr)                   # 1 | Sequence,
+        packet.append(universe._sequence_ctr.value)             # 1 | Sequence,
         packet.append(0x00)                                     # 1 | Options
         packet.extend(id.to_bytes(2, byteorder='big'))          # 2 | BaseUniverse Number
 
