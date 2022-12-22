@@ -36,15 +36,25 @@ def test_exceptions(universe: BaseUniverse):
 
 
 def test_universe_resize(universe: BaseUniverse):
+    assert universe._data_size == 0
+    assert universe._data == b''
+
     universe.add_channel(1, 1)
+    assert universe._data_size == 2
     assert universe._data == b'\x00\x00'
 
     universe.add_channel(6, 1)
+    assert universe._data_size == 6
     assert universe._data == b'\x00\x00\x00\x00\x00\x00'
 
     universe._channels.popitem()
     universe.add_channel(2, 1)
+    assert universe._data_size == 2
     assert universe._data == b'\x00\x00'
+
+    universe.add_channel(3, 1)
+    assert universe._data_size == 4
+    assert universe._data == b'\x00\x00\x00\x00'
 
 
 def test_access(universe: BaseUniverse):

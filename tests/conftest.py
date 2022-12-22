@@ -1,4 +1,5 @@
 import logging
+import socket
 from asyncio import sleep
 from time import monotonic
 from typing import List
@@ -39,10 +40,29 @@ class TestingNode(BaseNode):
         return BaseUniverse(self, nr)
 
 
-@pytest.fixture
-def node(monkeypatch):
-    monkeypatch.setattr(pyartnet.base.base_node, 'socket', Mock())
 
+@pytest.fixture(autouse=True)
+def patched_socket(monkeypatch):
+    m_socket_obj = Mock(['sendto', 'setblocking'], name='socket_obj')
+    m_socket_obj.sendto = m_sendto = Mock(name='socket_obj.sendto')
+
+    m = Mock(['socket', 'AF_INET', 'SOCK_DGRAM'], name='Mock socket package')
+    m.socket = Mock([], return_value=m_socket_obj, name='Mock socket obj')
+    m.AF_INET = socket.AF_INET
+    m.SOCK_DGRAM = socket.AF_INET
+
+    monkeypatch.setattr(pyartnet.base.base_node, 'socket', m)
+
+    yield m_sendto
+
+
+def test_patched_socket(patched_socket):
+    node = TestingNode('IP', 9999)
+    assert node._socket.sendto is patched_socket
+
+
+@pytest.fixture
+def node():
     node = TestingNode('IP', 9999)
     yield node
 
