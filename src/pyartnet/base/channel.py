@@ -135,6 +135,7 @@ class Channel(OutputCorrection):
 
         if self._current_fade is not None:
             self._current_fade.cancel()
+            self._current_fade = None
 
         # calculate how much steps we will be having
         step_time_ms = int(self._parent_node._process_every * 1000)
@@ -173,6 +174,12 @@ class Channel(OutputCorrection):
             for i, fade in enumerate(fades):
                 log.debug(f'CH {self._start + i}: {self._values_raw[i]:03d} -> {fade.val_target:03d}'
                           f' | {fade.debug_initialize():s}')
+
+    def __await__(self):
+        if self._current_fade is None:
+            return False
+        yield from self._current_fade.event.wait().__await__()
+        return True
 
     def __repr__(self):
         return f'<{self.__class__.__name__:s} {self._start:d}/{self._width:d} {self._byte_size * 8:d}bit>'

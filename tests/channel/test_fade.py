@@ -1,3 +1,5 @@
+from time import monotonic
+
 import pytest
 
 from pyartnet.base import BaseUniverse
@@ -85,3 +87,45 @@ async def test_fade_errors(node: TestingNode, universe: BaseUniverse):
     with pytest.raises(ValueCountDoesNotMatchChannelWidthError) as e:
         c.add_fade([0, 0, 255], 0)
     assert str(e.value) == 'Not enough fade values specified, expected 1 but got 3!'
+
+
+async def test_fade_await(node: TestingNode, universe: BaseUniverse, caplog):
+    caplog.set_level(0)
+
+    channel = Channel(universe, 1, 1)
+    assert channel.get_values() == [0]
+
+    async def check_no_wait_time_when_no_fade():
+        start = monotonic()
+        for _ in range(1000):
+            assert not await channel
+        assert monotonic() - start < 0.001
+
+    await check_no_wait_time_when_no_fade()
+
+    channel.add_fade([2], 2 * STEP_MS)
+    assert channel.get_values() == [0]
+
+    assert list(caplog.messages) == [
+        'Added fade with 2 steps:',
+        'CH 1: 000 -> 002 | step:  +1.0'
+    ]
+
+    assert channel._current_fade is not None
+    assert await channel
+    assert channel._current_fade is None
+    assert channel.get_values() == [2]
+    assert node.data == ['01', '02']
+
+    await check_no_wait_time_when_no_fade()
+
+    channel.add_fade([10], 2 * STEP_MS)
+
+
+    assert channel._current_fade is not None
+    await channel
+    assert channel._current_fade is None
+    assert node.data == ['01', '02', '05', '0a']
+
+    await check_no_wait_time_when_no_fade()
+    await node.wait_for_task_finish()

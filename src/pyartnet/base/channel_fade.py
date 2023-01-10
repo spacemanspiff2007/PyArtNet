@@ -1,5 +1,6 @@
 import logging
-from typing import Iterable, List, Tuple, TYPE_CHECKING
+from asyncio import Event
+from typing import Final, Iterable, List, Tuple, TYPE_CHECKING
 
 if TYPE_CHECKING:
     import pyartnet
@@ -18,6 +19,7 @@ class ChannelBoundFade:
         self.values: List[float] = [f.val_current for f in fades]
 
         self.is_done = False
+        self.event: Final = Event()
 
     def process(self):
         finished = True
@@ -34,21 +36,23 @@ class ChannelBoundFade:
         self.channel.set_values(self.values)
 
     def cancel(self):
-        node = self.channel._parent_node
-
-        # remove from channel
-        self.channel._current_fade = None
+        # remove fade from channel
+        c = self.channel
         self.channel = None  # type: ignore[assignment]
+        c._current_fade = None
 
-        # remove from node
-        node._process_jobs.remove(self)
+        self.event.set()
+
+        # remove from parent node
+        c._parent_node._process_jobs.remove(self)
 
     def fade_complete(self):
+        # remove fade from channel
         c = self.channel
-
-        # remove from channel
-        self.channel._current_fade = None
         self.channel = None  # type: ignore[assignment]
+        c._current_fade = None
+
+        self.event.set()
 
         if c.callback_fade_finished is not None:
             c.callback_fade_finished(c)

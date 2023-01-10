@@ -192,6 +192,11 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
     def _create_universe(self, nr: int) -> TYPE_U:
         raise NotImplementedError()
 
+    def __await__(self):
+        while self._process_jobs:
+            for job in self._process_jobs:
+                yield from job.channel.__await__()
+
     def __getitem__(self, nr: int) -> TYPE_U:
         return self.get_universe(nr)
 
