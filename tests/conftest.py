@@ -15,6 +15,8 @@ STEP_MS = 15
 
 
 class TestingNode(BaseNode):
+    __test__ = False    # prevent this from being collected by pytest
+
     def __init__(self, ip: str, port: int):
         super().__init__(ip, port, max_fps=1_000 // STEP_MS)
         self.data = []

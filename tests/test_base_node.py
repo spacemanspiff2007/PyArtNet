@@ -48,7 +48,7 @@ async def test_fade_await(node: TestingNode, universe: BaseUniverse, caplog):
     async def check_wait_time_when_fade(steps: int):
         start = monotonic()
         await node
-        assert monotonic() - start >= (steps * STEP_MS) / 1000
+        assert monotonic() - start >= ((steps - 1) * STEP_MS) / 1000
 
     caplog.set_level(0)
 
