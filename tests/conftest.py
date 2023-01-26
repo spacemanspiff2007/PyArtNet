@@ -91,10 +91,3 @@ def ensure_no_errors(caplog):
             for rec in log_records
         ]
         pytest.fail('Error in log:\n' + '\n'.join(msgs))
-
-
-@pytest.fixture(autouse=True)
-def event_loop():
-    loop = asyncio.ProactorEventLoop()
-    yield loop
-    loop.close()
