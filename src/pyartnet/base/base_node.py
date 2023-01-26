@@ -1,19 +1,16 @@
 import logging
 import socket
-from asyncio import create_task, sleep, Task
+from asyncio import sleep
 from time import monotonic
-from traceback import format_exc
 from typing import Dict, Final, Generic, List, Optional, Tuple, TypeVar, Union
 
 import pyartnet
 
 from ..errors import DuplicateUniverseError, UniverseNotFoundError
+from .background_task import ExceptionIgnoringTask, SimpleBackgroundTask
 from .output_correction import OutputCorrection
 
 log = logging.getLogger('pyartnet.ArtNetNode')
-
-
-CREATE_TASK = create_task   # easy way to add a different way to schedule tasks (e.g. thread safe)
 
 
 TYPE_U = TypeVar('TYPE_U', bound='pyartnet.base.BaseUniverse')
@@ -23,7 +20,7 @@ TYPE_U = TypeVar('TYPE_U', bound='pyartnet.base.BaseUniverse')
 class BaseNode(Generic[TYPE_U], OutputCorrection):
     def __init__(self, ip: str, port: int, *,
                  max_fps: int = 25,
-                 refresh_every: Union[int, float] = 2,
+                 refresh_every: Union[int, float, None] = 2, start_refresh_task=True,
                  source_address: Optional[Tuple[str, int]] = None):
         super().__init__()
 
@@ -44,11 +41,13 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
 
         # refresh task
         self._refresh_every: float = max(0.1, refresh_every)
-        self._refresh_task: Optional[Task] = None
+        self._refresh_task: Final = ExceptionIgnoringTask(self._periodic_refresh_worker, f'Process task {self._name:s}')
+        if start_refresh_task:
+            self._refresh_task.start()
 
         # fade task
         self._process_every: float = 1 / max(1, max_fps)
-        self._process_task: Optional[Task] = None
+        self._process_task: Final = SimpleBackgroundTask(self._process_values_task, f'Process task {self._name:s}')
         self._process_jobs: List['pyartnet.base.ChannelBoundFade'] = []
 
         # packet data
@@ -73,67 +72,44 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
         self._last_send = monotonic()
         return ret
 
-    def _start_process_task(self):
-        if self._process_task is not None:
-            return None
-        self._process_task = CREATE_TASK(self._process_values_task(), name=f'Process task {self._name:s}')
-
     async def _process_values_task(self):
-        log.debug(f'Started process task {self._name:s}')
-
         # wait a little, so we can schedule multiple tasks/updates, and they all start together
         await sleep(0.01)
 
         idle_ct = 0
-        try:
-            while idle_ct < 5:
-                idle_ct += 1
+        while idle_ct < 5:
+            idle_ct += 1
 
-                # process jobs
-                to_remove = []
-                for job in self._process_jobs:
-                    job.process()
-                    idle_ct = 0
+            # process jobs
+            to_remove = []
+            for job in self._process_jobs:
+                job.process()
+                idle_ct = 0
 
-                    if job.is_done:
-                        to_remove.append(job)
+                if job.is_done:
+                    to_remove.append(job)
 
-                # send data of universe
-                for universe in self._universes:
-                    if not universe._data_changed:
-                        continue
-                    universe.send_data()
-                    idle_ct = 0
+            # send data of universe
+            for universe in self._universes:
+                if not universe._data_changed:
+                    continue
+                universe.send_data()
+                idle_ct = 0
 
-                if to_remove:
-                    for job in to_remove:
-                        self._process_jobs.remove(job)
-                        job.fade_complete()
+            if to_remove:
+                for job in to_remove:
+                    self._process_jobs.remove(job)
+                    job.fade_complete()
 
-                await sleep(self._process_every)
-        except Exception:
-            log.error(f'Error in worker for {self._name:s}:')
-            for line in format_exc().splitlines():
-                log.error(line)
-        finally:
-            self._process_task = None
-            log.debug(f'Stopped process task {self._name:s}')
+            await sleep(self._process_every)
 
-    async def start(self):
-        if self._refresh_task:
-            return False
-        self._refresh_task = CREATE_TASK(self._periodic_refresh_task(), name=f'Refresh task {self._name:s}')
-        return True
+    def start_refresh(self):
+        """Manually starts the refresh task"""
+        self._refresh_task.start()
 
-    async def stop(self):
-        if self._refresh_task is None:
-            return False
-
+    def stop_refresh(self):
+        """Manually stops the refresh task"""
         self._refresh_task.cancel()
-        # variable gets set to None in the task
-        # That's why it's also necessary to await it
-        await self._refresh_task
-        return True
 
     async def _periodic_refresh_worker(self):
         while True:
@@ -149,20 +125,6 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
 
             for u in self._universes:
                 u.send_data()
-
-    async def _periodic_refresh_task(self):
-        log.debug(f'Started worker for {self._name:s}')
-        try:
-            while True:
-                try:
-                    await self._periodic_refresh_worker()
-                except Exception:
-                    log.error(f'Error in worker for {self._name:s}:')
-                    for line in format_exc().splitlines():
-                        log.error(line)
-        finally:
-            self._refresh_task = None
-            log.debug(f'Stopped worker for {self._name:s}')
 
     def get_universe(self, nr: int) -> TYPE_U:
         if not isinstance(nr, int) or not nr >= 0:

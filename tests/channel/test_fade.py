@@ -76,7 +76,6 @@ async def test_tripple_fade(node: TestingNode, universe: BaseUniverse, caplog):
     assert node.data == ['010203', '020406', '030609']
 
 
-
 async def test_fade_errors(node: TestingNode, universe: BaseUniverse):
     c = universe.add_channel(1, 1)
 
@@ -120,7 +119,6 @@ async def test_fade_await(node: TestingNode, universe: BaseUniverse, caplog):
     await check_no_wait_time_when_no_fade()
 
     channel.add_fade([10], 2 * STEP_MS)
-
 
     assert channel._current_fade is not None
     await channel

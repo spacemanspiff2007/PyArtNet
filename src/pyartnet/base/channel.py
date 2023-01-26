@@ -16,7 +16,6 @@ from .universe import BaseUniverse
 log = logging.getLogger('pyartnet.Channel')
 
 
-
 ARRAY_TYPE: Final = {
     1: 'B',  # unsigned char : min size 1 byte
     2: 'H',  # unsigned short: min size 2 bytes
@@ -79,7 +78,6 @@ class Channel(OutputCorrection):
         # ---------------------------------------------------------------------
         # Callbacks
         self.callback_fade_finished: Optional[Callable[[Channel], Any]] = None
-
 
     def _apply_output_correction(self):
         # default correction is linear
@@ -166,8 +164,7 @@ class Channel(OutputCorrection):
         self._parent_node._process_jobs.append(self._current_fade)
 
         # start fade/refresh task if necessary
-        if self._parent_node._process_task is None:
-            self._parent_node._start_process_task()
+        self._parent_node._process_task.start()
 
         if log.isEnabledFor(LVL_DEBUG):
             log.debug(f'Added fade with {fade_steps} steps:')

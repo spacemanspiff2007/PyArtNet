@@ -41,8 +41,7 @@ class BaseUniverse(OutputCorrection):
 
         # start fade/refresh task if necessary
         # noinspection PyProtectedMember
-        if self._node._process_task is None:
-            self._node._start_process_task()
+        self._node._process_task.start()
 
     def send_data(self):
         self._node._send_universe(self._universe, self._data_size, self._data, self)

@@ -28,7 +28,6 @@ class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
         # ArtNet specific fields
         self._sequence_ctr: Final = SequenceCounter(1) if sequence_counter else SequenceCounter(0, 0)
 
-
         # build base packet
         packet = bytearray()
         packet.extend(map(ord, "Art-Net"))
@@ -95,7 +94,7 @@ class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
 
             # if there was never anything active do not print, but print the last block
             if not self._log_show[k // 5] and not k + 5 > _max_channel:
-                # do not print multiple shortings
+                # do not print multiple dots
                 if out.endswith('...'):
                     continue
 

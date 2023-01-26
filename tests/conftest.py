@@ -1,7 +1,7 @@
+import asyncio
 import logging
 import socket
 from asyncio import sleep
-from time import monotonic
 from typing import List
 from unittest.mock import Mock
 
@@ -18,7 +18,7 @@ class TestingNode(BaseNode):
     __test__ = False    # prevent this from being collected by pytest
 
     def __init__(self, ip: str, port: int):
-        super().__init__(ip, port, max_fps=1_000 // STEP_MS)
+        super().__init__(ip, port, max_fps=1_000 // STEP_MS, start_refresh_task=False)
         self.data = []
 
     def _send_universe(self, id: int, byte_size: int, values: bytearray, universe: 'pyartnet.base.BaseUniverse'):
@@ -30,17 +30,10 @@ class TestingNode(BaseNode):
             await sleep(self._process_every)
 
     async def wait_for_task_finish(self):
-        start = monotonic()
-        steps = 0
-        while self._process_task is not None:
-            steps += 1
-            if monotonic() - start > 0.2 or steps > 10:
-                raise AssertionError(f'Process task was not finished: {monotonic() - start:.5f}s {steps}Steps')
-            await sleep(self._process_every)
+        await self
 
     def _create_universe(self, nr: int) -> TYPE_U:
         return BaseUniverse(self, nr)
-
 
 
 @pytest.fixture(autouse=True)
@@ -98,3 +91,10 @@ def ensure_no_errors(caplog):
             for rec in log_records
         ]
         pytest.fail('Error in log:\n' + '\n'.join(msgs))
+
+
+@pytest.fixture(autouse=True)
+def event_loop():
+    loop = asyncio.ProactorEventLoop()
+    yield loop
+    loop.close()
