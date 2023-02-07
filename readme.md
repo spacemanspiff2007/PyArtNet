@@ -5,107 +5,12 @@
 [![Downloads](https://static.pepy.tech/badge/pyartnet/month)](https://pepy.tech/project/pyartnet)
 
 
-pyartnet is a python implementation of the ArtNet protocol using [asyncio](https://docs.python.org/3/library/asyncio.html).
+PyArtNet is a python implementation of the ArtNet protocol using [asyncio](https://docs.python.org/3/library/asyncio.html).
+Supported protocols are ArtNet, sACN and KiNet.
 
-# Usage
+# Docs
 
-## Fades
-````python
-from pyartnet import ArtNetNode
-
-# Run this code in your async function
-node = ArtNetNode('IP')
-await node.start()
-
-# Create universe 0
-universe = node.add_universe(0)
-
-# Add a channel to the universe which consists of 3 values
-# Default size of a value is 8Bit (0..255) so this would fill
-# the DMX values 1..3 of the universe
-channel  = universe.add_channel(start=1, width=3)
-
-# Fade channel to 255,0,0 in 5s
-# The fade will automatically run in the background
-channel.add_fade([255,0,0], 5000)
-
-# this can be used to wait till the fade is complete
-await channel.wait_till_fade_complete()
-````
-
-## Channel handling
-Created channels can be requested from the universe through the dict syntax or through ``universe.get_channel()``.
-If no channel name is specified during creation the default name will be ``{START}/{WIDTH}``.
-
-````python
-channel = universe['1/3']
-channel = universe.get_channel('1/3')
-````
-
-## Callbacks
-There are two possible callbacks on the channel which make it easy to implement additional logic.
-The callback takes the channel as an argument.
-This example shows how to automatically fade the channel up and down.
-
-````python
-from pyartnet import ArtNetNode, DmxChannel
-
-node = ArtNetNode('IP')
-universe = node.add_universe(0)
-
-channel = universe.add_channel(start=1, width=3)
-
-def cb(ch: DmxChannel):
-    ch.add_fade([0, 0, 0] if ch.get_channel_values() == [255, 255, 255] else [255, 255, 255], 1000)
-
-channel.callback_fade_finished = cb
-channel.callback_value_changed = my_func2
-````
-
-
-## Output correction
-It is possible to use an output correction to create different fade curves.
-Output correction can be set on the universe or on the individual channel.
-
-````python
-from pyartnet import ArtNetNode, output_correction
-
-node = ArtNetNode('IP')
-
-universe = node.add_universe(0)
-universe.output_correction = output_correction.quadratic  # quadratic will be used for all channels
-
-channel = universe.add_channel(start=1, width=3)
-channel.output_correction = output_correction.cubic       # this channel will use cubic
-````
-
-The graph shows different output depending on the output correction.
-
-From left to right:
-linear (default when nothing is set), quadratic, cubic then quadruple
-<img src='https://github.com/spacemanspiff2007/pyartnet/blob/master/curves.svg'>
-
-Quadratic or cubic results in much smoother and more pleasant fades when using LED Strips.
-
-## Wider DMX Channels
-The library supports wider dmx channels for advanced control.
-
-````python
-from pyartnet import ArtNetNode, DmxChannel16Bit
-
-node = ArtNetNode('IP')
-await node.start()
-
-# Create universe 0
-universe = node.add_universe(1)
-
-# Add a channel to the universe which consists of 3 values where each value is 16Bits
-# This would fill the DMX values 1..6 of the universe
-channel  = universe.add_channel(start=1, width=3, channel_type=DmxChannel16Bit)
-
-# Notice the higher maximum value for the fade
-channel.add_fade([0xFFFF, 0, 0], 5000)
-````
+Docs and examples can be found [here](https://pyartnet.readthedocs.io/en/latest/pyartnet.html)
 
 
 # Changelog

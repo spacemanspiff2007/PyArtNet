@@ -1,4 +1,5 @@
 import os
+import re
 import sys
 
 # Configuration file for the Sphinx documentation builder.
@@ -48,8 +49,16 @@ autoclass_content = 'class'
 # required for autodoc
 sys.path.insert(0, os.path.join(os.path.abspath('..'), 'src'))
 
+
 # -- Options for exec code -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html
 intersphinx_mapping = {
     'python': ('https://docs.python.org/3', None)
 }
+
+
+# -- Options for nitpick -------------------------------------------------
+# Don't show warnings for missing python references since these are created via intersphinx
+nitpick_ignore_regex = [
+    (re.compile(r'py:data|py:class'), re.compile(r'typing\..+')),
+]

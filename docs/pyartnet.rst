@@ -5,6 +5,7 @@ PyArtNet
 ######################################
 pyartnet is a python implementation of the ArtNet protocol using
 `asyncio <https://docs.python.org/3/library/asyncio.html>`_.
+Supported protocols are ArtNet, sACN and KiNet.
 
 
 Getting Started
@@ -121,12 +122,68 @@ Channel properties can be set when creating the channel through :meth:`BaseUnive
     # hide: stop
 
 
+Output correction
+==================================
+
+Output correction
+----------------------------------
+It is possible to use an output correction to create different brightness curves.
+`Output correction <Available output corrections>`_ can be set on the channel, the universe or the node.
+The universe output correction overrides the node output correction and the channel output
+correction overwrites the universe output correction.
+
+
+The graph shows different output valuedepending on the output correction.
+
+From left to right:
+linear (default when nothing is set), quadratic, cubic then quadruple
+
+.. image:: ../curves.svg
+  :alt: Value curves for output correction
+
+Quadratic or cubic results in much smoother and more pleasant fades when using LED Strips.
+
+Example
+----------------------------------
+
+.. exec_code::
+
+    # hide: start
+    from helper import MockedSocket
+    MockedSocket().mock()
+
+    import asyncio
+
+    async def main():
+    # hide: stop
+        from pyartnet import ArtNetNode, output_correction
+
+        # create node/universe/channel
+        node = ArtNetNode('IP', 6454)
+        universe = node.add_universe(0)
+        channel = universe.add_channel(start=1, width=3)
+
+        # set quadratic correction for the whole universe to quadratic
+        universe.set_output_correction(output_correction.quadratic)
+
+        # Explicitly set output for this channel to linear
+        channel.set_output_correction(output_correction.linear)
+
+        # Remove output correction for the channel.
+        # The channel will now use the correction from the universe again
+        channel.set_output_correction(None)
+
+
+    # hide: start
+    asyncio.run(main())
+    # hide: stop
+
 
 Class Reference
 ==================================
 
 
-Universe
+Universe and Channel
 ----------------------------------
 
 .. autoclass:: BaseUniverse
@@ -134,16 +191,13 @@ Universe
    :inherited-members:
    :member-order: groupwise
 
-Channel
-----------------------------------
-
 .. autoclass:: Channel
    :members:
    :inherited-members:
    :member-order: groupwise
 
 
-ArtNetNode
+Node implementations
 ----------------------------------
 
 .. autoclass:: ArtNetNode
@@ -151,18 +205,30 @@ ArtNetNode
    :inherited-members:
    :member-order: groupwise
 
-KiNetNode
-----------------------------------
 
 .. autoclass:: KiNetNode
    :members:
    :inherited-members:
    :member-order: groupwise
 
-SacnNode
-----------------------------------
 
 .. autoclass:: SacnNode
    :members:
    :inherited-members:
    :member-order: groupwise
+
+
+Fades
+----------------------------------
+
+.. autoclass:: pyartnet.fades.LinearFade
+   :members:
+   :inherited-members:
+   :member-order: groupwise
+
+
+Available output corrections
+----------------------------------
+
+.. automodule:: pyartnet.output_correction
+   :members:
