@@ -1,7 +1,8 @@
 # pyartnet
 ![Tests](https://github.com/spacemanspiff2007/PyArtNet/workflows/Tests/badge.svg)
 ![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pyartnet)
-[![Downloads](https://pepy.tech/badge/pyartnet/month)](https://pepy.tech/project/pyartnet/month)
+[![Documentation Status](https://readthedocs.org/projects/pyartnet/badge/?version=latest)](https://pyartnet.readthedocs.io/en/latest/?badge=latest)
+[![Downloads](https://static.pepy.tech/badge/pyartnet/month)](https://pepy.tech/project/pyartnet)
 
 
 pyartnet is a python implementation of the ArtNet protocol using [asyncio](https://docs.python.org/3/library/asyncio.html).
@@ -109,38 +110,38 @@ channel.add_fade([0xFFFF, 0, 0], 5000)
 
 # Changelog
 
-#### 0.8.4 (13.07.2022)
+#### 1.0.0 (2023-02-07)
+- Complete rework of library (breaking change)
+
+#### 0.8.4 (2022-07-13)
 - Added linear fade (closes #14)
 - Updated max FPS (closes #17)
 - All raised Errors inherit now from PyArtNetError
 - Some refactoring and cleanup
 - Activated tests for Python 3.10
 
-#### 0.8.3 (23.07.2021)
+#### 0.8.3 (2021-07-23)
 - No more jumping fades when using output correction with bigger channels
 - Reformatted files
 
-#### 0.8.2 (14.03.2021)
+#### 0.8.2 (2021-03-14)
 - Using nonblocking sockets
 - Added option to send frames to a broadcast address
 
-#### 0.8.1 (26.02.2021)
+#### 0.8.1 (2021-02-26)
 - Fixed an issue with the max value for channels with 16bits and more
 
-#### 0.8.0 (11.02.2021)
+#### 0.8.0 (2021-02-11)
 - Added support for channels with 16, 24 and 32bits
 
-
-#### 0.7.0 (28.10.2020)
+#### 0.7.0 (2020-10-28)
 - renamed logger to ``pyartnet`` to make it consistent with the module name
 - callbacks on the channel now get the channel passed in as an argument
 - Adding the same channel multiple times or adding overlapping channels raises an exception
 - Added ``pyartnet.errors``
 - optimized logging of sent frames
 
-
-
-#### 0.6.0 (27.10.2020)
+#### 0.6.0 (2020-10-27)
 - ``ArtnetNode.start`` is now an async function
 - ``ArtnetNode.step_time_ms`` renamed to ``ArtnetNode.step_time`` (shouldn't be used manually anyway)
 - removed support for python 3.6
