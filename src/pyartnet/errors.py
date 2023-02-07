@@ -5,7 +5,7 @@ class PyArtNetError(Exception):
 # -----------------------------------------------------------------------------
 # Universe Errors
 # -----------------------------------------------------------------------------
-class InvalidUniverseAddress(PyArtNetError):
+class InvalidUniverseAddressError(PyArtNetError):
     pass
 
 
@@ -36,11 +36,11 @@ class ChannelOutOfUniverseError(PyArtNetError):
     pass
 
 
-class ChannelWidthInvalid(PyArtNetError):
+class ChannelWidthError(PyArtNetError):
     pass
 
 
-class ChannelValueOutOfBounds(PyArtNetError):
+class ChannelValueOutOfBoundsError(PyArtNetError):
     pass
 
 

@@ -1,11 +1,25 @@
+import asyncio
 from time import monotonic
 
 import pytest
 
 from pyartnet.base import BaseUniverse
 from pyartnet.base.channel import Channel
-from pyartnet.errors import ChannelValueOutOfBounds, ValueCountDoesNotMatchChannelWidthError
+from pyartnet.errors import ChannelValueOutOfBoundsError, ValueCountDoesNotMatchChannelWidthError
 from tests.conftest import STEP_MS, TestingNode
+
+
+async def test_channel_await(node: TestingNode, universe: BaseUniverse, caplog):
+    a = Channel(universe, 1, 1)
+    assert a.get_values() == [0]
+
+    a.add_fade([255], 200)
+
+    start = monotonic()
+    await asyncio.wait_for(a, 1)
+    stop = monotonic()
+
+    assert stop - start >= 0.2
 
 
 async def test_single_step(node: TestingNode, universe: BaseUniverse, caplog):
@@ -79,7 +93,7 @@ async def test_tripple_fade(node: TestingNode, universe: BaseUniverse, caplog):
 async def test_fade_errors(node: TestingNode, universe: BaseUniverse):
     c = universe.add_channel(1, 1)
 
-    with pytest.raises(ChannelValueOutOfBounds) as e:
+    with pytest.raises(ChannelValueOutOfBoundsError) as e:
         c.add_fade([0, 0, 256], 0)
     assert str(e.value) == 'Target value out of bounds! 0 <= 256 <= 255'
 

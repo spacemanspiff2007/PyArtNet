@@ -20,7 +20,7 @@ TYPE_U = TypeVar('TYPE_U', bound='pyartnet.base.BaseUniverse')
 class BaseNode(Generic[TYPE_U], OutputCorrection):
     def __init__(self, ip: str, port: int, *,
                  max_fps: int = 25,
-                 refresh_every: Union[int, float, None] = 2, start_refresh_task=True,
+                 refresh_every: Union[int, float, None] = 2, start_refresh_task: bool = True,
                  source_address: Optional[Tuple[str, int]] = None):
         super().__init__()
 
@@ -28,7 +28,6 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
         self._ip: Final = ip
         self._port: Final = port
         self._dst: Final = (self._ip, self._port)
-        self._name: Final = f'{self._ip:s}:{self._port}'
 
         # socket setup
         self._socket: Final = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
@@ -39,15 +38,18 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
             self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self._socket.bind(source_address)
 
+        # Name used for the Tasks (e.g. in error msg)
+        name: Final = f'{self._ip:s}:{self._port}'
+
         # refresh task
         self._refresh_every: float = max(0.1, refresh_every)
-        self._refresh_task: Final = ExceptionIgnoringTask(self._periodic_refresh_worker, f'Process task {self._name:s}')
+        self._refresh_task: Final = ExceptionIgnoringTask(self._periodic_refresh_worker, f'Process task {name:s}')
         if start_refresh_task:
             self._refresh_task.start()
 
         # fade task
         self._process_every: float = 1 / max(1, max_fps)
-        self._process_task: Final = SimpleBackgroundTask(self._process_values_task, f'Process task {self._name:s}')
+        self._process_task: Final = SimpleBackgroundTask(self._process_values_task, f'Refresh task {name:s}')
         self._process_jobs: List['pyartnet.base.ChannelBoundFade'] = []
 
         # packet data
@@ -55,7 +57,7 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
         self._last_send: float = 0
 
         # containing universes
-        self._universes: Tuple[TYPE_U, ...] = tuple()
+        self._universes: Tuple[TYPE_U, ...] = ()
         self._universe_map: Dict[int, TYPE_U] = {}
 
     def _apply_output_correction(self):
@@ -77,7 +79,7 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
         await sleep(0.01)
 
         idle_ct = 0
-        while idle_ct < 5:
+        while idle_ct < 10:
             idle_ct += 1
 
             # process jobs
@@ -104,11 +106,11 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
             await sleep(self._process_every)
 
     def start_refresh(self):
-        """Manually starts the refresh task"""
+        """Manually start the refresh task (if not already running)"""
         self._refresh_task.start()
 
     def stop_refresh(self):
-        """Manually stops the refresh task"""
+        """Manually stop the refresh task"""
         self._refresh_task.cancel()
 
     async def _periodic_refresh_worker(self):
@@ -127,6 +129,11 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
                 u.send_data()
 
     def get_universe(self, nr: int) -> TYPE_U:
+        """Get universe by number
+
+        :param nr: universe nr
+        :return: The universe
+        """
         if not isinstance(nr, int) or not nr >= 0:
             raise ValueError('BaseUniverse must be an int >= 0!')
         nr = int(nr)
@@ -137,7 +144,11 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
             raise UniverseNotFoundError(f'BaseUniverse {nr:d} not found!') from None
 
     def add_universe(self, nr: int = 0) -> TYPE_U:
-        """Creates a new universe and adds it to the base"""
+        """Creates a new universe and adds it to the parent node
+
+        :param nr: universe nr
+        :return: The universe
+        """
         if not isinstance(nr, int) or not nr >= 0:
             raise ValueError('BaseUniverse must be an int >= 0!')
         nr = int(nr)

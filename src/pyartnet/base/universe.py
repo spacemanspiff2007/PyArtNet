@@ -3,7 +3,8 @@ from time import monotonic
 from typing import Dict, Final, Literal
 
 import pyartnet
-from pyartnet.errors import ChannelExistsError, ChannelNotFoundError, InvalidUniverseAddress, OverlappingChannelError
+from pyartnet.errors import ChannelExistsError, ChannelNotFoundError, \
+    InvalidUniverseAddressError, OverlappingChannelError
 
 from .output_correction import OutputCorrection
 
@@ -16,7 +17,7 @@ class BaseUniverse(OutputCorrection):
         super().__init__()
 
         if not 0 <= universe <= 32767:
-            raise InvalidUniverseAddress()
+            raise InvalidUniverseAddressError()
 
         self._node: Final = node
         self._universe: Final = universe
@@ -48,8 +49,11 @@ class BaseUniverse(OutputCorrection):
         self._last_send = monotonic()
         self._data_changed = False
 
-
     def get_channel(self, channel_name: str) -> 'pyartnet.base.Channel':
+        """Return a channel by name or raise an exception
+
+        :param channel_name: name of the channel
+        """
         if not isinstance(channel_name, str):
             raise TypeError('Channel name must be str')
 
@@ -62,6 +66,14 @@ class BaseUniverse(OutputCorrection):
                     start: int, width: int,
                     channel_name: str = '',
                     byte_size: int = 1, byte_order: Literal['big', 'little'] = 'little') -> 'pyartnet.base.Channel':
+        """Add a new channel to the universe. This will automatically resize the universe accordingly.
+
+        :param start: start position in the universe
+        :param width: how many values the channel has
+        :param channel_name: name of the channel for requesting it from the universe
+        :param byte_size: byte size of a value
+        :param byte_order: byte order of a value
+        """
 
         chan = pyartnet.base.Channel(self, start, width, byte_size=byte_size, byte_order=byte_order)
 

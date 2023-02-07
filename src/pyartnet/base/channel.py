@@ -4,8 +4,8 @@ from logging import DEBUG as LVL_DEBUG
 from math import ceil
 from typing import Any, Callable, Final, Iterable, List, Literal, Optional, Type, Union
 
-from pyartnet.errors import ChannelOutOfUniverseError, ChannelValueOutOfBounds, \
-    ChannelWidthInvalid, ValueCountDoesNotMatchChannelWidthError
+from pyartnet.errors import ChannelOutOfUniverseError, ChannelValueOutOfBoundsError, \
+    ChannelWidthError, ValueCountDoesNotMatchChannelWidthError
 from pyartnet.output_correction import linear
 
 from ..fades import FadeBase, LinearFade
@@ -39,7 +39,7 @@ class Channel(OutputCorrection):
                 f'Start position of channel out of universe (1..512): {start}')
 
         if width <= 0 or not isinstance(width, int):
-            raise ChannelWidthInvalid(
+            raise ChannelWidthError(
                 f'Channel width must be int > 0: {width} ({type(width)})')
 
         total_byte_width: Final = width * byte_size
@@ -90,6 +90,10 @@ class Channel(OutputCorrection):
                 return None
 
     def get_values(self) -> List[int]:
+        """Get the current (uncorrected) channel values
+
+        :return: list of channel values
+        """
         return self._values_raw.tolist()
 
     def set_values(self, values: Iterable[Union[int, float]]):
@@ -100,20 +104,20 @@ class Channel(OutputCorrection):
         changed = False
         i: int = -1
         for i, val in enumerate(values):
-            if not 0 <= val <= value_max:
-                raise ChannelValueOutOfBounds(f'Channel value out of bounds! 0 <= {val} <= {value_max:d}')
+            raw_new = round(val)
+            if not 0 <= raw_new <= value_max:
+                raise ChannelValueOutOfBoundsError(f'Channel value out of bounds! 0 <= {val} <= {value_max:d}')
 
-            self._values_raw[i] = raw_new = round(val)
+            self._values_raw[i] = raw_new
             act_new = round(correction(val, value_max)) if correction is not linear else raw_new
             if self._values_act[i] != act_new:
                 changed = True
             self._values_act[i] = act_new
 
         # check that we passed all values
-        i += 1
-        if i != self._width:
+        if i + 1 != self._width:
             raise ValueCountDoesNotMatchChannelWidthError(
-                f'Not enough fade values specified, expected {self._width} but got {i}!')
+                f'Not enough fade values specified, expected {self._width} but got {i + 1}!')
 
         if changed:
             self._parent_universe.channel_changed(self)
@@ -143,21 +147,21 @@ class Channel(OutputCorrection):
         # build fades
         fades: List[FadeBase] = []
         i: int = -1
-        for i, val in enumerate(values):
+        for i, val in enumerate(values):    # noqa: B007
             # default is linear
             k = fade_class(val) if not isinstance(val, FadeBase) else val
             fades.append(k)
 
             if not 0 <= k.val_target <= self._value_max:
-                raise ChannelValueOutOfBounds(f'Target value out of bounds! 0 <= {k.val_target} <= {self._value_max}')
+                raise ChannelValueOutOfBoundsError(
+                    f'Target value out of bounds! 0 <= {k.val_target} <= {self._value_max}')
 
             k.initialize(fade_steps)
 
         # check that we passed all values
-        i += 1
-        if i != self._width:
+        if i + 1 != self._width:
             raise ValueCountDoesNotMatchChannelWidthError(
-                f'Not enough fade values specified, expected {self._width} but got {i}!')
+                f'Not enough fade values specified, expected {self._width} but got {i + 1}!')
 
         # Add to scheduling
         self._current_fade = ChannelBoundFade(self, fades)

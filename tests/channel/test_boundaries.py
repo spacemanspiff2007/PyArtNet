@@ -4,7 +4,7 @@ import pytest
 
 from pyartnet.base import BaseUniverse
 from pyartnet.base.channel import Channel
-from pyartnet.errors import ChannelOutOfUniverseError, ChannelValueOutOfBounds
+from pyartnet.errors import ChannelOutOfUniverseError, ChannelValueOutOfBoundsError
 
 
 def test_channel_boundaries():
@@ -37,25 +37,25 @@ def test_set_value_invalid():
     universe.output_correction = None
 
     b = Channel(universe, 1, 1)
-    with pytest.raises(ChannelValueOutOfBounds) as e:
+    with pytest.raises(ChannelValueOutOfBoundsError) as e:
         b.set_values([256])
     assert str(e.value) == 'Channel value out of bounds! 0 <= 256 <= 255'
     b.set_values([255])
 
     b = Channel(universe, 1, 1, byte_size=2)
-    with pytest.raises(ChannelValueOutOfBounds) as e:
+    with pytest.raises(ChannelValueOutOfBoundsError) as e:
         b.set_values([65536])
     assert str(e.value) == 'Channel value out of bounds! 0 <= 65536 <= 65535'
     b.set_values([65535])
 
     b = Channel(universe, 3, 3)
-    with pytest.raises(ChannelValueOutOfBounds) as e:
+    with pytest.raises(ChannelValueOutOfBoundsError) as e:
         b.set_values([0, 0, 256])
     assert str(e.value) == 'Channel value out of bounds! 0 <= 256 <= 255'
     b.set_values([0, 0, 255])
 
     b = Channel(universe, 3, 3, byte_size=2)
-    with pytest.raises(ChannelValueOutOfBounds) as e:
+    with pytest.raises(ChannelValueOutOfBoundsError) as e:
         b.set_values([0, 0, 65536])
     assert str(e.value) == 'Channel value out of bounds! 0 <= 65536 <= 65535'
     b.set_values([0, 0, 65535])

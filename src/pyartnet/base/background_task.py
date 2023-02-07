@@ -13,8 +13,9 @@ def log_exception(e: Exception, name: str):
         log.error(line)
 
 
-BACKGROUND_TASKS: Set[Task] = set()
+_BACKGROUND_TASKS: Set[Task] = set()
 
+# use variables, so it's easy to e.g. implement thread safe scheduling
 CREATE_TASK = create_task
 EXCEPTION_HANDLER: Callable[[Exception, str], Any] = log_exception
 
@@ -31,8 +32,8 @@ class SimpleBackgroundTask:
             return None
 
         self.task = task = CREATE_TASK(self.coro_wrap(), name=self.name)
-        BACKGROUND_TASKS.add(task)
-        task.add_done_callback(BACKGROUND_TASKS.discard)
+        _BACKGROUND_TASKS.add(task)
+        task.add_done_callback(_BACKGROUND_TASKS.discard)
 
     def cancel(self):
         if self.task is None:

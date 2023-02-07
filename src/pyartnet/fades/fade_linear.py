@@ -25,4 +25,4 @@ class LinearFade(FadeBase):
             if curr >= self.val_target:
                 self.is_done = True
 
-        return self.val_current
+        return curr

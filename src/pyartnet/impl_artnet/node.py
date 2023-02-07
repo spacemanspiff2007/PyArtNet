@@ -4,7 +4,7 @@ from typing import Final, Optional, Tuple, Union
 import pyartnet
 from pyartnet.base import BaseNode
 from pyartnet.base.seq_counter import SequenceCounter
-from pyartnet.errors import InvalidUniverseAddress
+from pyartnet.errors import InvalidUniverseAddressError
 
 # -----------------------------------------------------------------------------
 # Documentation for ArtNet Protocol:
@@ -58,7 +58,7 @@ class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
 
     def _create_universe(self, nr: int) -> 'pyartnet.impl_artnet.ArtNetUniverse':
         if nr >= 32_768:
-            raise InvalidUniverseAddress()
+            raise InvalidUniverseAddressError()
         return pyartnet.impl_artnet.ArtNetUniverse(self, nr)
 
     def __log_artnet_frame(self, p: Union[bytearray, bytes]):

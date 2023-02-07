@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import pyartnet.impl_sacn.universe
 from pyartnet.base import BaseNode
-from pyartnet.errors import InvalidUniverseAddress
+from pyartnet.errors import InvalidUniverseAddressError
 
 # -----------------------------------------------------------------------------
 # Documentation for E1.31 Protocol:
@@ -117,5 +117,5 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
     def _create_universe(self, nr: int) -> 'pyartnet.impl_sacn.SacnUniverse':
         # 6.2.7 E1.31 Data Packet: Universe
         if not 1 <= nr < 63_999:
-            raise InvalidUniverseAddress()
+            raise InvalidUniverseAddressError()
         return pyartnet.impl_sacn.SacnUniverse(self, nr)

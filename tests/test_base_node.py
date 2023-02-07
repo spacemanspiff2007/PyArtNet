@@ -10,13 +10,11 @@ from tests.conftest import STEP_MS, TestingNode
 
 def test_universe_add_get(node: TestingNode):
     for i in (1.3, -1):
-        with pytest.raises(ValueError) as e:
+        with pytest.raises(ValueError, match='BaseUniverse must be an int >= 0!'):
             node.add_universe(i)
-        assert str(e.value) == 'BaseUniverse must be an int >= 0!'
 
-        with pytest.raises(ValueError) as e:
+        with pytest.raises(ValueError, match='BaseUniverse must be an int >= 0!'):
             node.get_universe(i)
-        assert str(e.value) == 'BaseUniverse must be an int >= 0!'
 
     u = node.add_universe()
     assert len(node) == 1
@@ -24,9 +22,8 @@ def test_universe_add_get(node: TestingNode):
     assert node[0] is u
 
     # Duplicate
-    with pytest.raises(DuplicateUniverseError) as e:
+    with pytest.raises(DuplicateUniverseError, match='BaseUniverse 0 does already exist!'):
         node.add_universe()
-    assert str(e.value) == 'BaseUniverse 0 does already exist!'
 
     # Check that the nodes are ascending
     node.add_universe(50)
@@ -73,7 +70,6 @@ async def test_fade_await(node: TestingNode, universe: BaseUniverse, caplog):
     await check_no_wait_time_when_no_fade()
 
     channel.add_fade([10], 2 * STEP_MS)
-
 
     assert channel._current_fade is not None
     await check_wait_time_when_fade(2)

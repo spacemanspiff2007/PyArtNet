@@ -5,7 +5,7 @@ from typing import Optional, Tuple, Union
 
 import pyartnet
 from pyartnet.base import BaseNode
-from pyartnet.errors import InvalidUniverseAddress
+from pyartnet.errors import InvalidUniverseAddressError
 
 # -----------------------------------------------------------------------------
 # Documentation for KiNet Protocol:
@@ -44,5 +44,5 @@ class KiNetNode(BaseNode['pyartnet.impl_kinet.KiNetUniverse']):
 
     def _create_universe(self, nr: int) -> 'pyartnet.impl_kinet.KiNetUniverse':
         if nr >= 32_768:
-            raise InvalidUniverseAddress()
+            raise InvalidUniverseAddressError()
         return pyartnet.impl_kinet.KiNetUniverse(self, nr)
