@@ -133,7 +133,7 @@ The universe output correction overrides the node output correction and the chan
 correction overwrites the universe output correction.
 
 
-The graph shows different output valuedepending on the output correction.
+The graph shows different output values depending on the output correction.
 
 From left to right:
 linear (default when nothing is set), quadratic, cubic then quadruple

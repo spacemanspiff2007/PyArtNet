@@ -1,7 +1,7 @@
 # pyartnet
 ![Tests](https://github.com/spacemanspiff2007/PyArtNet/workflows/Tests/badge.svg)
-![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pyartnet)
 [![Documentation Status](https://readthedocs.org/projects/pyartnet/badge/?version=latest)](https://pyartnet.readthedocs.io/en/latest/?badge=latest)
+![PyPI - Python Version](https://img.shields.io/pypi/pyversions/pyartnet)
 [![Downloads](https://static.pepy.tech/badge/pyartnet/month)](https://pepy.tech/project/pyartnet)
 
 
