@@ -2,6 +2,8 @@ import os
 import re
 import sys
 
+RTD_BUILD = os.environ.get('READTHEDOCS') == 'True'
+
 # Configuration file for the Sphinx documentation builder.
 #
 # For the full list of built-in configuration values, see the documentation:
@@ -50,15 +52,21 @@ autoclass_content = 'class'
 sys.path.insert(0, os.path.join(os.path.abspath('..'), 'src'))
 
 
-# -- Options for exec code -------------------------------------------------
+# -- Options for intersphinx -------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/extensions/intersphinx.html
-intersphinx_mapping = {
-    'python': ('https://docs.python.org/3', None)
-}
+if RTD_BUILD:
+    intersphinx_mapping = {
+        'python': ('https://docs.python.org/3', None)
+    }
 
 
 # -- Options for nitpick -------------------------------------------------
-# Don't show warnings for missing python references since these are created via intersphinx
 nitpick_ignore_regex = [
-    (re.compile(r'py:data|py:class'), re.compile(r'typing\..+')),
+    (re.compile(r'py:class'), re.compile(r'pyartnet\.fades\.fade_base\.FadeBase'))
 ]
+
+# Don't show warnings for missing python references since these are created via intersphinx during the RTD build
+if not RTD_BUILD:
+    nitpick_ignore_regex.append(
+        (re.compile(r'py:data|py:class'), re.compile(r'typing\..+'))
+    )
