@@ -97,6 +97,10 @@ class Channel(OutputCorrection):
         return self._values_raw.tolist()
 
     def set_values(self, values: Iterable[Union[int, float]]):
+        """Set values for a channel without a fade
+
+        :param values: Iterable of values with the same size as the channel width
+        """
         # get output correction function
         correction = self._correction_current
         value_max = self._value_max
@@ -121,8 +125,13 @@ class Channel(OutputCorrection):
 
         if changed:
             self._parent_universe.channel_changed(self)
+        return self
 
     def to_buffer(self, buf: bytearray):
+        """Write the output corrected values as bytes into a buffer
+
+        :param buf: buffer
+        """
         byte_order = self._byte_order
         byte_size = self._byte_size
 
@@ -130,10 +139,17 @@ class Channel(OutputCorrection):
         for value in self._values_act:
             buf[start: start + byte_size] = value.to_bytes(byte_size, byte_order, signed=False)
             start += byte_size
+        return self
 
     # noinspection PyProtectedMember
     def add_fade(self, values: Iterable[Union[int, FadeBase]], duration_ms: int,
                  fade_class: Type[FadeBase] = LinearFade):
+        """Add and schedule a new fade for the channel
+
+        :param values: Target values for the fade
+        :param duration_ms: Duration for the fade in ms
+        :param fade_class: What kind of fade
+        """
 
         if self._current_fade is not None:
             self._current_fade.cancel()
@@ -175,6 +191,7 @@ class Channel(OutputCorrection):
             for i, fade in enumerate(fades):
                 log.debug(f'CH {self._start + i}: {self._values_raw[i]:03d} -> {fade.val_target:03d}'
                           f' | {fade.debug_initialize():s}')
+        return self
 
     def __await__(self):
         if self._current_fade is None:

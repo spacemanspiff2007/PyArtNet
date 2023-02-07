@@ -1,5 +1,5 @@
 # Packages required to build the documentation
-sphinx                      >= 6.1,     < 7
+sphinx                      >= 5.3,     < 6
 sphinx-autodoc-typehints    >= 1.22,    < 2
 sphinx_rtd_theme            == 1.1.1
 sphinx-exec-code            == 0.8
