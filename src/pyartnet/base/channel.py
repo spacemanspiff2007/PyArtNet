@@ -12,6 +12,7 @@ from ..fades import FadeBase, LinearFade
 from .channel_fade import ChannelBoundFade
 from .output_correction import OutputCorrection
 from .universe import BaseUniverse
+from ..output_correction import Correction, Linear
 
 log = logging.getLogger('pyartnet.Channel')
 
@@ -68,7 +69,7 @@ class Channel(OutputCorrection):
         self._parent_universe: Final = universe
         self._parent_node: Final = universe._node
 
-        self._correction_current: Callable[[float, int], float] = linear
+        self._correction_current: Correction = Linear()
 
         # Fade
         self._current_fade: Optional[ChannelBoundFade] = None
@@ -78,10 +79,11 @@ class Channel(OutputCorrection):
         # ---------------------------------------------------------------------
         # Callbacks
         self.callback_fade_finished: Optional[Callable[[Channel], Any]] = None
+        self.callback_values_updated: Optional[Callable[[array[int]], None]] = None
 
     def _apply_output_correction(self):
         # default correction is linear
-        self._correction_current = linear
+        self._correction_current = Linear()
 
         # inherit correction if it is not set first from universe and then from the node
         for obj in (self, self._parent_universe, self._parent_node):
@@ -113,7 +115,7 @@ class Channel(OutputCorrection):
                 raise ChannelValueOutOfBoundsError(f'Channel value out of bounds! 0 <= {val} <= {value_max:d}')
 
             self._values_raw[i] = raw_new
-            act_new = round(correction(val, value_max)) if correction is not linear else raw_new
+            act_new = round(correction.correct(val, value_max)) if not isinstance(correction, Linear) else raw_new
             if self._values_act[i] != act_new:
                 changed = True
             self._values_act[i] = act_new
@@ -140,6 +142,54 @@ class Channel(OutputCorrection):
             buf[start: start + byte_size] = value.to_bytes(byte_size, byte_order, signed=False)
             start += byte_size
         return self
+
+    def from_buffer(self, buf: bytearray):
+        byte_order = self._byte_order
+        byte_size = self._byte_size
+        correction = self._correction_current
+        value_max = self._value_max
+
+        start_index = self._start
+        end_index = self._stop + 1
+
+        byte_chunks = Channel.__chunks(buf[start_index:end_index], byte_size)
+
+        values_act = array(
+            'i', [int.from_bytes(byte_chunk, byte_order, signed=False)
+                  if len(byte_chunk) == byte_size else None
+                  for byte_chunk in byte_chunks]
+        )
+
+        changed = False
+        for act_value_index, act_value in enumerate(values_act):
+            if act_value is None:
+                log.warning(f"Channel {start_index + act_value_index} was updated externally, but is part of an incomplete "
+                            f"{byte_size} byte number. This is very likely unintended by the external controller.")
+                continue
+
+            if self._values_act[act_value_index] == values_act[act_value_index]:
+                continue
+
+            self._values_act[act_value_index] = values_act[act_value_index]
+            changed = True
+
+        if not changed:
+            return
+
+        self._values_act = values_act
+
+        values_raw = [round(correction.reverse_correct(val, value_max)) for val in values_act]
+        for raw_value_index, raw_value in enumerate(values_raw):
+            self._values_raw[raw_value_index] = raw_value
+
+        if self.callback_values_updated is not None:
+            self.callback_values_updated(self._values_raw)
+
+    @staticmethod
+    def __chunks(lst, n):
+        """Yield successive n-sized chunks from lst."""
+        for i in range(0, len(lst), n):
+            yield lst[i:i + n]
 
     # noinspection PyProtectedMember
     def add_fade(self, values: Iterable[Union[int, FadeBase]], duration_ms: int,

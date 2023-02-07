@@ -49,6 +49,12 @@ class BaseUniverse(OutputCorrection):
         self._last_send = monotonic()
         self._data_changed = False
 
+    def receive_data(self, data: bytearray):
+        channels = self._channels
+
+        for channel in channels.values():
+            channel.from_buffer(data)
+
     def get_channel(self, channel_name: str) -> 'pyartnet.base.Channel':
         """Return a channel by name or raise an exception
 
