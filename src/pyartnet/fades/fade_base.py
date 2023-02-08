@@ -8,8 +8,10 @@ class FadeBase(metaclass=abc.ABCMeta):
         self.val_start   : int = 0            # Start Value
         self.val_current : float = 0.0        # Current Value
 
+        self.is_done = False
+
     @abc.abstractmethod
-    def initialize_fade(self, steps : int):
+    def initialize(self, steps : int):
         raise NotImplementedError()
 
     def debug_initialize(self) -> str:
@@ -17,9 +19,5 @@ class FadeBase(metaclass=abc.ABCMeta):
         return ""
 
     @abc.abstractmethod
-    def calc_next_value(self):
-        raise NotImplementedError()
-
-    @abc.abstractmethod
-    def is_done(self) -> bool:
+    def calc_next_value(self) -> float:
         raise NotImplementedError()

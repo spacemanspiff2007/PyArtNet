@@ -1,32 +1,11 @@
 import pytest
 
-from pyartnet import DmxUniverse, errors
-
-from .conftest import PatchedArtNetNode
-
-
-def test_channel_add(artnet_node: PatchedArtNetNode):
-    universe = DmxUniverse(artnet_node)
-
-    universe.add_channel(2, 1)
-    assert universe.highest_channel == 2
-    assert universe.data == b'\x00\x00'
-
-    universe.add_channel(3, 1)
-    assert universe.highest_channel == 4
-    assert universe.data == b'\x00\x00\x00\x00'
-
-    universe.add_channel(4, 1)
-    assert universe.highest_channel == 4
-    assert universe.data == b'\x00\x00\x00\x00'
-
-    universe.add_channel(7, 1)
-    assert universe.highest_channel == 8
-    assert universe.data == b'\x00\x00\x00\x00\x00\x00\x00\x00'
+from pyartnet import errors
+from pyartnet.base import BaseUniverse
+from pyartnet.errors import ChannelNotFoundError
 
 
-def test_exceptions(artnet_node: PatchedArtNetNode):
-    universe = DmxUniverse(artnet_node)
+def test_exceptions(universe: BaseUniverse):
     universe.add_channel(1, 1)
 
     with pytest.raises(errors.ChannelExistsError) as e:
@@ -43,6 +22,7 @@ def test_exceptions(artnet_node: PatchedArtNetNode):
 
     # Overlapping channels
     universe.add_channel(10, 3)
+
     with pytest.raises(errors.OverlappingChannelError) as e:
         universe.add_channel(1, 3)
     assert str(e.value) == 'New channel 1/3 is overlapping with channel 1/1!'
@@ -55,14 +35,44 @@ def test_exceptions(artnet_node: PatchedArtNetNode):
         universe.add_channel(8, 20)
 
 
-def test_container(artnet_node: PatchedArtNetNode):
-    universe = DmxUniverse(artnet_node)
+def test_universe_resize(universe: BaseUniverse):
+    assert universe._data_size == 0
+    assert universe._data == b''
 
     universe.add_channel(1, 1)
-    assert len(universe) == 1
+    assert universe._data_size == 2
+    assert universe._data == b'\x00\x00'
 
+    universe.add_channel(6, 1)
+    assert universe._data_size == 6
+    assert universe._data == b'\x00\x00\x00\x00\x00\x00'
+
+    universe._channels.popitem()
     universe.add_channel(2, 1)
-    assert len(universe) == 2
+    assert universe._data_size == 2
+    assert universe._data == b'\x00\x00'
 
-    _ = universe['1/1']
-    _ = universe['2/1']
+    universe.add_channel(3, 1)
+    assert universe._data_size == 4
+    assert universe._data == b'\x00\x00\x00\x00'
+
+
+def test_access(universe: BaseUniverse):
+
+    with pytest.raises(ChannelNotFoundError) as e:
+        universe.get_channel('1')
+    assert str(e.value) == 'Channel "1" not found in the universe!'
+
+    with pytest.raises(ChannelNotFoundError) as e:
+        universe.get_channel('1/1')
+    assert str(e.value) == 'Channel "1/1" not found in the universe!'
+
+    c = universe.add_channel(1, 1)
+    assert len(universe) == 1
+    assert universe.get_channel('1/1') is c
+    assert universe['1/1'] is c
+
+    c = universe.add_channel(2, 1)
+    assert len(universe) == 2
+    assert universe.get_channel('2/1') is c
+    assert universe['2/1'] is c
