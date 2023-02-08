@@ -18,11 +18,11 @@ log = logging.getLogger('pyartnet.KiNetNode')
 class KiNetNode(BaseNode['pyartnet.impl_kinet.KiNetUniverse']):
     def __init__(self, ip: str, port: int, *,
                  max_fps: int = 25,
-                 refresh_every: Union[int, float] = 2,
+                 refresh_every: Union[int, float, None] = 2, start_refresh_task: bool = True,
                  source_address: Optional[Tuple[str, int]] = None):
         super().__init__(ip=ip, port=port,
                          max_fps=max_fps,
-                         refresh_every=refresh_every,
+                         refresh_every=refresh_every, start_refresh_task=start_refresh_task,
                          source_address=source_address)
 
         # build base packet

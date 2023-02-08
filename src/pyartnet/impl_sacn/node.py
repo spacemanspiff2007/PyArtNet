@@ -6,7 +6,7 @@ from uuid import uuid4
 
 import pyartnet.impl_sacn.universe
 from pyartnet.base import BaseNode
-from pyartnet.errors import InvalidUniverseAddressError
+from pyartnet.errors import InvalidCidError, InvalidUniverseAddressError
 
 # -----------------------------------------------------------------------------
 # Documentation for E1.31 Protocol:
@@ -28,7 +28,7 @@ VECTOR_DMP_SET_PROPERTY: Final = 0x02
 class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
     def __init__(self, ip: str, port: int, *,
                  max_fps: int = 25,
-                 refresh_every: Union[int, float] = 2,
+                 refresh_every: Union[int, float, None] = 2, start_refresh_task: bool = True,
                  source_address: Optional[Tuple[str, int]] = None,
 
                  # sACN E1.31 specific fields
@@ -36,13 +36,13 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
                  ):
         super().__init__(ip=ip, port=port,
                          max_fps=max_fps,
-                         refresh_every=refresh_every,
+                         refresh_every=refresh_every, start_refresh_task=start_refresh_task,
                          source_address=source_address)
 
         # CID Field
         if cid is not None:
-            if not isinstance(cid, bytes) or len(cid) > 16:
-                raise ValueError('CID invalid or too long!')
+            if not isinstance(cid, bytes) or len(cid) != 16:
+                raise InvalidCidError('CID must be 16bytes!')
         else:
             cid = uuid4().bytes
 

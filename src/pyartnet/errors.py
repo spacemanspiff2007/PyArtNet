@@ -3,6 +3,13 @@ class PyArtNetError(Exception):
 
 
 # -----------------------------------------------------------------------------
+# Implementation specific Errors
+# -----------------------------------------------------------------------------
+class InvalidCidError(PyArtNetError):
+    pass
+
+
+# -----------------------------------------------------------------------------
 # Universe Errors
 # -----------------------------------------------------------------------------
 class InvalidUniverseAddressError(PyArtNetError):

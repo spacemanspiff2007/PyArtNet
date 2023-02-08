@@ -36,6 +36,10 @@ setuptools.setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     url="https://github.com/spacemanspiff2007/PyArtNet",
+    project_urls={
+        'Documentation': 'https://pyartnet.readthedocs.io',
+        'GitHub': 'https://github.com/spacemanspiff2007/PyArtNet'
+    },
     package_dir={'': 'src'},
     packages=setuptools.find_packages('src', exclude=['tests*']),
     python_requires='>=3.8',

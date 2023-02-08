@@ -17,12 +17,15 @@ log = logging.getLogger('pyartnet.ArtNetNode')
 class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
     def __init__(self, ip: str, port: int, *,
                  max_fps: int = 25,
-                 refresh_every: Union[int, float] = 2,
-                 sequence_counter=True,
-                 source_address: Optional[Tuple[str, int]] = None):
+                 refresh_every: Union[int, float, None] = 2, start_refresh_task: bool = True,
+                 source_address: Optional[Tuple[str, int]] = None,
+
+                 # ArtNet specific fields
+                 sequence_counter: bool = True
+                 ):
         super().__init__(ip=ip, port=port,
                          max_fps=max_fps,
-                         refresh_every=refresh_every,
+                         refresh_every=refresh_every, start_refresh_task=start_refresh_task,
                          source_address=source_address)
 
         # ArtNet specific fields

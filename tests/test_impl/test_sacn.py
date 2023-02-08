@@ -1,26 +1,6 @@
-import logging
-from asyncio import sleep
 from binascii import a2b_hex
 
-import pytest
-
-from pyartnet import ArtNetNode, KiNetNode, SacnNode
-from tests.conftest import TestingNode
-
-
-@pytest.mark.parametrize('cls', [ArtNetNode, SacnNode, KiNetNode])
-async def test_arnet(node: TestingNode, caplog, cls):
-    caplog.set_level(logging.DEBUG)
-
-    n = cls('ip', 9999)
-    u = n.add_universe(1)
-    c = u.add_channel(1, 1)
-
-    c.set_values([5])
-    await sleep(0.1)
-
-    c.add_fade([250], 700)
-    await sleep(1.2)
+from pyartnet import SacnNode
 
 
 async def test_sacn(patched_socket):
@@ -42,4 +22,4 @@ async def test_sacn(patched_socket):
     m.sendto.assert_called_once_with(bytearray(a2b_hex(data)), ('ip', 9999999))
 
 
-    await sleep(1.2)
+    await channel

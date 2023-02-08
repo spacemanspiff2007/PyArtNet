@@ -128,10 +128,6 @@ class Channel(OutputCorrection):
         return self
 
     def to_buffer(self, buf: bytearray):
-        """Write the output corrected values as bytes into a buffer
-
-        :param buf: buffer
-        """
         byte_order = self._byte_order
         byte_size = self._byte_size
 

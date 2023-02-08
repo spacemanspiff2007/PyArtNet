@@ -15,8 +15,9 @@ Docs and examples can be found [here](https://pyartnet.readthedocs.io/en/latest/
 
 # Changelog
 
-#### 1.0.0 (2023-02-07)
+#### 1.0.0 (2023-02-08)
 - Complete rework of library (breaking change)
+- Add support for sACN and KiNet
 
 #### 0.8.4 (2022-07-13)
 - Added linear fade (closes #14)
