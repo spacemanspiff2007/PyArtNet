@@ -54,3 +54,7 @@ Docs and examples can be found [here](https://pyartnet.readthedocs.io/en/latest/
 - added more and better type hints
 - switched to pytest
 - small fixes
+
+---
+
+`Art-Net™ Designed by and Copyright Artistic Licence Engineering Ltd`
