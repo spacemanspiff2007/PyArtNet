@@ -29,6 +29,18 @@ class BaseUniverse(OutputCorrection):
 
         self._channels: Dict[str, 'pyartnet.base.Channel'] = {}
 
+    @property
+    def universe(self):
+        return self._universe
+
+    @property
+    def data(self):
+        return self._data
+
+    @property
+    def data_changed(self):
+        return self._data_changed
+
     def _apply_output_correction(self):
         for c in self._channels.values():
             c._apply_output_correction()
