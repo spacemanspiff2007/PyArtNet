@@ -164,10 +164,10 @@ Example
         channel = universe.add_channel(start=1, width=3)
 
         # set quadratic correction for the whole universe to quadratic
-        universe.set_output_correction(output_correction.quadratic)
+        universe.set_output_correction(output_correction.Quadratic())
 
         # Explicitly set output for this channel to linear
-        channel.set_output_correction(output_correction.linear)
+        channel.set_output_correction(output_correction.Linear())
 
         # Remove output correction for the channel.
         # The channel will now use the correction from the universe again

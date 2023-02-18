@@ -29,6 +29,18 @@ class BaseUniverse(OutputCorrection):
 
         self._channels: Dict[str, 'pyartnet.base.Channel'] = {}
 
+    @property
+    def universe(self):
+        return self._universe
+
+    @property
+    def data(self):
+        return self._data
+
+    @property
+    def data_changed(self):
+        return self._data_changed
+
     def _apply_output_correction(self):
         for c in self._channels.values():
             c._apply_output_correction()
@@ -48,6 +60,12 @@ class BaseUniverse(OutputCorrection):
         self._node._send_universe(self._universe, self._data_size, self._data, self)
         self._last_send = monotonic()
         self._data_changed = False
+
+    def receive_data(self, data: bytearray):
+        channels = self._channels
+
+        for channel in channels.values():
+            channel.from_buffer(data)
 
     def get_channel(self, channel_name: str) -> 'pyartnet.base.Channel':
         """Return a channel by name or raise an exception
