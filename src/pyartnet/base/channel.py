@@ -158,10 +158,13 @@ class Channel(OutputCorrection):
 
         # build fades
         fades: List[FadeBase] = []
+        start_values: List[int] = self.get_values()
         i: int = -1
         for i, val in enumerate(values):    # noqa: B007
+            assert i < len(start_values)
+
             # default is linear
-            k = fade_class(val) if not isinstance(val, FadeBase) else val
+            k = fade_class(start_values[i], val) if not isinstance(val, FadeBase) else val
             fades.append(k)
 
             if not 0 <= k.val_target <= self._value_max:

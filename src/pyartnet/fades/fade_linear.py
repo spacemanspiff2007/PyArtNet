@@ -3,8 +3,8 @@ from .fade_base import FadeBase
 
 class LinearFade(FadeBase):
 
-    def __init__(self, target: int):
-        super().__init__(target)
+    def __init__(self, start: int, target: int):
+        super().__init__(start, target)
         self.factor: float = 1.0
 
     def debug_initialize(self) -> str:
