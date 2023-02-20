@@ -2,9 +2,9 @@ from unittest.mock import Mock
 
 import pytest
 
-from pyartnet.base import BaseUniverse
 from pyartnet.base.channel import Channel
-from pyartnet.errors import ChannelOutOfUniverseError, ChannelValueOutOfBoundsError
+from pyartnet.errors import ChannelOutOfUniverseError, \
+    ChannelValueOutOfBoundsError, ValueCountDoesNotMatchChannelWidthError
 
 
 def test_channel_boundaries():
@@ -32,44 +32,58 @@ def test_channel_boundaries():
     Channel(univ, 511, 1, byte_size=2)
 
 
-def test_set_value_invalid():
+def get_node_universe_mock():
+    node = Mock()
+    node._process_every = 0.001
+
     universe = Mock()
+    universe._node = node
     universe.output_correction = None
+    return node, universe
 
-    b = Channel(universe, 1, 1)
+
+@pytest.mark.parametrize(
+    ('width', 'byte_size', 'invalid', 'valid'),
+    ((1, 1, -1, 255), (1, 1, 256, 255), (3, 1, 256, 255),
+     (1, 2, -1, 65535), (1, 2, 65536, 65535), (3, 2, 65536, 65535), ))
+def test_set_invalid(width, byte_size, invalid, valid):
+    node, universe = get_node_universe_mock()
+
+    invalid_values = [0] * (width - 1) + [invalid]
+    valid_values = [0] * (width - 1) + [valid]
+
+    # test set_values
+    c = Channel(universe, 1, width, byte_size=byte_size)
     with pytest.raises(ChannelValueOutOfBoundsError) as e:
-        b.set_values([256])
-    assert str(e.value) == 'Channel value out of bounds! 0 <= 256 <= 255'
-    b.set_values([255])
+        c.set_values(invalid_values)
+    assert str(e.value) == f'Channel value out of bounds! 0 <= {invalid:d} <= {valid}'
+    c.set_values(valid_values)
 
-    b = Channel(universe, 1, 1, byte_size=2)
+    # test set_fade
+    c = Channel(universe, 1, width, byte_size=byte_size)
     with pytest.raises(ChannelValueOutOfBoundsError) as e:
-        b.set_values([65536])
-    assert str(e.value) == 'Channel value out of bounds! 0 <= 65536 <= 65535'
-    b.set_values([65535])
-
-    b = Channel(universe, 3, 3)
-    with pytest.raises(ChannelValueOutOfBoundsError) as e:
-        b.set_values([0, 0, 256])
-    assert str(e.value) == 'Channel value out of bounds! 0 <= 256 <= 255'
-    b.set_values([0, 0, 255])
-
-    b = Channel(universe, 3, 3, byte_size=2)
-    with pytest.raises(ChannelValueOutOfBoundsError) as e:
-        b.set_values([0, 0, 65536])
-    assert str(e.value) == 'Channel value out of bounds! 0 <= 65536 <= 65535'
-    b.set_values([0, 0, 65535])
+        c.set_fade(invalid_values, 100)
+    assert str(e.value) == f'Target value out of bounds! 0 <= {invalid:d} <= {valid}'
+    c.set_fade(valid_values, 100)
 
 
-def test_values_add_channel(universe: BaseUniverse):
-    u = universe.add_channel(1, 2, byte_size=3, byte_order='big')
-    assert u._start == 1
-    assert u._width == 2
-    assert u._byte_size == 3
-    assert u._byte_order == 'big'
+async def test_set_missing():
+    node, universe = get_node_universe_mock()
 
-    u = universe.add_channel(10, 5, byte_size=2, byte_order='little')
-    assert u._start == 10
-    assert u._width == 5
-    assert u._byte_size == 2
-    assert u._byte_order == 'little'
+    c = Channel(universe, 1, 1)
+    with pytest.raises(ValueCountDoesNotMatchChannelWidthError) as e:
+        c.set_values([0, 0, 255])
+    assert str(e.value) == 'Not enough fade values specified, expected 1 but got 3!'
+
+    with pytest.raises(ValueCountDoesNotMatchChannelWidthError) as e:
+        c.set_fade([0, 0, 255], 0)
+    assert str(e.value) == 'Not enough fade values specified, expected 1 but got 3!'
+
+    c = Channel(universe, 1, 3)
+    with pytest.raises(ValueCountDoesNotMatchChannelWidthError) as e:
+        c.set_values([0, 255])
+    assert str(e.value) == 'Not enough fade values specified, expected 3 but got 2!'
+
+    with pytest.raises(ValueCountDoesNotMatchChannelWidthError) as e:
+        c.set_fade([0, 255], 0)
+    assert str(e.value) == 'Not enough fade values specified, expected 3 but got 2!'

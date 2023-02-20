@@ -53,7 +53,7 @@ async def test_fade_await(node: TestingNode, universe: BaseUniverse, caplog):
 
     await check_no_wait_time_when_no_fade()
 
-    channel.add_fade([2], 2 * STEP_MS)
+    channel.set_fade([2], 2 * STEP_MS)
     assert channel.get_values() == [0]
 
     assert list(caplog.messages) == [
@@ -69,12 +69,12 @@ async def test_fade_await(node: TestingNode, universe: BaseUniverse, caplog):
 
     await check_no_wait_time_when_no_fade()
 
-    channel.add_fade([10], 2 * STEP_MS)
+    channel.set_fade([10], 2 * STEP_MS)
 
     assert channel._current_fade is not None
     await check_wait_time_when_fade(2)
     assert channel._current_fade is None
-    assert node.data == ['01', '02', '05', '0a']
+    assert node.data == ['01', '02', '06', '0a']
 
     await check_no_wait_time_when_no_fade()
     await node.wait_for_task_finish()

@@ -30,5 +30,5 @@ async def test_set_funcs(node: TestingNode, caplog, cls):
     c.set_values([5])
     await sleep(0.1)
 
-    c.add_fade([250], 700)
+    c.set_fade([250], 700)
     await c

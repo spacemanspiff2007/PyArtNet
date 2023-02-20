@@ -16,7 +16,7 @@ class ChannelBoundFade:
         self.channel: 'pyartnet.base.Channel' = channel
 
         self.fades: Tuple['pyartnet.fades.FadeBase', ...] = tuple(fades)
-        self.values: List[float] = [f.val_current for f in fades]
+        self.values: List[float] = [0 for _ in fades]
 
         self.is_done = False
         self.event: Final = Event()

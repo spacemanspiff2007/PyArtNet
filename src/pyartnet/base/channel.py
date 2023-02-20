@@ -1,8 +1,9 @@
 import logging
+import warnings
 from array import array
 from logging import DEBUG as LVL_DEBUG
 from math import ceil
-from typing import Any, Callable, Final, Iterable, List, Literal, Optional, Type, Union
+from typing import Any, Callable, Collection, Final, List, Literal, Optional, Type, Union
 
 from pyartnet.errors import ChannelOutOfUniverseError, ChannelValueOutOfBoundsError, \
     ChannelWidthError, ValueCountDoesNotMatchChannelWidthError
@@ -96,17 +97,20 @@ class Channel(OutputCorrection):
         """
         return self._values_raw.tolist()
 
-    def set_values(self, values: Iterable[Union[int, float]]):
+    def set_values(self, values: Collection[Union[int, float]]):
         """Set values for a channel without a fade
 
         :param values: Iterable of values with the same size as the channel width
         """
         # get output correction function
+        if len(values) != self._width:
+            raise ValueCountDoesNotMatchChannelWidthError(
+                f'Not enough fade values specified, expected {self._width} but got {len(values)}!')
+
         correction = self._correction_current
         value_max = self._value_max
 
         changed = False
-        i: int = -1
         for i, val in enumerate(values):
             raw_new = round(val)
             if not 0 <= raw_new <= value_max:
@@ -117,11 +121,6 @@ class Channel(OutputCorrection):
             if self._values_act[i] != act_new:
                 changed = True
             self._values_act[i] = act_new
-
-        # check that we passed all values
-        if i + 1 != self._width:
-            raise ValueCountDoesNotMatchChannelWidthError(
-                f'Not enough fade values specified, expected {self._width} but got {i + 1}!')
 
         if changed:
             self._parent_universe.channel_changed(self)
@@ -137,8 +136,14 @@ class Channel(OutputCorrection):
             start += byte_size
         return self
 
+    def add_fade(self, values: Collection[Union[int, FadeBase]], duration_ms: int,
+                 fade_class: Type[FadeBase] = LinearFade):
+        warnings.warn(
+            f"{self.set_fade.__name__:s} is deprecated, use {self.set_fade.__name__:s} instead", DeprecationWarning)
+        return self.set_fade(values, duration_ms, fade_class)
+
     # noinspection PyProtectedMember
-    def add_fade(self, values: Iterable[Union[int, FadeBase]], duration_ms: int,
+    def set_fade(self, values: Collection[Union[int, FadeBase]], duration_ms: int,
                  fade_class: Type[FadeBase] = LinearFade):
         """Add and schedule a new fade for the channel
 
@@ -146,6 +151,10 @@ class Channel(OutputCorrection):
         :param duration_ms: Duration for the fade in ms
         :param fade_class: What kind of fade
         """
+        # check that we passed all values
+        if len(values) != self._width:
+            raise ValueCountDoesNotMatchChannelWidthError(
+                f'Not enough fade values specified, expected {self._width} but got {len(values)}!')
 
         if self._current_fade is not None:
             self._current_fade.cancel()
@@ -158,22 +167,16 @@ class Channel(OutputCorrection):
 
         # build fades
         fades: List[FadeBase] = []
-        i: int = -1
-        for i, val in enumerate(values):    # noqa: B007
+        for i, target in enumerate(values):
             # default is linear
-            k = fade_class(val) if not isinstance(val, FadeBase) else val
+            k = fade_class() if not isinstance(target, FadeBase) else target
             fades.append(k)
 
-            if not 0 <= k.val_target <= self._value_max:
+            if not 0 <= target <= self._value_max:
                 raise ChannelValueOutOfBoundsError(
-                    f'Target value out of bounds! 0 <= {k.val_target} <= {self._value_max}')
+                    f'Target value out of bounds! 0 <= {target} <= {self._value_max}')
 
-            k.initialize(fade_steps)
-
-        # check that we passed all values
-        if i + 1 != self._width:
-            raise ValueCountDoesNotMatchChannelWidthError(
-                f'Not enough fade values specified, expected {self._width} but got {i + 1}!')
+            k.initialize(self._values_raw[i], target, fade_steps)
 
         # Add to scheduling
         self._current_fade = ChannelBoundFade(self, fades)
@@ -182,11 +185,11 @@ class Channel(OutputCorrection):
         # start fade/refresh task if necessary
         self._parent_node._process_task.start()
 
+        # todo: this on the ChannelBoundFade
         if log.isEnabledFor(LVL_DEBUG):
             log.debug(f'Added fade with {fade_steps} steps:')
             for i, fade in enumerate(fades):
-                log.debug(f'CH {self._start + i}: {self._values_raw[i]:03d} -> {fade.val_target:03d}'
-                          f' | {fade.debug_initialize():s}')
+                log.debug(f'CH {self._start + i}: {fade.debug_initialize():s}')
         return self
 
     def __await__(self):

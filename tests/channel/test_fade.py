@@ -1,11 +1,8 @@
 import asyncio
 from time import monotonic
 
-import pytest
-
 from pyartnet.base import BaseUniverse
 from pyartnet.base.channel import Channel
-from pyartnet.errors import ChannelValueOutOfBoundsError, ValueCountDoesNotMatchChannelWidthError
 from tests.conftest import STEP_MS, TestingNode
 
 
@@ -13,7 +10,7 @@ async def test_channel_await(node: TestingNode, universe: BaseUniverse, caplog):
     a = Channel(universe, 1, 1)
     assert a.get_values() == [0]
 
-    a.add_fade([255], 200)
+    a.set_fade([255], 200)
 
     start = monotonic()
     await asyncio.wait_for(a, 1)
@@ -28,7 +25,7 @@ async def test_single_step(node: TestingNode, universe: BaseUniverse, caplog):
     a = Channel(universe, 1, 1)
     assert a.get_values() == [0]
 
-    a.add_fade([255], 0)
+    a.set_fade([255], 0)
     assert a.get_values() == [0]
 
     assert list(caplog.messages) == [
@@ -50,7 +47,7 @@ async def test_single_fade(node: TestingNode, universe: BaseUniverse, caplog):
     a = Channel(universe, 1, 1)
     assert a.get_values() == [0]
 
-    a.add_fade([2], 2 * STEP_MS)
+    a.set_fade([2], 2 * STEP_MS)
     assert a.get_values() == [0]
 
     assert list(caplog.messages) == [
@@ -72,7 +69,7 @@ async def test_tripple_fade(node: TestingNode, universe: BaseUniverse, caplog):
     a = Channel(universe, 1, 3)
     assert a.get_values() == [0, 0, 0]
 
-    a.add_fade([3, 6, 9], 3 * STEP_MS)
+    a.set_fade([3, 6, 9], 3 * STEP_MS)
     assert a.get_values() == [0, 0, 0]
 
     assert list(caplog.messages) == [
@@ -90,18 +87,6 @@ async def test_tripple_fade(node: TestingNode, universe: BaseUniverse, caplog):
     assert node.data == ['010203', '020406', '030609']
 
 
-async def test_fade_errors(node: TestingNode, universe: BaseUniverse):
-    c = universe.add_channel(1, 1)
-
-    with pytest.raises(ChannelValueOutOfBoundsError) as e:
-        c.add_fade([0, 0, 256], 0)
-    assert str(e.value) == 'Target value out of bounds! 0 <= 256 <= 255'
-
-    with pytest.raises(ValueCountDoesNotMatchChannelWidthError) as e:
-        c.add_fade([0, 0, 255], 0)
-    assert str(e.value) == 'Not enough fade values specified, expected 1 but got 3!'
-
-
 async def test_fade_await(node: TestingNode, universe: BaseUniverse, caplog):
     caplog.set_level(0)
 
@@ -116,7 +101,7 @@ async def test_fade_await(node: TestingNode, universe: BaseUniverse, caplog):
 
     await check_no_wait_time_when_no_fade()
 
-    channel.add_fade([2], 2 * STEP_MS)
+    channel.set_fade([2], 2 * STEP_MS)
     assert channel.get_values() == [0]
 
     assert list(caplog.messages) == [
@@ -132,12 +117,38 @@ async def test_fade_await(node: TestingNode, universe: BaseUniverse, caplog):
 
     await check_no_wait_time_when_no_fade()
 
-    channel.add_fade([10], 2 * STEP_MS)
+    channel.set_fade([10], 2 * STEP_MS)
 
     assert channel._current_fade is not None
     await channel
     assert channel._current_fade is None
-    assert node.data == ['01', '02', '05', '0a']
+    assert node.data == ['01', '02', '06', '0a']
 
     await check_no_wait_time_when_no_fade()
     await node.wait_for_task_finish()
+
+
+async def test_up_down_fade(node: TestingNode, universe: BaseUniverse, caplog):
+    caplog.set_level(0)
+
+    a = Channel(universe, 1, 1)
+    for _ in range(5):
+        node.data.clear()
+        assert a.get_values() == [0]
+
+        a.set_fade([255], 2 * STEP_MS)
+        assert a.get_values() == [0]
+
+        await a
+
+        assert a.get_values() == [255]
+        assert node.data == ['80', 'ff']
+
+        # Fade down
+        a.set_fade([0], 2 * STEP_MS)
+        assert a.get_values() == [255]
+
+        await a
+
+        assert a.get_values() == [0]
+        assert node.data == ['80', 'ff', '80', '00']

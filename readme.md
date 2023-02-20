@@ -15,6 +15,10 @@ Docs and examples can be found [here](https://pyartnet.readthedocs.io/en/latest/
 
 # Changelog
 
+#### 1.0.1 (2023-02-20)
+- Fixed an issue where consecutive fades would not start from the correct value
+- renamed `channel.add_fade` to `channel.set_fade` (`channel.add_fade` will issue a `DeprecationWarning`)
+
 #### 1.0.0 (2023-02-08)
 - Complete rework of library (breaking change)
 - Add support for sACN and KiNet
