@@ -41,6 +41,7 @@ setuptools.setup(
         'GitHub': 'https://github.com/spacemanspiff2007/PyArtNet'
     },
     package_dir={'': 'src'},
+    package_data={'pyartnet': ['py.typed']},
     packages=setuptools.find_packages('src', exclude=['tests*']),
     python_requires='>=3.8',
     classifiers=[
