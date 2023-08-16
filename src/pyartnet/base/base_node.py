@@ -21,7 +21,8 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
     def __init__(self, ip: str, port: int, *,
                  max_fps: int = 25,
                  refresh_every: Union[int, float, None] = 2, start_refresh_task: bool = True,
-                 source_address: Optional[Tuple[str, int]] = None):
+                 source_address: Optional[Tuple[str, int]] = None,
+                 broadcast: bool = False):
         super().__init__()
 
         # Destination
@@ -37,6 +38,10 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
         if source_address is not None:
             self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
             self._socket.bind(source_address)
+
+        # option to broadcast
+        if broadcast:
+            self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 
         # Name used for the Tasks (e.g. in error msg)
         name: Final = f'{self._ip:s}:{self._port}'
