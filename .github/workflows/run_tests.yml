@@ -18,6 +18,21 @@ jobs:
         python-version: ${{ matrix.python-version }}
         activate-environment: true
     - name: Install Packages
-      run: uv sync --frozen --verbose
+      run: uv sync --frozen
     - name: Test with python ${{ matrix.python-version }}
       run: uv run --frozen pytest
+
+
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v5
+    - name: Install the latest version of uv and set the python version
+      uses: astral-sh/setup-uv@v6
+      with:
+        python-version: '3.12'
+        activate-environment: true
+    - name: Install Packages
+      run: uv sync --frozen
+    - name: Test with python ${{ matrix.python-version }}
+      run: uv run --frozen sphinx-build docs build_docs --color -b html -E -W -n --keep-going
