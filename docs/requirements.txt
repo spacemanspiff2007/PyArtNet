@@ -1,8 +1,0 @@
-# Packages required to build the documentation
-sphinx                      == 8.1.3
-sphinx-autodoc-typehints    == 3.0.1
-sphinx_rtd_theme            == 3.0.2
-sphinx-exec-code            == 0.16
-
-# monkeypatch
-pytest == 8.4.2
