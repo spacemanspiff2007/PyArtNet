@@ -1,5 +1,5 @@
-pytest          >=7.2,      < 7.3
-pytest-asyncio  >=0.20.3,   < 0.21
+pytest          == 8.4.2
+pytest-asyncio  == 1.2.0
 
 # linter
-pre-commit  >= 3.0,    < 3.1
+pre-commit  == 4.3
