@@ -33,6 +33,14 @@ repos:
       - id: rst-backticks
 
 
+  - repo: https://github.com/JelleZijlstra/autotyping
+    rev: 24.9.0
+    hooks:
+      - id: autotyping
+        types: [python]
+        args: [--safe]
+
+
   - repo: meta
     hooks:
       - id: check-hooks-apply
