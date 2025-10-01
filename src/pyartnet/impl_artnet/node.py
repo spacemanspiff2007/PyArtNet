@@ -35,23 +35,26 @@ class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
         packet = bytearray()
         packet.extend(map(ord, "Art-Net"))
         packet.append(0x00)          # Null terminate Art-Net
-        packet.extend([0x00, 0x50])  # Opcode ArtDMX 0x5000 (Little endian)
-        packet.extend([0x00, 0x0e])  # Protocol version 14
         self._packet_base = bytes(packet)
+
+        self._sync_enabled : bool = False
 
     def _send_universe(self, id: int, byte_size: int, values: bytearray,
                        universe: 'pyartnet.impl_artnet.ArtNetUniverse'):
 
         # pre allocate the bytearray
-        _size = 6 + byte_size
+        _size = 10 + byte_size
         packet = bytearray(_size)
 
-        packet[0] = self._sequence_ctr.value                    # 1 | Sequence,
-        packet[1] = 0x00                                        # 1 | Physical input port (not used)
-        packet[2:4] = id.to_bytes(2, byteorder='little')        # 2 | Universe
+        packet[0:2] =[0x00, 0x50]  # Opcode ArtDMX 0x5000 (Little endian)
+        packet[2:4] = [0x00, 0x0e]  # Protocol version 14
 
-        packet[4:6] = byte_size.to_bytes(2, 'big')              # 2       | Number of channels Big Endian
-        packet[6: _size] = values                               # 0 - 512 | Channel values
+        packet[4] = self._sequence_ctr.value                    # 1 | Sequence,
+        packet[5] = 0x00                                        # 1 | Physical input port (not used)
+        packet[6:8] = id.to_bytes(2, byteorder='little')        # 2 | Universe
+
+        packet[8:10] = byte_size.to_bytes(2, 'big')              # 2       | Number of channels Big Endian
+        packet[10: _size] = values                               # 0 - 512 | Channel values
 
         self._send_data(packet)
 
@@ -129,3 +132,25 @@ class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
         if show_description:
             log.debug(out_desc)
         log.debug(out)
+
+    def set_synchronous_mode(self, enabled: bool):
+        self._sync_enabled = enabled
+
+    def _send_synchronization(self):
+        if not self._sync_enabled:
+            return
+
+        # pre allocate the bytearray
+        packet = bytearray(6)
+
+        packet[0:2] = [0x00, 0x52]  # Opcode ArtSync
+        packet[2:4] = [0x00, 0x0e]  # Protocol version 14
+
+        packet[4] = 0               # Aux1
+        packet[5] = 0               # Aux2
+
+        self._send_data(packet)
+
+        # log complete packet
+        if log.isEnabledFor(logging.DEBUG):
+            self.__log_artnet_frame(self._packet_base + packet)
