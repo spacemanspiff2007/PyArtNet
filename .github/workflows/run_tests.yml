@@ -17,5 +17,7 @@ jobs:
       with:
         python-version: ${{ matrix.python-version }}
         activate-environment: true
+    - name: Install Packages
+      run: uv sync --frozen --verbose
     - name: Test with python ${{ matrix.python-version }}
       run: uv run --frozen pytest

@@ -55,3 +55,9 @@ dev = [
 [build-system]
 requires = ["uv_build>=0.8.22,<0.9.0"]
 build-backend = "uv_build"
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+addopts = "-p no:cacheprovider"
+testpaths = ["tests"]
+pythonpath = ["."]
