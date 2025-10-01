@@ -14,7 +14,7 @@ RTD_BUILD = os.environ.get('READTHEDOCS') == 'True'
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'PyArtNet'
-copyright = '2023, spacemanspiff2007'
+copyright = '2025, spacemanspiff2007'
 author = 'spacemanspiff2007'
 
 
