@@ -70,6 +70,8 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
         self._packet_base: bytearray = packet
 
         self._synchronization_address : int = 0
+
+        # See spec 6.3.2 E1.31 Synchronization Packet: Sequence Number
         self._sync_sequence_number: Final = SequenceCounter()
 
 

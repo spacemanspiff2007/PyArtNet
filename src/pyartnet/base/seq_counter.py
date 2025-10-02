@@ -4,9 +4,11 @@ from typing import Final
 class SequenceCounter:
     __slots__ = ('_ctr', '_start', '_upper')
 
-    def __init__(self, start: int = 0, upper: int = 255):
+    def __init__(self, start: int = 0, upper: int = 255) -> None:
+        if start > upper:
+            raise ValueError()
+
         self._ctr: int = start
-        assert start <= upper
         self._start: Final = start
         self._upper: Final = upper
 
