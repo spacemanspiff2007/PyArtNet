@@ -22,7 +22,7 @@ class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
 
                  # ArtNet specific fields
                  sequence_counter: bool = True
-                 ):
+                 ) -> None:
         super().__init__(ip=ip, port=port,
                          max_fps=max_fps,
                          refresh_every=refresh_every, start_refresh_task=start_refresh_task,
@@ -40,21 +40,21 @@ class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
         self._sync_enabled : bool = False
 
     def _send_universe(self, id: int, byte_size: int, values: bytearray,
-                       universe: 'pyartnet.impl_artnet.ArtNetUniverse'):
+                       universe: 'pyartnet.impl_artnet.ArtNetUniverse') -> None:
 
         # pre allocate the bytearray
         _size = 10 + byte_size
         packet = bytearray(_size)
 
-        packet[0:2] =[0x00, 0x50]  # Opcode ArtDMX 0x5000 (Little endian)
-        packet[2:4] = [0x00, 0x0e]  # Protocol version 14
+        packet[0:2] = (0x00, 0x50)                      # 2 | Opcode ArtDMX 0x5000 (Little Endian)
+        packet[2:4] = (0x00, 0x0e)                      # 2 | Protocol version 14  (Little Endian)
 
-        packet[4] = self._sequence_ctr.value                    # 1 | Sequence,
-        packet[5] = 0x00                                        # 1 | Physical input port (not used)
-        packet[6:8] = id.to_bytes(2, byteorder='little')        # 2 | Universe
+        packet[4] = self._sequence_ctr.value            # 1 | Sequence,
+        packet[5] = 0x00                                # 1 | Physical input port (not used)
+        packet[6:8] = id.to_bytes(2, 'little')          # 2 | Universe (Little endian)
 
-        packet[8:10] = byte_size.to_bytes(2, 'big')              # 2       | Number of channels Big Endian
-        packet[10: _size] = values                               # 0 - 512 | Channel values
+        packet[8:10] = byte_size.to_bytes(2, 'big')     # 2       | Number of channels Big Endian
+        packet[10: _size] = values                      # 0 - 512 | Channel values
 
         self._send_data(packet)
 
@@ -67,7 +67,14 @@ class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
             raise InvalidUniverseAddressError()
         return pyartnet.impl_artnet.ArtNetUniverse(self, nr)
 
-    def __log_artnet_frame(self, p: Union[bytearray, bytes]):
+    def _validate_universe_nr(self, nr: int) -> int:
+        if not isinstance(nr, int):
+            raise TypeError()
+        if not 0 <= nr <= 32_768:
+            raise InvalidUniverseAddressError()
+        return int(nr)
+
+    def __log_artnet_frame(self, p: Union[bytearray, bytes]) -> None:
         """Log Artnet Frame"""
         assert isinstance(p, (bytearray, bytes))
 
@@ -134,20 +141,25 @@ class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
         log.debug(out)
 
     def set_synchronous_mode(self, enabled: bool):
-        self._sync_enabled = enabled
+        if self._refresh_every > 3.5:
+            msg = 'ArtNet synchronization requires refresh_every <= 3.5s'
+            raise ValueError(msg)
 
-    def _send_synchronization(self):
+        self._sync_enabled = enabled
+        return self
+
+    def _send_synchronization(self) -> None:
         if not self._sync_enabled:
             return
 
         # pre allocate the bytearray
         packet = bytearray(6)
 
-        packet[0:2] = [0x00, 0x52]  # Opcode ArtSync
-        packet[2:4] = [0x00, 0x0e]  # Protocol version 14
+        packet[0:2] = (0x00, 0x52)  # 2 | Opcode ArtSync 0x5200 (Little Endian)
+        packet[2:4] = (0x00, 0x0e)  # 2 | Protocol Version 14   (Little Endian)
 
-        packet[4] = 0               # Aux1
-        packet[5] = 0               # Aux2
+        packet[4] = 0               # 1 | Aux1
+        packet[5] = 0               # 1 | Aux2
 
         self._send_data(packet)
 

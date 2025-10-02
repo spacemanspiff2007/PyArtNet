@@ -8,13 +8,7 @@ from pyartnet.errors import DuplicateUniverseError
 from tests.conftest import STEP_MS, TestingNode
 
 
-def test_universe_add_get(node: TestingNode):
-    for i in (1.3, -1):
-        with pytest.raises(ValueError, match='BaseUniverse must be an int >= 0!'):
-            node.add_universe(i)
-
-        with pytest.raises(ValueError, match='BaseUniverse must be an int >= 0!'):
-            node.get_universe(i)
+def test_universe_add_get(node: TestingNode) -> None:
 
     u = node.add_universe()
     assert len(node) == 1
@@ -35,14 +29,14 @@ def test_universe_add_get(node: TestingNode):
     )
 
 
-async def test_fade_await(node: TestingNode, universe: BaseUniverse, caplog):
-    async def check_no_wait_time_when_no_fade():
+async def test_fade_await(node: TestingNode, universe: BaseUniverse, caplog) -> None:
+    async def check_no_wait_time_when_no_fade() -> None:
         start = monotonic()
         for _ in range(1000):
             assert not await node
         assert monotonic() - start < 0.001
 
-    async def check_wait_time_when_fade(steps: int):
+    async def check_wait_time_when_fade(steps: int) -> None:
         start = monotonic()
         await node
         assert monotonic() - start >= ((steps - 1) * STEP_MS) / 1000

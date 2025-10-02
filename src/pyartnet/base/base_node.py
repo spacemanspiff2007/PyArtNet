@@ -21,7 +21,7 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
     def __init__(self, ip: str, port: int, *,
                  max_fps: int = 25,
                  refresh_every: Union[int, float, None] = 2, start_refresh_task: bool = True,
-                 source_address: Optional[Tuple[str, int]] = None):
+                 source_address: Optional[Tuple[str, int]] = None) -> None:
         super().__init__()
 
         # Destination
@@ -60,7 +60,7 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
         self._universes: Tuple[TYPE_U, ...] = ()
         self._universe_map: Dict[int, TYPE_U] = {}
 
-    def _apply_output_correction(self):
+    def _apply_output_correction(self) -> None:
         for u in self._universes:
             u._apply_output_correction()
 
@@ -70,7 +70,7 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
     def set_synchronous_mode(self, enabled: bool):
         raise NotImplementedError()
 
-    def _send_synchronization(self):
+    def _send_synchronization(self) -> None:
         pass
 
     def _send_data(self, data: Union[bytearray, bytes]) -> int:
@@ -80,7 +80,7 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
         self._last_send = monotonic()
         return ret
 
-    async def _process_values_task(self):
+    async def _process_values_task(self) -> None:
         # wait a little, so we can schedule multiple tasks/updates, and they all start together
         await sleep(0.01)
 
@@ -113,15 +113,15 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
 
             await sleep(self._process_every)
 
-    def start_refresh(self):
+    def start_refresh(self) -> None:
         """Manually start the refresh task (if not already running)"""
         self._refresh_task.start()
 
-    def stop_refresh(self):
+    def stop_refresh(self) -> None:
         """Manually stop the refresh task"""
         self._refresh_task.cancel()
 
-    async def _periodic_refresh_worker(self):
+    async def _periodic_refresh_worker(self) -> None:
         while True:
             # sync the refresh messages
             next_refresh = monotonic()
@@ -144,14 +144,13 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
         :param nr: universe nr
         :return: The universe
         """
-        if not isinstance(nr, int) or not nr >= 0:
-            raise ValueError('BaseUniverse must be an int >= 0!')
-        nr = int(nr)
+        nr = self._validate_universe_nr(nr)
 
         try:
             return self._universe_map[nr]
         except KeyError:
-            raise UniverseNotFoundError(f'BaseUniverse {nr:d} not found!') from None
+            msg = f'BaseUniverse {nr:d} not found!'
+            raise UniverseNotFoundError(msg) from None
 
     def add_universe(self, nr: int = 0) -> TYPE_U:
         """Creates a new universe and adds it to the parent node
@@ -159,12 +158,11 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
         :param nr: universe nr
         :return: The universe
         """
-        if not isinstance(nr, int) or not nr >= 0:
-            raise ValueError('BaseUniverse must be an int >= 0!')
-        nr = int(nr)
+        nr = self._validate_universe_nr(nr)
 
         if nr in self._universe_map:
-            raise DuplicateUniverseError(f'BaseUniverse {nr:d} does already exist!')
+            msg = f'BaseUniverse {nr:d} does already exist!'
+            raise DuplicateUniverseError(msg)
 
         # add to data
         self._universe_map[nr] = universe = self._create_universe(nr)
@@ -175,6 +173,9 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
     def _create_universe(self, nr: int) -> TYPE_U:
         raise NotImplementedError()
 
+    def _validate_universe_nr(self, nr: int) -> int:
+        raise NotImplementedError()
+
     def __await__(self):
         while self._process_jobs:
             for job in self._process_jobs:
@@ -183,5 +184,5 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
     def __getitem__(self, nr: int) -> TYPE_U:
         return self.get_universe(nr)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._universes)

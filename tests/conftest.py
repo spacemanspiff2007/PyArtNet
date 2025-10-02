@@ -15,23 +15,27 @@ STEP_MS = 15
 class TestingNode(BaseNode):
     __test__ = False    # prevent this from being collected by pytest
 
-    def __init__(self, ip: str, port: int):
+    def __init__(self, ip: str, port: int) -> None:
         super().__init__(ip, port, max_fps=1_000 // STEP_MS, start_refresh_task=False)
         self.data = []
 
-    def _send_universe(self, id: int, byte_size: int, values: bytearray, universe: 'pyartnet.base.BaseUniverse'):
+    def _send_universe(self, id: int, byte_size: int,
+                       values: bytearray, universe: 'pyartnet.base.BaseUniverse') -> None:
         self.data.append(values.hex())
 
-    async def sleep_steps(self, steps: int):
+    async def sleep_steps(self, steps: int) -> None:
         # use sleep because await sleep might actually take longer
         for _ in range(steps):
             await sleep(self._process_every)
 
-    async def wait_for_task_finish(self):
+    async def wait_for_task_finish(self) -> None:
         await self
 
     def _create_universe(self, nr: int) -> TYPE_U:
         return BaseUniverse(self, nr)
+
+    def _validate_universe_nr(self, nr: int) -> int:
+        return nr
 
 
 @pytest.fixture(autouse=True)
@@ -40,7 +44,7 @@ def patched_socket(monkeypatch):
         yield sock_sendto
 
 
-def test_patched_socket(patched_socket):
+def test_patched_socket(patched_socket) -> None:
     node = TestingNode('IP', 9999)
     assert node._socket.sendto is patched_socket
 
