@@ -27,7 +27,6 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
         # Destination
         self._ip: Final = ip
         self._port: Final = port
-        self._dst: Final = (self._ip, self._port)
 
         # socket setup
         self._socket: Final = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
@@ -73,9 +72,11 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
     def _send_synchronization(self) -> None:
         pass
 
-    def _send_data(self, data: Union[bytearray, bytes]) -> int:
+    def _send_data(self, data: Union[bytearray, bytes], dest_ip: Optional[str] = None) -> int:
 
-        ret = self._socket.sendto(self._packet_base + data, self._dst)
+        if not dest_ip:
+            dest_ip = self._ip
+        ret = self._socket.sendto(self._packet_base + data, (dest_ip, self._port))
 
         self._last_send = monotonic()
         return ret

@@ -34,7 +34,10 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
                  source_address: Optional[Tuple[str, int]] = None,
 
                  # sACN E1.31 specific fields
-                 cid: Optional[bytes] = None, source_name: Optional[str] = None
+                 cid: Optional[bytes] = None, source_name: Optional[str] = None,
+
+                 # Send to multicast addresses based on universe?
+                 send_to_multicast: bool = False,
                  ) -> None:
         super().__init__(ip=ip, port=port,
                          max_fps=max_fps,
@@ -74,6 +77,12 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
         # See spec 6.3.2 E1.31 Synchronization Packet: Sequence Number
         self._sync_sequence_number: Final = SequenceCounter()
 
+        self._send_to_multicast : bool = send_to_multicast
+
+    def _get_ip_address_from_universe(self, addr : int) -> str:
+        if self._send_to_multicast:
+            return f"239.255.{addr//256}.{addr & 255}"
+        return None
 
     def _send_universe(self, id: int, byte_size: int, values: bytearray,
                        universe: 'pyartnet.impl_sacn.universe.SacnUniverse') -> None:
@@ -111,7 +120,7 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
         base_packet[16:18] = ((109 + prop_count) | 0x7000).to_bytes(2, 'big')   # |  2 | Flags, Length
         base_packet[18:22] = VECTOR_ROOT_E131_DATA                              # |  4 | Vector
 
-        self._send_data(packet)
+        self._send_data(packet, self._get_ip_address_from_universe(id))
 
         if log.isEnabledFor(LVL_DEBUG):
             # log complete packet
@@ -156,7 +165,7 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
         base_packet[16:18] = (33 | 0x7000).to_bytes(2, 'big')   # |  2 | Flags, Length
         base_packet[18:22] = VECTOR_ROOT_E131_EXTENDED          # |  4 | Vector
 
-        self._send_data(packet)
+        self._send_data(packet, self._get_ip_address_from_universe(self._synchronization_address))
 
         if log.isEnabledFor(LVL_DEBUG):
             # log complete packet
