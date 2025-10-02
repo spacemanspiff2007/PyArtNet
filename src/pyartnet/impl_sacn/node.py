@@ -21,7 +21,9 @@ ACN_PACKET_IDENTIFIER: Final = (0x41, 0x53, 0x43, 0x2d, 0x45, 0x31, 0x2e, 0x31, 
 
 # Field constants
 VECTOR_ROOT_E131_DATA: Final = b'\x00\x00\x00\x04'
+VECTOR_ROOT_E131_EXTENDED: Final = b'\x00\x00\x00\x08'
 VECTOR_E131_DATA_PACKET: Final = b'\x00\x00\x00\x02'
+VECTOR_E131_EXTENDED_SYNCHRONIZATION: Final = b'\x00\x00\x00\x01'
 VECTOR_DMP_SET_PROPERTY: Final = 0x02
 
 
@@ -52,6 +54,7 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
         source_name_byte = source_name.encode('utf-8').ljust(64, b'\x00')
         if len(source_name_byte) > 64:
             raise ValueError('Source name too long!')
+        self._source_name_byte : bytes = source_name_byte
 
         # build base packet
         packet = bytearray()
@@ -64,14 +67,10 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
         packet.extend(VECTOR_ROOT_E131_DATA)    # |  4 | Vector
         packet.extend(cid)                      # | 16 | CID, a unique identifier
 
-        # Framing layer Part 1
-        packet.extend([0x72, 0x57])                 # |  2 | Flags and length
-        packet.extend(VECTOR_E131_DATA_PACKET)      # |  4 | Vector
-        packet.extend(source_name_byte)             # | 64 |Source Name
-        packet.append(100)                          # |  1 |Priority
-        packet.extend(int(50).to_bytes(2, 'big'))   # |  2 | Synchronization universe
-
         self._packet_base: bytearray = packet
+
+        self._synchronization_address : int = 0
+        self._sync_sequence_number : int = 0
 
 
     def _send_universe(self, id: int, byte_size: int, values: bytearray,
@@ -80,6 +79,13 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
 
         # DMX Start Code is not included in the byte size from the universe
         prop_count = byte_size + 1
+
+        # Framing layer Part 1
+        packet.extend((( 87 + prop_count) | 0x7000).to_bytes(2, 'big'))   # Flags and Length
+        packet.extend(VECTOR_E131_DATA_PACKET)      # |  4 | Vector
+        packet.extend(self._source_name_byte)             # | 64 |Source Name
+        packet.append(100)                          # |  1 |Priority
+        packet.extend(int(self._synchronization_address).to_bytes(2, 'big'))    # |  2 | Synchronization universe
 
         # Framing layer Part 2
         packet.append(universe._sequence_ctr.value)             # | 1 | Sequence,
@@ -101,7 +107,6 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
         # Update length for base packet
         base_packet = self._packet_base
         base_packet[16:18] = ((109 + prop_count) | 0x7000).to_bytes(2, 'big')   # root layer
-        base_packet[38:40] = (( 87 + prop_count) | 0x7000).to_bytes(2, 'big')   # framing layer
 
         self._send_data(packet)
 
@@ -114,3 +119,39 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
         if not 1 <= nr < 63_999:
             raise InvalidUniverseAddressError()
         return pyartnet.impl_sacn.SacnUniverse(self, nr)
+
+    def set_synchronous_mode(self, enabled: bool, synchronization_address : int = 0):
+        if enabled:
+            assert(synchronization_address != 0)
+            self._synchronization_address = synchronization_address
+        else:
+            assert(synchronization_address == 0)
+            self._synchronization_address = 0
+
+    def _send_synchronization(self):
+        if (self._synchronization_address == 0):
+            return
+
+        packet = bytearray()
+
+        try:
+            base_packet = self._packet_base
+            base_packet[16:18] = ((33) | 0x7000).to_bytes(2, 'big')   # root layer
+            base_packet[18:22] = VECTOR_ROOT_E131_EXTENDED
+            # Framing layer
+            packet.extend(((11) | 0x7000).to_bytes(2, 'big'))                       # |  2 | Flags and Length
+            packet.extend(VECTOR_E131_EXTENDED_SYNCHRONIZATION)                     # |  4 | Vector
+            self._sync_sequence_number += 1
+            if (self._sync_sequence_number >= 255):
+                self._sync_sequence_number = 0
+            packet.append(self._sync_sequence_number)                                    # |  1 | Sequence Number
+            packet.extend(self._synchronization_address.to_bytes(2, 'big'))    # |  2 | Synchronization universe
+            packet.extend([0, 0])                                                   # |  2 | Reserved
+
+            self._send_data(packet)
+
+            if log.isEnabledFor(LVL_DEBUG):
+                # log complete packet
+                log.debug(f"Sending sACN Syncronization Packet to {self._ip}:{self._port}: {(base_packet + packet).hex()}")
+        finally:
+            self._packet_base[18:22] = VECTOR_ROOT_E131_DATA

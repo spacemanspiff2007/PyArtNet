@@ -67,6 +67,12 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
     def _send_universe(self, id: int, byte_size: int, values: bytearray, universe: TYPE_U):
         raise NotImplementedError()
 
+    def set_synchronous_mode(self, enabled: bool):
+        raise NotImplementedError()
+
+    def _send_synchronization(self):
+        pass
+
     def _send_data(self, data: Union[bytearray, bytes]) -> int:
 
         ret = self._socket.sendto(self._packet_base + data, self._dst)
@@ -103,6 +109,8 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
                     self._process_jobs.remove(job)
                     job.fade_complete()
 
+            self._send_synchronization()
+
             await sleep(self._process_every)
 
     def start_refresh(self):
@@ -127,6 +135,8 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
 
             for u in self._universes:
                 u.send_data()
+
+            self._send_synchronization()
 
     def get_universe(self, nr: int) -> TYPE_U:
         """Get universe by number
