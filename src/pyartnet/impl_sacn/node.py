@@ -1,5 +1,6 @@
 # flake8: noqa: E262
 import logging
+from ipaddress import IPv6Address
 from logging import DEBUG as LVL_DEBUG
 from typing import Final, Optional, Tuple, Union
 from uuid import uuid4
@@ -56,6 +57,9 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
             raise ValueError('Source name too long!')
         self._source_name_byte : bytes = source_name_byte
 
+        # See spec 9.3 Allocation of Multicast Addresses
+        self._multicast: bool = False
+
         # build base packet
         packet = bytearray()
 
@@ -69,12 +73,15 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
 
         self._packet_base: bytearray = packet
 
-        self._synchronization_address : int = 0
-
+        # Synchronization Packet
+        # See Spec 6.2.4 E1.31 Data Packet: Synchronization Address
+        self._sync_address: int = 0
+        # See spec 9.3 Allocation of Multicast Addresses
+        self._sync_dst: tuple[str, int] = self._dst
         # See spec 6.3.2 E1.31 Synchronization Packet: Sequence Number
         self._sync_sequence_number: Final = SequenceCounter()
 
-
+    # noinspection PyProtectedMember
     def _send_universe(self, id: int, byte_size: int, values: bytearray,
                        universe: 'pyartnet.impl_sacn.universe.SacnUniverse') -> None:
         packet = bytearray()
@@ -87,7 +94,7 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
         packet.extend(VECTOR_E131_DATA_PACKET)                                  # |  4 | Vector
         packet.extend(self._source_name_byte)                                   # | 64 | Source Name
         packet.append(100)                                                      # |  1 | Priority
-        packet.extend(int(self._synchronization_address).to_bytes(2, 'big'))    # |  2 | Synchronization universe
+        packet.extend(int(self._sync_address).to_bytes(2, 'big'))               # |  2 | Synchronization universe
 
         # Framing layer Part 2
         packet.append(universe._sequence_ctr.value)             # | 1 | Sequence,
@@ -111,11 +118,11 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
         base_packet[16:18] = ((109 + prop_count) | 0x7000).to_bytes(2, 'big')   # |  2 | Flags, Length
         base_packet[18:22] = VECTOR_ROOT_E131_DATA                              # |  4 | Vector
 
-        self._send_data(packet)
+        self._send_data(packet, universe._dst)
 
         if log.isEnabledFor(LVL_DEBUG):
             # log complete packet
-            log.debug(f"Sending sACN frame to {self._ip}:{self._port}: {(base_packet + packet).hex()}")
+            log.debug(f"Sending sACN frame to {_dst_str(universe._dst)}: {(base_packet + packet).hex()}")
 
     def _create_universe(self, nr: int) -> 'pyartnet.impl_sacn.SacnUniverse':
         return pyartnet.impl_sacn.SacnUniverse(self, self._validate_universe_nr(nr))
@@ -128,18 +135,62 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
             raise InvalidUniverseAddressError()
         return int(nr)
 
+    def _get_universe_ip_port(self, universe: int) -> tuple[str, int] | str:
+        if not self._multicast:
+            return self._dst
 
-    def set_synchronous_mode(self, enabled: bool, synchronization_address: int = 0):
+        u = self._validate_universe_nr(universe)
+
+        universe_high = u // 255
+        universe_low = u % 255
+
+        # IPv6 multicast address
+        if ':' in self._ip:
+            IPv6Address(self._ip)  # validate IP
+            return f'FF18::83:00:{universe_high:d}:{universe_low:d}'
+
+        # IPv4 multicast address
+        return f'239.255.{universe_high:d}.{universe_low:d}'
+
+    def set_multicast_mode(self, enabled: bool):
+        """Either send packets to the node directly or through multicast.
+        :param enabled: If True multicast is enabled
+        """
+        self._multicast = enabled
+
+        # update all universe destinations
+        for universe in self._universes:
+            universe._dst = self._get_universe_ip_port(universe._universe)
+
+        # update sync package destination
+        if self._sync_address:
+            self._sync_dst = self._get_universe_ip_port(self._sync_address)
+
+        return self
+
+    def set_synchronous_mode(self, enabled: bool, synchronization_address: int = 0) -> None:
+        """Enable or disable synchronous mode for this node. In synchronous mode multiple universes are sent to the
+        node and then a synchronization packet is sent to make the node output all universes at the same time.
+        This prevents tearing in multi universe panels.
+
+        :param enabled: Enable or disable synchronous mode
+        :param synchronization_address: The universe address to use for synchronization packets. This must be the
+                                        same for all nodes that should be synchronized.
+        """
         if enabled:
-            self._synchronization_address = self._validate_universe_nr(synchronization_address)
+            self._sync_address = sync_address = self._validate_universe_nr(synchronization_address)
+            self._sync_dst = self._get_universe_ip_port(sync_address)
+
         else:
             if synchronization_address != 0:
                 msg = 'synchronization_address must be 0 when disabling synchronous mode!'
                 raise ValueError(msg)
-            self._synchronization_address = 0
+
+            self._sync_address = 0
+            self._sync_dst = self._dst
 
     def _send_synchronization(self) -> None:
-        if not self._synchronization_address:
+        if not self._sync_address:
             return
 
         packet = bytearray()
@@ -148,7 +199,7 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
         packet.extend((11 | 0x7000).to_bytes(2, 'big'))                     # |  2 | Flags and Length
         packet.extend(VECTOR_E131_EXTENDED_SYNCHRONIZATION)                 # |  4 | Vector
         packet.append(self._sync_sequence_number.value)                     # |  1 | Sequence Number
-        packet.extend(self._synchronization_address.to_bytes(2, 'big'))     # |  2 | Synchronization universe
+        packet.extend(self._sync_address.to_bytes(2, 'big'))                # |  2 | Synchronization universe
         packet.extend([0, 0])                                               # |  2 | Reserved
 
         # Update length and package type for base packet
@@ -156,8 +207,18 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
         base_packet[16:18] = (33 | 0x7000).to_bytes(2, 'big')   # |  2 | Flags, Length
         base_packet[18:22] = VECTOR_ROOT_E131_EXTENDED          # |  4 | Vector
 
-        self._send_data(packet)
+        self._send_data(packet, self._sync_dst)
 
         if log.isEnabledFor(LVL_DEBUG):
             # log complete packet
-            log.debug(f"Sending sACN Synchronization Packet to {self._ip}:{self._port}: {(base_packet + packet).hex()}")
+            log.debug(
+                f"Sending sACN Synchronization Packet to {_dst_str(self._sync_dst):s}: "
+                f"{(base_packet + packet).hex()}"
+            )
+
+
+def _dst_str(dst: tuple[str, int] | str) -> str:
+    if isinstance(dst, str):
+        return dst
+    ip, port = dst
+    return f'{ip:s}:{port:d}'

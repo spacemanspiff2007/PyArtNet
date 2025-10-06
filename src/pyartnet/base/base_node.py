@@ -43,13 +43,13 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
 
         # refresh task
         self._refresh_every: float = max(0.1, refresh_every)
-        self._refresh_task: Final = ExceptionIgnoringTask(self._periodic_refresh_worker, f'Process task {name:s}')
+        self._refresh_task: Final = ExceptionIgnoringTask(self._periodic_refresh_worker, f'Refresh task {name:s}')
         if start_refresh_task:
             self._refresh_task.start()
 
         # fade task
         self._process_every: float = 1 / max(1, max_fps)
-        self._process_task: Final = SimpleBackgroundTask(self._process_values_task, f'Refresh task {name:s}')
+        self._process_task: Final = SimpleBackgroundTask(self._process_values_task, f'Process task {name:s}')
         self._process_jobs: List['pyartnet.base.ChannelBoundFade'] = []
 
         # packet data
@@ -73,9 +73,9 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
     def _send_synchronization(self) -> None:
         pass
 
-    def _send_data(self, data: Union[bytearray, bytes]) -> int:
+    def _send_data(self, data: Union[bytearray, bytes], dst: tuple[str, int] | str | None = None) -> int:
 
-        ret = self._socket.sendto(self._packet_base + data, self._dst)
+        ret = self._socket.sendto(self._packet_base + data, self._dst if dst is None else dst)
 
         self._last_send = monotonic()
         return ret
@@ -109,7 +109,9 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
                     self._process_jobs.remove(job)
                     job.fade_complete()
 
-            self._send_synchronization()
+            # send synchronization only if we actually sent something
+            if not idle_ct:
+                self._send_synchronization()
 
             await sleep(self._process_every)
 
