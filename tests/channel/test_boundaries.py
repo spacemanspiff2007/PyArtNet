@@ -50,7 +50,7 @@ def get_node_universe_mock():
     ((1, 1, -1, 255), (1, 1, 256, 255), (3, 1, 256, 255),
      (1, 2, -1, 65535), (1, 2, 65536, 65535), (3, 2, 65536, 65535), ))
 def test_set_invalid(width, byte_size, invalid, valid) -> None:
-    node, universe = get_node_universe_mock()
+    _, universe = get_node_universe_mock()
 
     invalid_values = [0] * (width - 1) + [invalid]
     valid_values = [0] * (width - 1) + [valid]
@@ -71,7 +71,7 @@ def test_set_invalid(width, byte_size, invalid, valid) -> None:
 
 
 async def test_set_missing() -> None:
-    node, universe = get_node_universe_mock()
+    _, universe = get_node_universe_mock()
 
     c = Channel(universe, 1, 1)
     with pytest.raises(ValueCountDoesNotMatchChannelWidthError) as e:

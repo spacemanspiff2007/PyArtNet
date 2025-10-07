@@ -30,15 +30,16 @@ class SimpleBackgroundTask:
         self.name: Final = name
         self.task: Task | None = None
 
-    def start(self):
+    def start(self) -> None:
         if self.task is not None:
             return None
 
         self.task = task = CREATE_TASK(self.coro_wrap(), name=self.name)
         _BACKGROUND_TASKS.add(task)
         task.add_done_callback(_BACKGROUND_TASKS.discard)
+        return None
 
-    def cancel(self):
+    def cancel(self) -> None:
         if self.task is None:
             return None
 

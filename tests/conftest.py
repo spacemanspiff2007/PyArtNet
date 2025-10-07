@@ -55,13 +55,12 @@ def test_patched_socket(patched_socket) -> None:
     assert node._socket.sendto is patched_socket
 
 
-@pytest.fixture()
+@pytest.fixture
 def node():
-    node = TestingNode('IP', 9999)
-    return node
+    return TestingNode('IP', 9999)
 
 
-@pytest.fixture()
+@pytest.fixture
 def universe(node: BaseNode):
     return node.add_universe()
 

@@ -3,11 +3,14 @@ from __future__ import annotations
 import logging
 import warnings
 from array import array
-from collections.abc import Callable, Collection
 from logging import DEBUG as LVL_DEBUG
 from math import ceil
-from typing import TYPE_CHECKING, Any, Final, Literal, Union
+from typing import TYPE_CHECKING, Any, Final, Generator, Literal
 
+from typing_extensions import Self
+
+from pyartnet.base.channel_fade import ChannelBoundFade
+from pyartnet.base.output_correction import OutputCorrection
 from pyartnet.errors import (
     ChannelOutOfUniverseError,
     ChannelValueOutOfBoundsError,
@@ -17,11 +20,10 @@ from pyartnet.errors import (
 from pyartnet.fades import FadeBase, LinearFade
 from pyartnet.output_correction import linear
 
-from .channel_fade import ChannelBoundFade
-from .output_correction import OutputCorrection
-
 
 if TYPE_CHECKING:
+    from collections.abc import Callable, Collection
+
     from .universe import BaseUniverse
 
 
@@ -93,7 +95,7 @@ class Channel(OutputCorrection):
         # Callbacks
         self.callback_fade_finished: Callable[[Channel], Any] | None = None
 
-    def _apply_output_correction(self):
+    def _apply_output_correction(self) -> None:
         # default correction is linear
         self._correction_current = linear
 
@@ -102,6 +104,7 @@ class Channel(OutputCorrection):
             if obj._correction_output is not None:
                 self._correction_current = obj._correction_output
                 return None
+        return None
 
     def get_values(self) -> list[int]:
         """Get the current (uncorrected) channel values
@@ -110,7 +113,7 @@ class Channel(OutputCorrection):
         """
         return self._values_raw.tolist()
 
-    def set_values(self, values: Collection[Union[int, float]]):
+    def set_values(self, values: Collection[int | float]) -> Self:
         """Set values for a channel without a fade
 
         :param values: Iterable of values with the same size as the channel width
@@ -141,7 +144,7 @@ class Channel(OutputCorrection):
             self._parent_universe.channel_changed(self)
         return self
 
-    def to_buffer(self, buf: bytearray):
+    def to_buffer(self, buf: bytearray) -> Self:
         byte_order = self._byte_order
         byte_size = self._byte_size
 
@@ -151,15 +154,17 @@ class Channel(OutputCorrection):
             start += byte_size
         return self
 
-    def add_fade(self, values: Collection[Union[int, FadeBase]], duration_ms: int,
-                 fade_class: type[FadeBase] = LinearFade):
+    def add_fade(self, values: Collection[int | FadeBase], duration_ms: int,
+                 fade_class: type[FadeBase] = LinearFade) -> Self:
         warnings.warn(
-            f'{self.set_fade.__name__:s} is deprecated, use {self.set_fade.__name__:s} instead', DeprecationWarning)
+            f'{self.set_fade.__name__:s} is deprecated, use {self.set_fade.__name__:s} instead',
+            DeprecationWarning, stacklevel=2
+        )
         return self.set_fade(values, duration_ms, fade_class)
 
     # noinspection PyProtectedMember
-    def set_fade(self, values: Collection[Union[int, FadeBase]], duration_ms: int,
-                 fade_class: type[FadeBase] = LinearFade):
+    def set_fade(self, values: Collection[int | FadeBase], duration_ms: int,
+                 fade_class: type[FadeBase] = LinearFade) -> Self:
         """Add and schedule a new fade for the channel
 
         :param values: Target values for the fade
@@ -207,7 +212,7 @@ class Channel(OutputCorrection):
                 log.debug(f'CH {self._start + i}: {fade.debug_initialize():s}')
         return self
 
-    def __await__(self):
+    def __await__(self) -> Generator[None, None, bool]:
         if self._current_fade is None:
             return False
         yield from self._current_fade.event.wait().__await__()

@@ -102,4 +102,15 @@ lines-after-imports = 2     # https://docs.astral.sh/ruff/settings/#lint_isort_l
 
     # https://docs.astral.sh/ruff/rules/#flake8-boolean-trap-fbt
     "FBT003",  # Boolean positional value in function call
+
+    # https://docs.astral.sh/ruff/rules/#flake8-unused-arguments-arg
+    "ARG001",  # Unused function argument {name}
+    "ARG002",  # Unused method argument {name}
+    "ARG003",  # Unused class method argument: {name}
+    "ARG004",  # Unused static method argument: {name}
+    "ARG005",  # Unused lambda argument: {name}
+]
+
+"src/pyartnet/*" = [
+    "PLR2004"   # Magic value used in comparison, consider replacing `0.01` with a constant variable
 ]

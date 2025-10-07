@@ -1,3 +1,5 @@
+from typing_extensions import override
+
 from .fade_base import FadeBase
 
 
@@ -9,14 +11,17 @@ class LinearFade(FadeBase):
         self.current: float = 0.0       # Current Value
         self.factor: float = 1.0
 
+    @override
     def debug_initialize(self) -> str:
         return f'{self.current:03.0f} -> {self.target:03d} | step: {self.factor:+5.1f}'
 
+    @override
     def initialize(self, start: int, target: int, steps: int) -> None:
         self.current = start
         self.target = target
         self.factor = (self.target - start) / steps
 
+    @override
     def calc_next_value(self) -> float:
         self.current += self.factor
 

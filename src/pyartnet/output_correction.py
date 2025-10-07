@@ -1,4 +1,4 @@
-def linear(val: float, max_val: int = 0xFF) -> float:
+def linear(val: float, max_val: int = 0xFF) -> float:  # noqa: ARG001
     """linear output correction"""
     return val
 

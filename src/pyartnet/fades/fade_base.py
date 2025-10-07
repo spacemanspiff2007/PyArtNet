@@ -4,7 +4,7 @@ class FadeBase:
     def __init__(self) -> None:
         self.is_done = False
 
-    def initialize(self, current: int, target: int, steps: int):
+    def initialize(self, current: int, target: int, steps: int) -> None:
         raise NotImplementedError()
 
     def debug_initialize(self) -> str:
