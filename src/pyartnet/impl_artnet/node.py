@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 from typing import Final
 
+from typing_extensions import Self, override
+
 import pyartnet
 from pyartnet.base import BaseNode
 from pyartnet.base.seq_counter import SequenceCounter
@@ -16,13 +18,11 @@ from pyartnet.errors import InvalidUniverseAddressError
 
 log = logging.getLogger('pyartnet.ArtNetNode')
 
-ARTNET_MAX_UNIVERSE: Final = 32_768
-
 
 class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
     def __init__(self, ip: str, port: int, *,
                  max_fps: int = 25,
-                 refresh_every: int | float | None = 2, start_refresh_task: bool = True,
+                 refresh_every: float | None = 2, start_refresh_task: bool = True,
                  source_address: tuple[str, int] | None = None,
 
                  # ArtNet specific fields
@@ -44,6 +44,7 @@ class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
 
         self._sync_enabled : bool = False
 
+    @override
     def _send_universe(self, id: int, byte_size: int, values: bytearray,
                        universe: pyartnet.impl_artnet.ArtNetUniverse) -> None:
 
@@ -67,13 +68,15 @@ class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
         if log.isEnabledFor(logging.DEBUG):
             self.__log_artnet_frame(self._packet_base + packet)
 
+    @override
     def _create_universe(self, nr: int) -> pyartnet.impl_artnet.ArtNetUniverse:
         return pyartnet.impl_artnet.ArtNetUniverse(self, self._validate_universe_nr(nr))
 
+    @override
     def _validate_universe_nr(self, nr: int) -> int:
         if not isinstance(nr, int):
             raise TypeError()
-        if not 0 <= nr <= ARTNET_MAX_UNIVERSE:
+        if not 0 <= nr <= 32_768:
             raise InvalidUniverseAddressError()
         return int(nr)
 
@@ -143,7 +146,8 @@ class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
             log.debug(out_desc)
         log.debug(out)
 
-    def set_synchronous_mode(self, enabled: bool):
+    @override
+    def set_synchronous_mode(self, enabled: bool) -> Self:
         if self._refresh_every > 3.5:
             msg = 'ArtNet synchronization requires refresh_every <= 3.5s'
             raise ValueError(msg)
@@ -151,6 +155,7 @@ class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
         self._sync_enabled = enabled
         return self
 
+    @override
     def _send_synchronization(self) -> None:
         if not self._sync_enabled:
             return

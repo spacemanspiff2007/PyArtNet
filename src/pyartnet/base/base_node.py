@@ -6,6 +6,8 @@ from asyncio import sleep
 from time import monotonic
 from typing import TYPE_CHECKING, Final, Generic, TypeVar
 
+from typing_extensions import Self
+
 from pyartnet.errors import DuplicateUniverseError, UniverseNotFoundError
 
 from .background_task import ExceptionIgnoringTask, SimpleBackgroundTask
@@ -26,7 +28,7 @@ UNIVERSE_TYPE = TypeVar('UNIVERSE_TYPE', bound='pyartnet.base.BaseUniverse')
 class BaseNode(OutputCorrection, Generic[UNIVERSE_TYPE]):
     def __init__(self, ip: str, port: int, *,
                  max_fps: int = 25,
-                 refresh_every: int | float | None = 2, start_refresh_task: bool = True,
+                 refresh_every: float | None = 2, start_refresh_task: bool = True,
                  source_address: tuple[str, int] | None = None) -> None:
         super().__init__()
 
@@ -70,10 +72,10 @@ class BaseNode(OutputCorrection, Generic[UNIVERSE_TYPE]):
         for u in self._universes:
             u._apply_output_correction()
 
-    def _send_universe(self, id: int, byte_size: int, values: bytearray, universe: UNIVERSE_TYPE):
+    def _send_universe(self, id: int, byte_size: int, values: bytearray, universe: UNIVERSE_TYPE) -> None:
         raise NotImplementedError()
 
-    def set_synchronous_mode(self, enabled: bool):
+    def set_synchronous_mode(self, enabled: bool) -> Self:
         raise NotImplementedError()
 
     def _send_synchronization(self) -> None:

@@ -6,6 +6,8 @@ from logging import DEBUG as LVL_DEBUG
 from typing import Final
 from uuid import uuid4
 
+from typing_extensions import Self, override
+
 import pyartnet.impl_sacn.universe
 from pyartnet.base import BaseNode, SequenceCounter
 from pyartnet.errors import InvalidCidError, InvalidUniverseAddressError
@@ -33,7 +35,7 @@ VECTOR_DMP_SET_PROPERTY: Final = 0x02
 class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
     def __init__(self, ip: str, port: int, *,
                  max_fps: int = 25,
-                 refresh_every: int | float | None = 2, start_refresh_task: bool = True,
+                 refresh_every: float | None = 2, start_refresh_task: bool = True,
                  source_address: tuple[str, int] | None = None,
 
                  # sACN E1.31 specific fields
@@ -86,6 +88,7 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
         self._sync_sequence_number: Final = SequenceCounter()
 
     # noinspection PyProtectedMember
+    @override
     def _send_universe(self, id: int, byte_size: int, values: bytearray,
                        universe: pyartnet.impl_sacn.universe.SacnUniverse) -> None:
         packet = bytearray()
@@ -128,9 +131,11 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
             # log complete packet
             log.debug(f'Sending sACN frame to {_dst_str(universe._dst)}: {(base_packet + packet).hex()}')
 
+    @override
     def _create_universe(self, nr: int) -> pyartnet.impl_sacn.SacnUniverse:
         return pyartnet.impl_sacn.SacnUniverse(self, self._validate_universe_nr(nr))
 
+    @override
     def _validate_universe_nr(self, nr: int) -> int:
         if not isinstance(nr, int):
             raise TypeError()
@@ -156,7 +161,8 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
         # IPv4 multicast address
         return f'239.255.{universe_high:d}.{universe_low:d}'
 
-    def set_multicast_mode(self, enabled: bool):
+    @override
+    def set_multicast_mode(self, enabled: bool) -> Self:
         """Either send packets to the node directly or through multicast.
         :param enabled: If True multicast is enabled
         """
@@ -172,6 +178,7 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
 
         return self
 
+    @override
     def set_synchronous_mode(self, enabled: bool, synchronization_address: int = 0) -> None:
         """Enable or disable synchronous mode for this node. In synchronous mode multiple universes are sent to the
         node and then a synchronization packet is sent to make the node output all universes at the same time.
@@ -193,6 +200,7 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
             self._sync_address = 0
             self._sync_dst = self._dst
 
+    @override
     def _send_synchronization(self) -> None:
         if not self._sync_address:
             return

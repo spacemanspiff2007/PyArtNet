@@ -4,6 +4,8 @@ import logging
 from logging import DEBUG as LVL_DEBUG
 from struct import pack as s_pack
 
+from typing_extensions import override
+
 import pyartnet
 from pyartnet.base import BaseNode
 from pyartnet.errors import InvalidUniverseAddressError
@@ -20,7 +22,7 @@ log = logging.getLogger('pyartnet.KiNetNode')
 class KiNetNode(BaseNode['pyartnet.impl_kinet.KiNetUniverse']):
     def __init__(self, ip: str, port: int, *,
                  max_fps: int = 25,
-                 refresh_every: int | float | None = 2, start_refresh_task: bool = True,
+                 refresh_every: float | None = 2, start_refresh_task: bool = True,
                  source_address: tuple[str, int] | None = None) -> None:
         super().__init__(ip=ip, port=port,
                          max_fps=max_fps,
@@ -33,6 +35,7 @@ class KiNetNode(BaseNode['pyartnet.impl_kinet.KiNetUniverse']):
         packet.extend(s_pack('>IBBHI', 0, 0, 0, 0, 0xFFFFFFFF))     # sequence, port, padding, flags, timer
         self._packet_base = bytes(packet)
 
+    @override
     def _send_universe(self, id: int, byte_size: int,
                        values: bytearray, universe: pyartnet.impl_kinet.KiNetUniverse) -> None:
         packet = bytearray()
@@ -45,9 +48,11 @@ class KiNetNode(BaseNode['pyartnet.impl_kinet.KiNetUniverse']):
             # log complete packet
             log.debug(f'Sending KiNet frame to {self._ip}:{self._port}: {(self._packet_base + packet).hex()}')
 
+    @override
     def _create_universe(self, nr: int) -> pyartnet.impl_kinet.KiNetUniverse:
         return pyartnet.impl_kinet.KiNetUniverse(self, self._validate_universe_nr(nr))
 
+    @override
     def _validate_universe_nr(self, nr: int) -> int:
         if not isinstance(nr, int):
             raise TypeError()

@@ -5,7 +5,9 @@ version = "1.0.1"
 description = "Python wrappers for the Art-Net protocol to send DMX over Ethernet"
 keywords = ["DMX", "Art-Net", "ArtNet", "sACN", "E1.31", "KiNet"]
 readme = "readme.md"
-dependencies = []
+dependencies = [
+    "typing-extensions"
+]
 requires-python = ">= 3.8"
 
 authors = [
