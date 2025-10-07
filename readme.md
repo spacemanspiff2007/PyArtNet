@@ -14,6 +14,10 @@ Docs and examples can be found [here](https://pyartnet.readthedocs.io/en/latest/
 
 
 # Changelog
+#### 1.1.0 (2025-XX-XX)
+- Added support for transmitting multiple universes in sync
+- used UV
+- ruff and typing fixes
 
 #### 1.0.1 (2023-02-20)
 - Fixed an issue where consecutive fades would not start from the correct value
