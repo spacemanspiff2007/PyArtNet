@@ -1,9 +1,10 @@
-from pyartnet.base import BaseUniverse
-from pyartnet.base.channel import Channel
 from tests.conftest import TestingNode
 
+from pyartnet.base import BaseUniverse
+from pyartnet.base.channel import Channel
 
-async def test_channel_set_values(node: TestingNode, universe: BaseUniverse, caplog):
+
+async def test_channel_set_values(node: TestingNode, universe: BaseUniverse, caplog) -> None:
     a = Channel(universe, 1, 1)
     assert a.get_values() == [0]
 

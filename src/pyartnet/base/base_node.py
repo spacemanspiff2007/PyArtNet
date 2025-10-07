@@ -10,6 +10,7 @@ from ..errors import DuplicateUniverseError, UniverseNotFoundError
 from .background_task import ExceptionIgnoringTask, SimpleBackgroundTask
 from .output_correction import OutputCorrection
 
+
 log = logging.getLogger('pyartnet.ArtNetNode')
 
 

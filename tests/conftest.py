@@ -3,11 +3,12 @@ from asyncio import sleep
 from typing import List
 
 import pytest
+from tests.helper import MockedSocket
 
 import pyartnet.base.base_node
 from pyartnet.base import BaseNode, BaseUniverse
 from pyartnet.base.base_node import TYPE_U
-from tests.helper import MockedSocket
+
 
 STEP_MS = 15
 

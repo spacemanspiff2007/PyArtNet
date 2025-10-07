@@ -3,11 +3,11 @@ import logging
 from asyncio import sleep
 
 import pytest
+from tests.conftest import TestingNode
 
 from pyartnet import ArtNetNode, KiNetNode, SacnNode
 from pyartnet.base import BaseNode
 from pyartnet.errors import InvalidUniverseAddressError
-from tests.conftest import TestingNode
 
 
 @pytest.mark.parametrize('c', (ArtNetNode, KiNetNode, SacnNode))

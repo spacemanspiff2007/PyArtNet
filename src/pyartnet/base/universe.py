@@ -3,17 +3,22 @@ from time import monotonic
 from typing import Dict, Final, Literal
 
 import pyartnet
-from pyartnet.errors import ChannelExistsError, ChannelNotFoundError, \
-    InvalidUniverseAddressError, OverlappingChannelError
+from pyartnet.errors import (
+    ChannelExistsError,
+    ChannelNotFoundError,
+    InvalidUniverseAddressError,
+    OverlappingChannelError,
+)
 
 from .output_correction import OutputCorrection
+
 
 log = logging.getLogger('pyartnet.Universe')
 
 
 # noinspection PyProtectedMember
 class BaseUniverse(OutputCorrection):
-    def __init__(self, node: 'pyartnet.base.BaseNode', universe: int = 0):
+    def __init__(self, node: 'pyartnet.base.BaseNode', universe: int = 0) -> None:
         super().__init__()
 
         if not 0 <= universe <= 32767:
@@ -29,11 +34,11 @@ class BaseUniverse(OutputCorrection):
 
         self._channels: Dict[str, 'pyartnet.base.Channel'] = {}
 
-    def _apply_output_correction(self):
+    def _apply_output_correction(self) -> None:
         for c in self._channels.values():
             c._apply_output_correction()
 
-    def channel_changed(self, channel: 'pyartnet.base.Channel'):
+    def channel_changed(self, channel: 'pyartnet.base.Channel') -> None:
         # update universe buffer
         channel.to_buffer(self._data)
 
@@ -44,7 +49,7 @@ class BaseUniverse(OutputCorrection):
         # noinspection PyProtectedMember
         self._node._process_task.start()
 
-    def send_data(self):
+    def send_data(self) -> None:
         self._node._send_universe(self._universe, self._data_size, self._data, self)
         self._last_send = monotonic()
         self._data_changed = False
@@ -126,7 +131,7 @@ class BaseUniverse(OutputCorrection):
 
     # -----------------------------------------------------------
     # emulate container
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._channels)
 
     def __getitem__(self, item: str) -> 'pyartnet.base.Channel':

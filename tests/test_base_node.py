@@ -1,11 +1,11 @@
 from time import monotonic
 
 import pytest
+from tests.conftest import STEP_MS, TestingNode
 
 from pyartnet.base import BaseUniverse
 from pyartnet.base.channel import Channel
 from pyartnet.errors import DuplicateUniverseError
-from tests.conftest import STEP_MS, TestingNode
 
 
 def test_universe_add_get(node: TestingNode) -> None:

@@ -2,6 +2,7 @@ import os
 import re
 import sys
 
+
 RTD_BUILD = os.environ.get('READTHEDOCS') == 'True'
 
 # Configuration file for the Sphinx documentation builder.

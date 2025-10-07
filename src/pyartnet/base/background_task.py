@@ -1,13 +1,14 @@
 import logging
-from asyncio import create_task, sleep, Task
+from asyncio import Task, create_task, sleep
 from time import monotonic
 from traceback import format_exc
 from typing import Any, Callable, Coroutine, Final, Optional, Set
 
+
 log = logging.getLogger('pyartnet.Task')
 
 
-def log_exception(e: Exception, name: str):
+def log_exception(e: Exception, name: str) -> None:
     log.error(f'Error in worker for {name:s}:')
     for line in format_exc().splitlines():
         log.error(line)
@@ -22,7 +23,7 @@ EXCEPTION_HANDLER: Callable[[Exception, str], Any] = log_exception
 
 class SimpleBackgroundTask:
 
-    def __init__(self, coro: Callable[[], Coroutine], name: str):
+    def __init__(self, coro: Callable[[], Coroutine], name: str) -> None:
         self.coro: Final = coro
         self.name: Final = name
         self.task: Optional[Task] = None
@@ -42,7 +43,7 @@ class SimpleBackgroundTask:
         self.task.cancel()
         self.task = None
 
-    async def coro_wrap(self):
+    async def coro_wrap(self) -> None:
         log.debug(f'Started {self.name}')
         task = self.task
         assert task is not None
@@ -58,7 +59,7 @@ class SimpleBackgroundTask:
 
 
 class ExceptionIgnoringTask(SimpleBackgroundTask):
-    async def coro_wrap(self):
+    async def coro_wrap(self) -> None:
         log.debug(f'Started {self.name}')
         task = self.task
         assert task is not None
