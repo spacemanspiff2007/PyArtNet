@@ -70,3 +70,6 @@ if not RTD_BUILD:
     nitpick_ignore_regex.append(
         (re.compile(r'py:data|py:class'), re.compile(r'typing\..+'))
     )
+    nitpick_ignore_regex.append(
+        (re.compile(r'py:class'), re.compile(r'collections\.abc\..+'))
+    )
