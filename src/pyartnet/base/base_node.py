@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import logging
 import socket
 from asyncio import sleep
 from time import monotonic
-from typing import Dict, Final, Generic, List, Optional, Tuple, TypeVar, Union
+from typing import Final, Generic, Optional, TypeVar, Union
 
 import pyartnet
 
@@ -22,7 +24,7 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
     def __init__(self, ip: str, port: int, *,
                  max_fps: int = 25,
                  refresh_every: Union[int, float, None] = 2, start_refresh_task: bool = True,
-                 source_address: Optional[Tuple[str, int]] = None) -> None:
+                 source_address: Optional[tuple[str, int]] = None) -> None:
         super().__init__()
 
         # Destination
@@ -51,15 +53,15 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
         # fade task
         self._process_every: float = 1 / max(1, max_fps)
         self._process_task: Final = SimpleBackgroundTask(self._process_values_task, f'Process task {name:s}')
-        self._process_jobs: List['pyartnet.base.ChannelBoundFade'] = []
+        self._process_jobs: list['pyartnet.base.ChannelBoundFade'] = []
 
         # packet data
         self._packet_base: Union[bytearray, bytes] = bytearray()
         self._last_send: float = 0
 
         # containing universes
-        self._universes: Tuple[TYPE_U, ...] = ()
-        self._universe_map: Dict[int, TYPE_U] = {}
+        self._universes: tuple[TYPE_U, ...] = ()
+        self._universe_map: dict[int, TYPE_U] = {}
 
     def _apply_output_correction(self) -> None:
         for u in self._universes:

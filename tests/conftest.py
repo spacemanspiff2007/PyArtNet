@@ -1,6 +1,7 @@
+from __future__ import annotations
+
 import logging
 from asyncio import sleep
-from typing import List
 
 import pytest
 from tests.helper import MockedSocket
@@ -67,7 +68,7 @@ def ensure_no_errors(caplog):
 
     yield None
 
-    log_records: List[logging.LogRecord] = []
+    log_records: list[logging.LogRecord] = []
     name_indent = 0
     level_indent = 0
 

@@ -1,8 +1,9 @@
-# flake8: noqa: E262
+from __future__ import annotations
+
 import logging
 from ipaddress import IPv6Address
 from logging import DEBUG as LVL_DEBUG
-from typing import Final, Optional, Tuple, Union
+from typing import Final, Optional, Union
 from uuid import uuid4
 
 import pyartnet.impl_sacn.universe
@@ -33,7 +34,7 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
     def __init__(self, ip: str, port: int, *,
                  max_fps: int = 25,
                  refresh_every: Union[int, float, None] = 2, start_refresh_task: bool = True,
-                 source_address: Optional[Tuple[str, int]] = None,
+                 source_address: Optional[tuple[str, int]] = None,
 
                  # sACN E1.31 specific fields
                  cid: Optional[bytes] = None, source_name: Optional[str] = None

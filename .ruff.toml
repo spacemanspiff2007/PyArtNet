@@ -90,8 +90,6 @@ lines-after-imports = 2     # https://docs.astral.sh/ruff/settings/#lint_isort_l
     "PTH100",   # `os.path.abspath()` should be replaced by `Path.resolve()`
 ]
 
-"setup.py" = ["PTH123"]
-
 "tests/*" = [
     "ANN",  # https://docs.astral.sh/ruff/rules/#flake8-annotations-ann
 
@@ -101,4 +99,7 @@ lines-after-imports = 2     # https://docs.astral.sh/ruff/settings/#lint_isort_l
     # https://docs.astral.sh/ruff/rules/#refactor-r
     "PLR2004",  # Magic value used in comparison, consider replacing {value} with a constant variable
     "PLR0913",  # Too many arguments in function definition ({c_args} > {max_args})
+
+    # https://docs.astral.sh/ruff/rules/#flake8-boolean-trap-fbt
+    "FBT003",  # Boolean positional value in function call
 ]
