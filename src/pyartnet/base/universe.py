@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from time import monotonic
-from typing import Dict, Final, Literal
+from typing import Final, Literal
 
 import pyartnet
 from pyartnet.errors import (
@@ -20,7 +20,7 @@ log = logging.getLogger('pyartnet.Universe')
 
 # noinspection PyProtectedMember
 class BaseUniverse(OutputCorrection):
-    def __init__(self, node: 'pyartnet.base.BaseNode', universe: int = 0) -> None:
+    def __init__(self, node: pyartnet.base.BaseNode, universe: int = 0) -> None:
         super().__init__()
 
         if not 0 <= universe <= 32767:
@@ -34,13 +34,13 @@ class BaseUniverse(OutputCorrection):
         self._data_changed = True
         self._last_send: float = 0
 
-        self._channels: Dict[str, 'pyartnet.base.Channel'] = {}
+        self._channels: dict[str, pyartnet.base.Channel] = {}
 
     def _apply_output_correction(self) -> None:
         for c in self._channels.values():
             c._apply_output_correction()
 
-    def channel_changed(self, channel: 'pyartnet.base.Channel') -> None:
+    def channel_changed(self, channel: pyartnet.base.Channel) -> None:
         # update universe buffer
         channel.to_buffer(self._data)
 
@@ -56,23 +56,25 @@ class BaseUniverse(OutputCorrection):
         self._last_send = monotonic()
         self._data_changed = False
 
-    def get_channel(self, channel_name: str) -> 'pyartnet.base.Channel':
+    def get_channel(self, channel_name: str) -> pyartnet.base.Channel:
         """Return a channel by name or raise an exception
 
         :param channel_name: name of the channel
         """
         if not isinstance(channel_name, str):
-            raise TypeError('Channel name must be str')
+            msg = 'Channel name must be str'
+            raise TypeError(msg)
 
         try:
             return self._channels[channel_name]
         except KeyError:
-            raise ChannelNotFoundError(f'Channel "{channel_name}" not found in the universe!') from None
+            msg = f'Channel "{channel_name}" not found in the universe!'
+            raise ChannelNotFoundError(msg) from None
 
     def add_channel(self,
                     start: int, width: int,
                     channel_name: str = '',
-                    byte_size: int = 1, byte_order: Literal['big', 'little'] = 'little') -> 'pyartnet.base.Channel':
+                    byte_size: int = 1, byte_order: Literal['big', 'little'] = 'little') -> pyartnet.base.Channel:
         """Add a new channel to the universe. This will automatically resize the universe accordingly.
 
         :param start: start position in the universe
@@ -90,7 +92,8 @@ class BaseUniverse(OutputCorrection):
 
         # Make sure we don't accidentally overwrite the channel
         if channel_name in self._channels:
-            raise ChannelExistsError(f'Channel "{channel_name}" does already exist in the universe!')
+            msg = f'Channel "{channel_name}" does already exist in the universe!'
+            raise ChannelExistsError(msg)
 
         # Make sure channels are not overlapping because they will overwrite each other
         # and this leads to unintended behavior
@@ -99,7 +102,8 @@ class BaseUniverse(OutputCorrection):
                 continue
             for i in range(_c._start, _c._stop + 1):
                 if start <= i <= chan._stop:
-                    raise OverlappingChannelError(f'New channel {channel_name} is overlapping with channel {_n:s}!')
+                    msg = f'New channel {channel_name} is overlapping with channel {_n:s}!'
+                    raise OverlappingChannelError(msg)
 
         self._resize_universe(chan._stop)
 
@@ -110,7 +114,7 @@ class BaseUniverse(OutputCorrection):
         chan._apply_output_correction()
         return chan
 
-    def _resize_universe(self, min_size: int):
+    def _resize_universe(self, min_size: int) -> None:
 
         new_size = max(min_size, 2)
         for c in self._channels.values():
@@ -136,5 +140,5 @@ class BaseUniverse(OutputCorrection):
     def __len__(self) -> int:
         return len(self._channels)
 
-    def __getitem__(self, item: str) -> 'pyartnet.base.Channel':
+    def __getitem__(self, item: str) -> pyartnet.base.Channel:
         return self.get_channel(item)

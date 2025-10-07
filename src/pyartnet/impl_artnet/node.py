@@ -16,6 +16,8 @@ from pyartnet.errors import InvalidUniverseAddressError
 
 log = logging.getLogger('pyartnet.ArtNetNode')
 
+ARTNET_MAX_UNIVERSE: Final = 32_768
+
 
 class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
     def __init__(self, ip: str, port: int, *,
@@ -43,7 +45,7 @@ class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
         self._sync_enabled : bool = False
 
     def _send_universe(self, id: int, byte_size: int, values: bytearray,
-                       universe: 'pyartnet.impl_artnet.ArtNetUniverse') -> None:
+                       universe: pyartnet.impl_artnet.ArtNetUniverse) -> None:
 
         # pre allocate the bytearray
         _size = 10 + byte_size
@@ -65,15 +67,13 @@ class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
         if log.isEnabledFor(logging.DEBUG):
             self.__log_artnet_frame(self._packet_base + packet)
 
-    def _create_universe(self, nr: int) -> 'pyartnet.impl_artnet.ArtNetUniverse':
-        if nr >= 32_768:
-            raise InvalidUniverseAddressError()
-        return pyartnet.impl_artnet.ArtNetUniverse(self, nr)
+    def _create_universe(self, nr: int) -> pyartnet.impl_artnet.ArtNetUniverse:
+        return pyartnet.impl_artnet.ArtNetUniverse(self, self._validate_universe_nr(nr))
 
     def _validate_universe_nr(self, nr: int) -> int:
         if not isinstance(nr, int):
             raise TypeError()
-        if not 0 <= nr <= 32_768:
+        if not 0 <= nr <= ARTNET_MAX_UNIVERSE:
             raise InvalidUniverseAddressError()
         return int(nr)
 

@@ -2,13 +2,17 @@ from __future__ import annotations
 
 import logging
 from asyncio import sleep
+from typing import TYPE_CHECKING
 
 import pytest
 from tests.helper import MockedSocket
 
-import pyartnet.base.base_node
 from pyartnet.base import BaseNode, BaseUniverse
-from pyartnet.base.base_node import TYPE_U
+
+
+if TYPE_CHECKING:
+    import pyartnet.base.base_node
+    from pyartnet.base.base_node import UNIVERSE_TYPE
 
 
 STEP_MS = 15
@@ -22,7 +26,7 @@ class TestingNode(BaseNode):
         self.data = []
 
     def _send_universe(self, id: int, byte_size: int,
-                       values: bytearray, universe: 'pyartnet.base.BaseUniverse') -> None:
+                       values: bytearray, universe: pyartnet.base.BaseUniverse) -> None:
         self.data.append(values.hex())
 
     async def sleep_steps(self, steps: int) -> None:
@@ -33,7 +37,7 @@ class TestingNode(BaseNode):
     async def wait_for_task_finish(self) -> None:
         await self
 
-    def _create_universe(self, nr: int) -> TYPE_U:
+    def _create_universe(self, nr: int) -> UNIVERSE_TYPE:
         return BaseUniverse(self, nr)
 
     def _validate_universe_nr(self, nr: int) -> int:

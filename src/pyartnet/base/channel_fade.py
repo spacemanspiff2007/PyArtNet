@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import logging
 from asyncio import Event
-from typing import TYPE_CHECKING, Final, Iterable, List, Tuple
+from typing import TYPE_CHECKING, Final, Iterable
 
 
 if TYPE_CHECKING:
@@ -14,12 +14,12 @@ log = logging.getLogger('pyartnet.DmxChannel')
 
 # noinspection PyProtectedMember
 class ChannelBoundFade:
-    def __init__(self, channel: 'pyartnet.base.Channel', fades: Iterable['pyartnet.fades.FadeBase']) -> None:
+    def __init__(self, channel: pyartnet.base.Channel, fades: Iterable[pyartnet.fades.FadeBase]) -> None:
         super().__init__()
-        self.channel: 'pyartnet.base.Channel' = channel
+        self.channel: pyartnet.base.Channel = channel
 
-        self.fades: Tuple['pyartnet.fades.FadeBase', ...] = tuple(fades)
-        self.values: List[float] = [0 for _ in fades]
+        self.fades: tuple[pyartnet.fades.FadeBase, ...] = tuple(fades)
+        self.values: list[float] = [0 for _ in fades]
 
         self.is_done = False
         self.event: Final = Event()

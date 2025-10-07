@@ -47,7 +47,8 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
         # CID Field
         if cid is not None:
             if not isinstance(cid, bytes) or len(cid) != 16:
-                raise InvalidCidError('CID must be 16bytes!')
+                msg = 'CID must be 16bytes!'
+                raise InvalidCidError(msg)
         else:
             cid = uuid4().bytes
 
@@ -56,7 +57,8 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
             source_name = 'PyArtNet'
         source_name_byte = source_name.encode('utf-8').ljust(64, b'\x00')
         if len(source_name_byte) > 64:
-            raise ValueError('Source name too long!')
+            msg = 'Source name too long!'
+            raise ValueError(msg)
         self._source_name_byte : bytes = source_name_byte
 
         # See spec 9.3 Allocation of Multicast Addresses
@@ -85,7 +87,7 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
 
     # noinspection PyProtectedMember
     def _send_universe(self, id: int, byte_size: int, values: bytearray,
-                       universe: 'pyartnet.impl_sacn.universe.SacnUniverse') -> None:
+                       universe: pyartnet.impl_sacn.universe.SacnUniverse) -> None:
         packet = bytearray()
 
         # DMX Start Code is not included in the byte size from the universe
@@ -126,7 +128,7 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
             # log complete packet
             log.debug(f'Sending sACN frame to {_dst_str(universe._dst)}: {(base_packet + packet).hex()}')
 
-    def _create_universe(self, nr: int) -> 'pyartnet.impl_sacn.SacnUniverse':
+    def _create_universe(self, nr: int) -> pyartnet.impl_sacn.SacnUniverse:
         return pyartnet.impl_sacn.SacnUniverse(self, self._validate_universe_nr(nr))
 
     def _validate_universe_nr(self, nr: int) -> int:

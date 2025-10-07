@@ -1,8 +1,11 @@
-from typing import Final
+from typing import TYPE_CHECKING, Final
 
-import pyartnet
 from pyartnet.base import BaseUniverse
 from pyartnet.base.seq_counter import SequenceCounter
+
+
+if TYPE_CHECKING:
+    import pyartnet
 
 
 class SacnUniverse(BaseUniverse):

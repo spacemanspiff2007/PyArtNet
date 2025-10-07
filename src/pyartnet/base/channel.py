@@ -6,7 +6,7 @@ from array import array
 from collections.abc import Callable, Collection
 from logging import DEBUG as LVL_DEBUG
 from math import ceil
-from typing import Any, Final, List, Literal, Type, Union
+from typing import TYPE_CHECKING, Any, Final, Literal, Union
 
 from pyartnet.errors import (
     ChannelOutOfUniverseError,
@@ -14,12 +14,15 @@ from pyartnet.errors import (
     ChannelWidthError,
     ValueCountDoesNotMatchChannelWidthError,
 )
+from pyartnet.fades import FadeBase, LinearFade
 from pyartnet.output_correction import linear
 
-from ..fades import FadeBase, LinearFade
 from .channel_fade import ChannelBoundFade
 from .output_correction import OutputCorrection
-from .universe import BaseUniverse
+
+
+if TYPE_CHECKING:
+    from .universe import BaseUniverse
 
 
 log = logging.getLogger('pyartnet.Channel')
@@ -41,15 +44,16 @@ class Channel(OutputCorrection):
 
         # Validate Boundaries
         if byte_size not in ARRAY_TYPE:
-            raise ValueError(f'Value size must be {", ".join(map(str, ARRAY_TYPE))}')
+            msg = f'Value size must be {", ".join(map(str, ARRAY_TYPE))}'
+            raise ValueError(msg)
 
         if start < 1 or start > 512:
-            raise ChannelOutOfUniverseError(
-                f'Start position of channel out of universe (1..512): {start}')
+            msg = f'Start position of channel out of universe (1..512): {start}'
+            raise ChannelOutOfUniverseError(msg)
 
         if width <= 0 or not isinstance(width, int):
-            raise ChannelWidthError(
-                f'Channel width must be int > 0: {width} ({type(width)})')
+            msg = f'Channel width must be int > 0: {width} ({type(width)})'
+            raise ChannelWidthError(msg)
 
         total_byte_width: Final = width * byte_size
 
@@ -58,10 +62,11 @@ class Channel(OutputCorrection):
         self._stop: Final = start + total_byte_width - 1
 
         if self._stop > 512:
-            raise ChannelOutOfUniverseError(
+            msg = (
                 f'End position of channel out of universe (1..512): '
                 f'start: {self._start} width: {self._width} * {byte_size}bytes -> {self._stop}'
             )
+            raise ChannelOutOfUniverseError(msg)
 
         # value representation
         self._byte_size: Final = byte_size
@@ -98,7 +103,7 @@ class Channel(OutputCorrection):
                 self._correction_current = obj._correction_output
                 return None
 
-    def get_values(self) -> List[int]:
+    def get_values(self) -> list[int]:
         """Get the current (uncorrected) channel values
 
         :return: list of channel values
@@ -112,8 +117,9 @@ class Channel(OutputCorrection):
         """
         # get output correction function
         if len(values) != self._width:
+            msg = f'Not enough fade values specified, expected {self._width} but got {len(values)}!'
             raise ValueCountDoesNotMatchChannelWidthError(
-                f'Not enough fade values specified, expected {self._width} but got {len(values)}!')
+                msg)
 
         correction = self._correction_current
         value_max = self._value_max
@@ -122,7 +128,8 @@ class Channel(OutputCorrection):
         for i, val in enumerate(values):
             raw_new = round(val)
             if not 0 <= raw_new <= value_max:
-                raise ChannelValueOutOfBoundsError(f'Channel value out of bounds! 0 <= {val} <= {value_max:d}')
+                msg = f'Channel value out of bounds! 0 <= {val} <= {value_max:d}'
+                raise ChannelValueOutOfBoundsError(msg)
 
             self._values_raw[i] = raw_new
             act_new = round(correction(val, value_max)) if correction is not linear else raw_new
@@ -145,14 +152,14 @@ class Channel(OutputCorrection):
         return self
 
     def add_fade(self, values: Collection[Union[int, FadeBase]], duration_ms: int,
-                 fade_class: Type[FadeBase] = LinearFade):
+                 fade_class: type[FadeBase] = LinearFade):
         warnings.warn(
             f'{self.set_fade.__name__:s} is deprecated, use {self.set_fade.__name__:s} instead', DeprecationWarning)
         return self.set_fade(values, duration_ms, fade_class)
 
     # noinspection PyProtectedMember
     def set_fade(self, values: Collection[Union[int, FadeBase]], duration_ms: int,
-                 fade_class: Type[FadeBase] = LinearFade):
+                 fade_class: type[FadeBase] = LinearFade):
         """Add and schedule a new fade for the channel
 
         :param values: Target values for the fade
@@ -161,8 +168,8 @@ class Channel(OutputCorrection):
         """
         # check that we passed all values
         if len(values) != self._width:
-            raise ValueCountDoesNotMatchChannelWidthError(
-                f'Not enough fade values specified, expected {self._width} but got {len(values)}!')
+            msg = f'Not enough fade values specified, expected {self._width} but got {len(values)}!'
+            raise ValueCountDoesNotMatchChannelWidthError(msg)
 
         if self._current_fade is not None:
             self._current_fade.cancel()
@@ -174,15 +181,15 @@ class Channel(OutputCorrection):
         fade_steps: int = ceil(duration_ms / step_time_ms)
 
         # build fades
-        fades: List[FadeBase] = []
+        fades: list[FadeBase] = []
         for i, target in enumerate(values):
             # default is linear
             k = fade_class() if not isinstance(target, FadeBase) else target
             fades.append(k)
 
             if not 0 <= target <= self._value_max:
-                raise ChannelValueOutOfBoundsError(
-                    f'Target value out of bounds! 0 <= {target} <= {self._value_max}')
+                msg = f'Target value out of bounds! 0 <= {target} <= {self._value_max}'
+                raise ChannelValueOutOfBoundsError(msg)
 
             k.initialize(self._values_raw[i], target, fade_steps)
 

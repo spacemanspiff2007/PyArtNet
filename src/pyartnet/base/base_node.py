@@ -4,23 +4,26 @@ import logging
 import socket
 from asyncio import sleep
 from time import monotonic
-from typing import Final, Generic, TypeVar
+from typing import TYPE_CHECKING, Final, Generic, TypeVar
 
-import pyartnet
+from pyartnet.errors import DuplicateUniverseError, UniverseNotFoundError
 
-from ..errors import DuplicateUniverseError, UniverseNotFoundError
 from .background_task import ExceptionIgnoringTask, SimpleBackgroundTask
 from .output_correction import OutputCorrection
+
+
+if TYPE_CHECKING:
+    import pyartnet
 
 
 log = logging.getLogger('pyartnet.ArtNetNode')
 
 
-TYPE_U = TypeVar('TYPE_U', bound='pyartnet.base.BaseUniverse')
+UNIVERSE_TYPE = TypeVar('UNIVERSE_TYPE', bound='pyartnet.base.BaseUniverse')
 
 
 # noinspection PyProtectedMember
-class BaseNode(Generic[TYPE_U], OutputCorrection):
+class BaseNode(OutputCorrection, Generic[UNIVERSE_TYPE]):
     def __init__(self, ip: str, port: int, *,
                  max_fps: int = 25,
                  refresh_every: int | float | None = 2, start_refresh_task: bool = True,
@@ -53,21 +56,21 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
         # fade task
         self._process_every: float = 1 / max(1, max_fps)
         self._process_task: Final = SimpleBackgroundTask(self._process_values_task, f'Process task {name:s}')
-        self._process_jobs: list['pyartnet.base.ChannelBoundFade'] = []
+        self._process_jobs: list[pyartnet.base.ChannelBoundFade] = []
 
         # packet data
         self._packet_base: bytearray | bytes = bytearray()
         self._last_send: float = 0
 
         # containing universes
-        self._universes: tuple[TYPE_U, ...] = ()
-        self._universe_map: dict[int, TYPE_U] = {}
+        self._universes: tuple[UNIVERSE_TYPE, ...] = ()
+        self._universe_map: dict[int, UNIVERSE_TYPE] = {}
 
     def _apply_output_correction(self) -> None:
         for u in self._universes:
             u._apply_output_correction()
 
-    def _send_universe(self, id: int, byte_size: int, values: bytearray, universe: TYPE_U):
+    def _send_universe(self, id: int, byte_size: int, values: bytearray, universe: UNIVERSE_TYPE):
         raise NotImplementedError()
 
     def set_synchronous_mode(self, enabled: bool):
@@ -143,7 +146,7 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
 
             self._send_synchronization()
 
-    def get_universe(self, nr: int) -> TYPE_U:
+    def get_universe(self, nr: int) -> UNIVERSE_TYPE:
         """Get universe by number
 
         :param nr: universe nr
@@ -157,7 +160,7 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
             msg = f'BaseUniverse {nr:d} not found!'
             raise UniverseNotFoundError(msg) from None
 
-    def add_universe(self, nr: int = 0) -> TYPE_U:
+    def add_universe(self, nr: int = 0) -> UNIVERSE_TYPE:
         """Creates a new universe and adds it to the parent node
 
         :param nr: universe nr
@@ -175,7 +178,7 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
 
         return universe
 
-    def _create_universe(self, nr: int) -> TYPE_U:
+    def _create_universe(self, nr: int) -> UNIVERSE_TYPE:
         raise NotImplementedError()
 
     def _validate_universe_nr(self, nr: int) -> int:
@@ -186,7 +189,7 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
             for job in self._process_jobs:
                 yield from job.channel.__await__()
 
-    def __getitem__(self, nr: int) -> TYPE_U:
+    def __getitem__(self, nr: int) -> UNIVERSE_TYPE:
         return self.get_universe(nr)
 
     def __len__(self) -> int:

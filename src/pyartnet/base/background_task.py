@@ -4,7 +4,7 @@ import logging
 from asyncio import Task, create_task, sleep
 from time import monotonic
 from traceback import format_exc
-from typing import Any, Callable, Coroutine, Final, Set
+from typing import Any, Callable, Coroutine, Final
 
 
 log = logging.getLogger('pyartnet.Task')
@@ -16,7 +16,7 @@ def log_exception(e: Exception, name: str) -> None:
         log.error(line)
 
 
-_BACKGROUND_TASKS: Set[Task] = set()
+_BACKGROUND_TASKS: set[Task] = set()
 
 # use variables, so it's easy to e.g. implement thread safe scheduling
 CREATE_TASK = create_task
