@@ -51,7 +51,8 @@ tests = [
 dev = [
     {include-group = "tests"},
     {include-group = "docs"},
-    "pre-commit"
+    "pre-commit",
+    "ruff"
 ]
 
 

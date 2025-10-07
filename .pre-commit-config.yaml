@@ -1,31 +1,35 @@
 repos:
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v6.0.0
     hooks:
+      - id: check-ast
+      - id: check-builtin-literals
+      - id: check-docstring-first
+      - id: check-merge-conflict
+      - id: check-toml
       - id: check-yaml
+      - id: debug-statements
       - id: end-of-file-fixer
         exclude: \.(?:pdf|svg)$
       - id: trailing-whitespace
 
 
-  - repo: https://github.com/pycqa/isort
-    rev: 5.12.0
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.13.3
     hooks:
-      - id: isort
-        name: isort (python)
+      - id: ruff
+        name: ruff unused imports
+        #  F401 [*] {name} imported but unused
+        args: [ "--select", "F401", "--extend-exclude", "__init__.py", "--fix"]
 
+      - id: ruff
+        #  I001 [*] Import block is un-sorted or un-formatted
+        # UP035 [*] Import from {target} instead: {names}
+        #  Q000 [*] Double quote found but single quotes preferred
+        #  Q001 [*] Double quote multiline found but single quotes preferred
+        args: [ "--select", "I001,UP035,Q000,Q001", "--fix"]
 
-  - repo: https://github.com/PyCQA/flake8
-    rev: '6.0.0'
-    hooks:
-    -   id: flake8
-        additional_dependencies:
-          - flake8-bugbear==23.1.20
-          - flake8-comprehensions==3.10.1
-          - flake8-pytest-style==1.6
-          - flake8-noqa==1.3
-          - pep8-naming==0.13.3
 
   - repo: https://github.com/pre-commit/pygrep-hooks
     rev: v1.10.0
