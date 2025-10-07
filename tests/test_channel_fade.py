@@ -4,7 +4,7 @@ from pyartnet.base import Channel
 from pyartnet.base.channel_fade import ChannelBoundFade
 
 
-def test_repr():
+def test_repr() -> None:
     universe = Mock()
     universe.output_correction = None
 

@@ -1,7 +1,7 @@
 from pyartnet.base import BaseUniverse
 
 
-def test_values_add_channel(universe: BaseUniverse):
+def test_values_add_channel(universe: BaseUniverse) -> None:
     u = universe.add_channel(1, 2, byte_size=3, byte_order='big')
     assert u._start == 1
     assert u._width == 2

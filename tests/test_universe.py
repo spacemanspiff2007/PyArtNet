@@ -5,7 +5,7 @@ from pyartnet.base import BaseUniverse
 from pyartnet.errors import ChannelNotFoundError
 
 
-def test_exceptions(universe: BaseUniverse):
+def test_exceptions(universe: BaseUniverse) -> None:
     universe.add_channel(1, 1)
 
     with pytest.raises(errors.ChannelExistsError) as e:
@@ -35,7 +35,7 @@ def test_exceptions(universe: BaseUniverse):
         universe.add_channel(8, 20)
 
 
-def test_universe_resize(universe: BaseUniverse):
+def test_universe_resize(universe: BaseUniverse) -> None:
     assert universe._data_size == 0
     assert universe._data == b''
 
@@ -57,7 +57,7 @@ def test_universe_resize(universe: BaseUniverse):
     assert universe._data == b'\x00\x00\x00\x00'
 
 
-def test_access(universe: BaseUniverse):
+def test_access(universe: BaseUniverse) -> None:
 
     with pytest.raises(ChannelNotFoundError) as e:
         universe.get_channel('1')

@@ -1,13 +1,21 @@
+from __future__ import annotations
+
 import socket
+from typing import TYPE_CHECKING
 from unittest.mock import Mock
 
-from pytest import MonkeyPatch  # noqa: PT013
+from pytest import MonkeyPatch
 
 import pyartnet
 
 
+if TYPE_CHECKING:
+    from types import TracebackType
+
+
+
 class MockedSocket:
-    def __init__(self):
+    def __init__(self) -> None:
         self.mp = MonkeyPatch()
 
     def mock(self):
@@ -22,11 +30,12 @@ class MockedSocket:
         self.mp.setattr(pyartnet.base.base_node, 'socket', m)
         return m_sendto
 
-    def undo(self):
+    def undo(self) -> None:
         self.mp.undo()
 
     def __enter__(self):
         return self.mock()
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
+    def __exit__(self, exc_type: type[BaseException] | None,
+                 exc_val: BaseException | None, exc_tb: TracebackType | None) -> None:
         self.undo()
