@@ -1,18 +1,24 @@
 import logging
 import warnings
 from array import array
+from collections.abc import Callable, Collection
 from logging import DEBUG as LVL_DEBUG
 from math import ceil
-from typing import Any, Callable, Collection, Final, List, Literal, Optional, Type, Union
+from typing import Any, Final, List, Literal, Optional, Type, Union
 
-from pyartnet.errors import ChannelOutOfUniverseError, ChannelValueOutOfBoundsError, \
-    ChannelWidthError, ValueCountDoesNotMatchChannelWidthError
+from pyartnet.errors import (
+    ChannelOutOfUniverseError,
+    ChannelValueOutOfBoundsError,
+    ChannelWidthError,
+    ValueCountDoesNotMatchChannelWidthError,
+)
 from pyartnet.output_correction import linear
 
 from ..fades import FadeBase, LinearFade
 from .channel_fade import ChannelBoundFade
 from .output_correction import OutputCorrection
 from .universe import BaseUniverse
+
 
 log = logging.getLogger('pyartnet.Channel')
 
@@ -28,7 +34,7 @@ ARRAY_TYPE: Final = {
 class Channel(OutputCorrection):
     def __init__(self, universe: BaseUniverse,
                  start: int, width: int,
-                 byte_size: int = 1, byte_order: Literal['big', 'little'] = 'little'):
+                 byte_size: int = 1, byte_order: Literal['big', 'little'] = 'little') -> None:
         super().__init__()
 
         # Validate Boundaries
@@ -139,7 +145,7 @@ class Channel(OutputCorrection):
     def add_fade(self, values: Collection[Union[int, FadeBase]], duration_ms: int,
                  fade_class: Type[FadeBase] = LinearFade):
         warnings.warn(
-            f"{self.set_fade.__name__:s} is deprecated, use {self.set_fade.__name__:s} instead", DeprecationWarning)
+            f'{self.set_fade.__name__:s} is deprecated, use {self.set_fade.__name__:s} instead', DeprecationWarning)
         return self.set_fade(values, duration_ms, fade_class)
 
     # noinspection PyProtectedMember
@@ -198,5 +204,5 @@ class Channel(OutputCorrection):
         yield from self._current_fade.event.wait().__await__()
         return True
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<{self.__class__.__name__:s} {self._start:d}/{self._width:d} {self._byte_size * 8:d}bit>'

@@ -9,6 +9,7 @@ import pyartnet.impl_sacn.universe
 from pyartnet.base import BaseNode, SequenceCounter
 from pyartnet.errors import InvalidCidError, InvalidUniverseAddressError
 
+
 # -----------------------------------------------------------------------------
 # Documentation for E1.31 Protocol:
 # https://tsp.esta.org/tsp/documents/published_docs.php
@@ -122,7 +123,7 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
 
         if log.isEnabledFor(LVL_DEBUG):
             # log complete packet
-            log.debug(f"Sending sACN frame to {_dst_str(universe._dst)}: {(base_packet + packet).hex()}")
+            log.debug(f'Sending sACN frame to {_dst_str(universe._dst)}: {(base_packet + packet).hex()}')
 
     def _create_universe(self, nr: int) -> 'pyartnet.impl_sacn.SacnUniverse':
         return pyartnet.impl_sacn.SacnUniverse(self, self._validate_universe_nr(nr))
@@ -212,8 +213,8 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
         if log.isEnabledFor(LVL_DEBUG):
             # log complete packet
             log.debug(
-                f"Sending sACN Synchronization Packet to {_dst_str(self._sync_dst):s}: "
-                f"{(base_packet + packet).hex()}"
+                f'Sending sACN Synchronization Packet to {_dst_str(self._sync_dst):s}: '
+                f'{(base_packet + packet).hex()}'
             )
 
 

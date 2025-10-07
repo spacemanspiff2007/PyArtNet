@@ -7,6 +7,7 @@ import pyartnet
 from pyartnet.base import BaseNode
 from pyartnet.errors import InvalidUniverseAddressError
 
+
 # -----------------------------------------------------------------------------
 # Documentation for KiNet Protocol:
 # todo: find links
@@ -27,8 +28,8 @@ class KiNetNode(BaseNode['pyartnet.impl_kinet.KiNetUniverse']):
 
         # build base packet
         packet = bytearray()
-        packet.extend(s_pack(">IHH", 0x0401DC4A, 0x0100, 0x0101))   # Magic, version, type
-        packet.extend(s_pack(">IBBHI", 0, 0, 0, 0, 0xFFFFFFFF))     # sequence, port, padding, flags, timer
+        packet.extend(s_pack('>IHH', 0x0401DC4A, 0x0100, 0x0101))   # Magic, version, type
+        packet.extend(s_pack('>IBBHI', 0, 0, 0, 0, 0xFFFFFFFF))     # sequence, port, padding, flags, timer
         self._packet_base = bytes(packet)
 
     def _send_universe(self, id: int, byte_size: int,
@@ -41,7 +42,7 @@ class KiNetNode(BaseNode['pyartnet.impl_kinet.KiNetUniverse']):
 
         if log.isEnabledFor(LVL_DEBUG):
             # log complete packet
-            log.debug(f"Sending KiNet frame to {self._ip}:{self._port}: {(self._packet_base + packet).hex()}")
+            log.debug(f'Sending KiNet frame to {self._ip}:{self._port}: {(self._packet_base + packet).hex()}')
 
     def _create_universe(self, nr: int) -> 'pyartnet.impl_kinet.KiNetUniverse':
         return pyartnet.impl_kinet.KiNetUniverse(self, self._validate_universe_nr(nr))

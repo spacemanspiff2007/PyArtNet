@@ -6,6 +6,7 @@ from pyartnet.base import BaseNode
 from pyartnet.base.seq_counter import SequenceCounter
 from pyartnet.errors import InvalidUniverseAddressError
 
+
 # -----------------------------------------------------------------------------
 # Documentation for ArtNet Protocol:
 # https://artisticlicence.com/support-and-resources/art-net-4/
@@ -33,7 +34,7 @@ class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
 
         # build base packet
         packet = bytearray()
-        packet.extend(map(ord, "Art-Net"))
+        packet.extend(map(ord, 'Art-Net'))
         packet.append(0x00)          # Null terminate Art-Net
         self._packet_base = bytes(packet)
 

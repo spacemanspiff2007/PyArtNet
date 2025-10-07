@@ -3,16 +3,16 @@ from .fade_base import FadeBase
 
 class LinearFade(FadeBase):
 
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
         self.target: int = 0            # Target Value
         self.current: float = 0.0       # Current Value
         self.factor: float = 1.0
 
     def debug_initialize(self) -> str:
-        return f"{self.current:03.0f} -> {self.target:03d} | step: {self.factor:+5.1f}"
+        return f'{self.current:03.0f} -> {self.target:03d} | step: {self.factor:+5.1f}'
 
-    def initialize(self, start: int, target: int, steps: int):
+    def initialize(self, start: int, target: int, steps: int) -> None:
         self.current = start
         self.target = target
         self.factor = (self.target - start) / steps
