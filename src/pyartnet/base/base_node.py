@@ -4,7 +4,7 @@ import logging
 import socket
 from asyncio import sleep
 from time import monotonic
-from typing import Final, Generic, Optional, TypeVar, Union
+from typing import Final, Generic, Optional, TypeVar
 
 import pyartnet
 
@@ -23,7 +23,7 @@ TYPE_U = TypeVar('TYPE_U', bound='pyartnet.base.BaseUniverse')
 class BaseNode(Generic[TYPE_U], OutputCorrection):
     def __init__(self, ip: str, port: int, *,
                  max_fps: int = 25,
-                 refresh_every: Union[int, float, None] = 2, start_refresh_task: bool = True,
+                 refresh_every: int | float | None = 2, start_refresh_task: bool = True,
                  source_address: Optional[tuple[str, int]] = None) -> None:
         super().__init__()
 
@@ -56,7 +56,7 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
         self._process_jobs: list['pyartnet.base.ChannelBoundFade'] = []
 
         # packet data
-        self._packet_base: Union[bytearray, bytes] = bytearray()
+        self._packet_base: bytearray | bytes = bytearray()
         self._last_send: float = 0
 
         # containing universes
@@ -76,7 +76,7 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
     def _send_synchronization(self) -> None:
         pass
 
-    def _send_data(self, data: Union[bytearray, bytes], dst: tuple[str, int] | str | None = None) -> int:
+    def _send_data(self, data: bytearray | bytes, dst: tuple[str, int] | str | None = None) -> int:
 
         ret = self._socket.sendto(self._packet_base + data, self._dst if dst is None else dst)
 

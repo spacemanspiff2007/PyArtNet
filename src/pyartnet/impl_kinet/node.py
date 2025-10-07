@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from logging import DEBUG as LVL_DEBUG
 from struct import pack as s_pack
-from typing import Optional, Union
+from typing import Optional
 
 import pyartnet
 from pyartnet.base import BaseNode
@@ -21,7 +21,7 @@ log = logging.getLogger('pyartnet.KiNetNode')
 class KiNetNode(BaseNode['pyartnet.impl_kinet.KiNetUniverse']):
     def __init__(self, ip: str, port: int, *,
                  max_fps: int = 25,
-                 refresh_every: Union[int, float, None] = 2, start_refresh_task: bool = True,
+                 refresh_every: int | float | None = 2, start_refresh_task: bool = True,
                  source_address: Optional[tuple[str, int]] = None) -> None:
         super().__init__(ip=ip, port=port,
                          max_fps=max_fps,

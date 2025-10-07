@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from ipaddress import IPv6Address
 from logging import DEBUG as LVL_DEBUG
-from typing import Final, Optional, Union
+from typing import Final, Optional
 from uuid import uuid4
 
 import pyartnet.impl_sacn.universe
@@ -33,7 +33,7 @@ VECTOR_DMP_SET_PROPERTY: Final = 0x02
 class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
     def __init__(self, ip: str, port: int, *,
                  max_fps: int = 25,
-                 refresh_every: Union[int, float, None] = 2, start_refresh_task: bool = True,
+                 refresh_every: int | float | None = 2, start_refresh_task: bool = True,
                  source_address: Optional[tuple[str, int]] = None,
 
                  # sACN E1.31 specific fields

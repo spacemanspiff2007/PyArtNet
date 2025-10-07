@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from typing import Final, Optional, Union
+from typing import Final, Optional
 
 import pyartnet
 from pyartnet.base import BaseNode
@@ -20,7 +20,7 @@ log = logging.getLogger('pyartnet.ArtNetNode')
 class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
     def __init__(self, ip: str, port: int, *,
                  max_fps: int = 25,
-                 refresh_every: Union[int, float, None] = 2, start_refresh_task: bool = True,
+                 refresh_every: int | float | None = 2, start_refresh_task: bool = True,
                  source_address: Optional[tuple[str, int]] = None,
 
                  # ArtNet specific fields
@@ -77,7 +77,7 @@ class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
             raise InvalidUniverseAddressError()
         return int(nr)
 
-    def __log_artnet_frame(self, p: Union[bytearray, bytes]) -> None:
+    def __log_artnet_frame(self, p: bytearray | bytes) -> None:
         """Log Artnet Frame"""
         assert isinstance(p, (bytearray, bytes))
 
