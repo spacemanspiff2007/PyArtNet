@@ -3,7 +3,7 @@ from __future__ import annotations
 import logging
 from ipaddress import IPv6Address
 from logging import DEBUG as LVL_DEBUG
-from typing import Final, Optional
+from typing import Final
 from uuid import uuid4
 
 import pyartnet.impl_sacn.universe
@@ -34,10 +34,10 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
     def __init__(self, ip: str, port: int, *,
                  max_fps: int = 25,
                  refresh_every: int | float | None = 2, start_refresh_task: bool = True,
-                 source_address: Optional[tuple[str, int]] = None,
+                 source_address: tuple[str, int] | None = None,
 
                  # sACN E1.31 specific fields
-                 cid: Optional[bytes] = None, source_name: Optional[str] = None
+                 cid: bytes | None = None, source_name: str | None = None
                  ) -> None:
         super().__init__(ip=ip, port=port,
                          max_fps=max_fps,

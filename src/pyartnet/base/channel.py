@@ -1,10 +1,12 @@
+from __future__ import annotations
+
 import logging
 import warnings
 from array import array
 from collections.abc import Callable, Collection
 from logging import DEBUG as LVL_DEBUG
 from math import ceil
-from typing import Any, Final, List, Literal, Optional, Type, Union
+from typing import Any, Final, List, Literal, Type, Union
 
 from pyartnet.errors import (
     ChannelOutOfUniverseError,
@@ -78,13 +80,13 @@ class Channel(OutputCorrection):
         self._correction_current: Callable[[float, int], float] = linear
 
         # Fade
-        self._current_fade: Optional[ChannelBoundFade] = None
+        self._current_fade: ChannelBoundFade | None = None
 
         # ---------------------------------------------------------------------
         # Values that can be set by the user
         # ---------------------------------------------------------------------
         # Callbacks
-        self.callback_fade_finished: Optional[Callable[[Channel], Any]] = None
+        self.callback_fade_finished: Callable[[Channel], Any] | None = None
 
     def _apply_output_correction(self):
         # default correction is linear

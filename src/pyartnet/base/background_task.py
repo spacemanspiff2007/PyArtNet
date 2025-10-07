@@ -1,8 +1,10 @@
+from __future__ import annotations
+
 import logging
 from asyncio import Task, create_task, sleep
 from time import monotonic
 from traceback import format_exc
-from typing import Any, Callable, Coroutine, Final, Optional, Set
+from typing import Any, Callable, Coroutine, Final, Set
 
 
 log = logging.getLogger('pyartnet.Task')
@@ -26,7 +28,7 @@ class SimpleBackgroundTask:
     def __init__(self, coro: Callable[[], Coroutine], name: str) -> None:
         self.coro: Final = coro
         self.name: Final = name
-        self.task: Optional[Task] = None
+        self.task: Task | None = None
 
     def start(self):
         if self.task is not None:

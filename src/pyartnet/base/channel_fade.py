@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from asyncio import Event
 from typing import TYPE_CHECKING, Final, Iterable, List, Tuple

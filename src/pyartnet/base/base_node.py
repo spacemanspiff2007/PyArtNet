@@ -4,7 +4,7 @@ import logging
 import socket
 from asyncio import sleep
 from time import monotonic
-from typing import Final, Generic, Optional, TypeVar
+from typing import Final, Generic, TypeVar
 
 import pyartnet
 
@@ -24,7 +24,7 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
     def __init__(self, ip: str, port: int, *,
                  max_fps: int = 25,
                  refresh_every: int | float | None = 2, start_refresh_task: bool = True,
-                 source_address: Optional[tuple[str, int]] = None) -> None:
+                 source_address: tuple[str, int] | None = None) -> None:
         super().__init__()
 
         # Destination

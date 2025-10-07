@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import logging
 from time import monotonic
 from typing import Dict, Final, Literal

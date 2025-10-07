@@ -1,12 +1,14 @@
-from typing import Callable, Optional
+from __future__ import annotations
+
+from typing import Callable
 
 
 class OutputCorrection:
-    def __init__(self):
+    def __init__(self) -> None:
         super().__init__()
-        self._correction_output: Optional[Callable[[float, int], float]] = None
+        self._correction_output: Callable[[float, int], float] | None = None
 
-    def set_output_correction(self, func: Optional[Callable[[float, int], float]]) -> None:
+    def set_output_correction(self, func: Callable[[float, int], float] | None) -> None:
         """Set the output correction function.
 
         :param func: None to disable output correction or the function which will be used to transform the values
