@@ -1,3 +1,4 @@
+import asyncio
 import logging
 from binascii import a2b_hex
 from unittest.mock import call
@@ -24,6 +25,7 @@ async def test_sacn() -> None:
 
     await channel
     await sacn._process_task.task
+    await asyncio.sleep(0.3)
 
     m = sacn._socket
     m.sendto.assert_called_once_with(bytearray(a2b_hex(data)), ('ip', 9999999))
@@ -55,6 +57,7 @@ async def test_sacn_with_sync(caplog, multicast) -> None:
 
     await channel
     await sacn._process_task.task
+    await asyncio.sleep(0.3)
 
     data_dst = ('ip', 9999999) if not multicast else '239.255.0.1'
     sync_dst = ('ip', 9999999) if not multicast else '239.255.0.2'

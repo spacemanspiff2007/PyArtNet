@@ -97,8 +97,15 @@ class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
         host_fmt = ' ' * (36 + len(self._ip))
         out_desc = '{:s} {:2s} {:2s} {:4s} {:4s}'.format(host_fmt, 'Sq', '', 'Univ', ' Len')
 
-        _max_channel = p[16] << 8 | p[17]
         pre = bytearray(p[:12]).hex().upper()
+
+        # low byte first: 5200 -> 0052
+        a = p[8:10]
+        if p[8:10] == b'\x00\x52':
+            log.debug(f'Sync   to {self._ip:s}: {pre} {p[12]:02x} {p[13]:02x}')
+            return None
+
+        _max_channel = p[16] << 8 | p[17]
         out = f'Packet to {self._ip:s}: {pre} {p[12]:02x} {p[13]:02x} {p[13]:02x}{p[14]:02x} {_max_channel:04x}'
 
         # check what to print
@@ -148,6 +155,12 @@ class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
 
     @override
     def set_synchronous_mode(self, enabled: bool) -> Self:
+        """Enable or disable synchronous mode for this node. In synchronous mode multiple universes are sent to the
+        node and then a synchronization packet is sent to make the node output all universes at the same time.
+        This prevents tearing in multi universe panels.
+
+        :param enabled: Enable or disable synchronous mode
+        """
         if self._refresh_every > 3.5:
             msg = 'ArtNet synchronization requires refresh_every <= 3.5s'
             raise ValueError(msg)
