@@ -150,16 +150,13 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
 
         u = self._validate_universe_nr(universe)
 
-        universe_high = u // 255
-        universe_low = u % 255
-
         # IPv6 multicast address
         if ':' in self._ip:
             IPv6Address(self._ip)  # validate IP
-            return f'FF18::83:00:{universe_high:d}:{universe_low:d}'
+            return f'FF18::8300:{u:04X}'
 
         # IPv4 multicast address
-        return f'239.255.{universe_high:d}.{universe_low:d}'
+        return f'239.255.{u // 255:d}.{u % 255:d}'
 
     @override
     def set_multicast_mode(self, enabled: bool) -> Self:

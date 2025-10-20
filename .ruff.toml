@@ -30,9 +30,6 @@ ignore = [
     # https://docs.astral.sh/ruff/rules/#flake8-bandit-s
     "S311",     # Standard pseudo-random generators are not suitable for cryptographic purposes
 
-    # https://docs.astral.sh/ruff/rules/#pyupgrade-up
-    "UP038",    # Use X | Y in {} call instead of (X, Y)
-
     # https://docs.astral.sh/ruff/rules/#flake8-annotations-ann
     "ANN401",   # Dynamically typed expressions (typing.Any) are disallowed in {name}
 
