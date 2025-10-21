@@ -28,7 +28,7 @@ UNIVERSE_TYPE = TypeVar('UNIVERSE_TYPE', bound='pyartnet.base.BaseUniverse')
 class BaseNode(OutputCorrection, Generic[UNIVERSE_TYPE]):
     def __init__(self, ip: str, port: int, *,
                  max_fps: int = 25,
-                 refresh_every: float | None = 2, start_refresh_task: bool = True,
+                 refresh_every: float = 2, start_refresh_task: bool = True,
                  source_address: tuple[str, int] | None = None) -> None:
         super().__init__()
 

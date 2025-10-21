@@ -16,13 +16,15 @@ from pyartnet.errors import InvalidUniverseAddressError
 # https://artisticlicence.com/support-and-resources/art-net-4/
 # -----------------------------------------------------------------------------
 
+ARTNET_PORT: Final = 6454
+
 log = logging.getLogger('pyartnet.ArtNetNode')
 
 
 class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
-    def __init__(self, ip: str, port: int, *,
+    def __init__(self, ip: str, port: int = ARTNET_PORT, *,
                  max_fps: int = 25,
-                 refresh_every: float | None = 2, start_refresh_task: bool = True,
+                 refresh_every: float = 2, start_refresh_task: bool = True,
                  source_address: tuple[str, int] | None = None,
 
                  # ArtNet specific fields

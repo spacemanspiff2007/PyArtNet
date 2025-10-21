@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 from logging import DEBUG as LVL_DEBUG
 from struct import pack as s_pack
+from typing import Final
 
 from typing_extensions import override
 
@@ -16,13 +17,15 @@ from pyartnet.errors import InvalidUniverseAddressError
 # todo: find links
 # -----------------------------------------------------------------------------
 
+KINET_PORT: Final = 6038
+
 log = logging.getLogger('pyartnet.KiNetNode')
 
 
 class KiNetNode(BaseNode['pyartnet.impl_kinet.KiNetUniverse']):
-    def __init__(self, ip: str, port: int, *,
+    def __init__(self, ip: str, port: int = KINET_PORT, *,
                  max_fps: int = 25,
-                 refresh_every: float | None = 2, start_refresh_task: bool = True,
+                 refresh_every: float = 2, start_refresh_task: bool = True,
                  source_address: tuple[str, int] | None = None) -> None:
         super().__init__(ip=ip, port=port,
                          max_fps=max_fps,

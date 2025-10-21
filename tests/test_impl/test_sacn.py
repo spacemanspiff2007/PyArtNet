@@ -59,10 +59,10 @@ async def test_sacn_with_sync(caplog, multicast) -> None:
     await sacn._process_task.task
     await asyncio.sleep(0.3)
 
-    data_dst = ('ip', 9999999) if not multicast else '239.255.0.1'
-    sync_dst = ('ip', 9999999) if not multicast else '239.255.0.2'
-    data_msg = 'ip:9999999' if not multicast else '239.255.0.1'
-    sync_msg = 'ip:9999999' if not multicast else '239.255.0.2'
+    data_dst = ('ip', 9999999) if not multicast else ('239.255.0.1', 5568)
+    sync_dst = ('ip', 9999999) if not multicast else ('239.255.0.2', 5568)
+    data_msg = 'ip:9999999' if not multicast else '239.255.0.1:5568'
+    sync_msg = 'ip:9999999' if not multicast else '239.255.0.2:5568'
 
     m = sacn._socket
     assert m.sendto.call_args_list == [

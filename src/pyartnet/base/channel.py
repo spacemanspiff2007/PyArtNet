@@ -73,8 +73,8 @@ class Channel(OutputCorrection):
         # value representation
         self._byte_size: Final = byte_size
         self._byte_order: Final = byte_order
-        self._value_max: Final = 256 ** self._byte_size - 1
-        self._buf_start: Final = self._start - 1
+        self._value_max: Final[int] = 256 ** self._byte_size - 1
+        self._buf_start: Final[int] = self._start - 1
 
         null_vals = [0 for _ in range(self._width)]
         self._values_raw: array[int] = array(ARRAY_TYPE[self._byte_size], null_vals)    # uncorrected values
@@ -188,15 +188,20 @@ class Channel(OutputCorrection):
         # build fades
         fades: list[FadeBase] = []
         for i, target in enumerate(values):
-            # default is linear
-            k = fade_class() if not isinstance(target, FadeBase) else target
-            fades.append(k)
+
+            # Is a fade initialized by the user
+            if isinstance(target, FadeBase):
+                fades.append(target)
+                continue
 
             if not 0 <= target <= self._value_max:
                 msg = f'Target value out of bounds! 0 <= {target} <= {self._value_max}'
                 raise ChannelValueOutOfBoundsError(msg)
 
-            k.initialize(self._values_raw[i], target, fade_steps)
+            # default is linear
+            _fade = fade_class()
+            _fade.initialize(self._values_raw[i], target, fade_steps)
+            fades.append(_fade)
 
         # Add to scheduling
         self._current_fade = ChannelBoundFade(self, fades)

@@ -15,9 +15,15 @@ def test_same_cls_signature(c) -> None:
     sig_base = inspect.signature(BaseNode)
     sig_obj = inspect.signature(c)
 
-    for name, parameter in sig_base.parameters.items():
+    for name, base_parameter in sig_base.parameters.items():
         assert name in sig_obj.parameters
-        assert sig_obj.parameters[name] == parameter
+        obj_parameter = sig_obj.parameters[name]
+
+        # some ports have a default which we ignore here
+        if name == 'port':
+            obj_parameter = obj_parameter.replace(default=inspect.Parameter.empty)
+
+        assert obj_parameter == base_parameter
 
 
 @pytest.mark.parametrize('cls', [ArtNetNode, SacnNode, KiNetNode])

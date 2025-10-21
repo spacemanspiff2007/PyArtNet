@@ -31,11 +31,14 @@ VECTOR_E131_DATA_PACKET: Final = b'\x00\x00\x00\x02'
 VECTOR_E131_EXTENDED_SYNCHRONIZATION: Final = b'\x00\x00\x00\x01'
 VECTOR_DMP_SET_PROPERTY: Final = 0x02
 
+# Defined Parameters (Appendix A)
+ACN_SDT_MULTICAST_PORT: Final = 5568
+
 
 class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
-    def __init__(self, ip: str, port: int, *,
+    def __init__(self, ip: str, port: int = ACN_SDT_MULTICAST_PORT, *,
                  max_fps: int = 25,
-                 refresh_every: float | None = 2, start_refresh_task: bool = True,
+                 refresh_every: float = 2, start_refresh_task: bool = True,
                  source_address: tuple[str, int] | None = None,
 
                  # sACN E1.31 specific fields
@@ -144,7 +147,7 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
             raise InvalidUniverseAddressError()
         return int(nr)
 
-    def _get_universe_ip_port(self, universe: int) -> tuple[str, int] | str:
+    def _get_universe_ip_port(self, universe: int) -> tuple[str, int]:
         if not self._multicast:
             return self._dst
 
@@ -153,12 +156,11 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
         # IPv6 multicast address
         if ':' in self._ip:
             IPv6Address(self._ip)  # validate IP
-            return f'FF18::8300:{u:04X}'
+            return f'FF18::8300:{u:04X}', ACN_SDT_MULTICAST_PORT
 
         # IPv4 multicast address
-        return f'239.255.{u // 255:d}.{u % 255:d}'
+        return f'239.255.{u // 255:d}.{u % 255:d}', ACN_SDT_MULTICAST_PORT
 
-    @override
     def set_multicast_mode(self, enabled: bool) -> Self:
         """Either send packets to the node directly or through multicast.
         :param enabled: If True multicast is enabled
@@ -176,7 +178,7 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
         return self
 
     @override
-    def set_synchronous_mode(self, enabled: bool, synchronization_address: int = 0) -> None:
+    def set_synchronous_mode(self, enabled: bool, synchronization_address: int = 0) -> None:    # type: ignore [override]
         """Enable or disable synchronous mode for this node. In synchronous mode multiple universes are sent to the
         node and then a synchronization packet is sent to make the node output all universes at the same time.
         This prevents tearing in multi universe panels.
@@ -202,14 +204,16 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
         if not self._sync_address:
             return
 
-        packet = bytearray()
+        packet = bytearray(11)
 
         # Framing layer
-        packet.extend((11 | 0x7000).to_bytes(2, 'big'))                     # |  2 | Flags and Length
-        packet.extend(VECTOR_E131_EXTENDED_SYNCHRONIZATION)                 # |  4 | Vector
-        packet.append(self._sync_sequence_number.value)                     # |  1 | Sequence Number
-        packet.extend(self._sync_address.to_bytes(2, 'big'))                # |  2 | Synchronization universe
-        packet.extend([0, 0])                                               # |  2 | Reserved
+        packet[0:2] = (11 | 0x7000).to_bytes(2, 'big')              # |  2 | Flags and Length
+        packet[2:6] = VECTOR_E131_EXTENDED_SYNCHRONIZATION          # |  4 | Vector
+        packet[6]   = self._sync_sequence_number.value              # |  1 | Sequence Number
+        packet[7:9] = self._sync_address.to_bytes(2, 'big')         # |  2 | Synchronization universe
+        # packet[9:11] = [0, 0]                                     # |  2 | Reserved
+                                                                    # +----+----------
+                                                                    # = 11
 
         # Update length and package type for base packet
         base_packet = self._packet_base

@@ -17,4 +17,4 @@ class SacnUniverse(BaseUniverse):
         self._sequence_ctr: Final = SequenceCounter()
 
         # to support multicast
-        self._dst: tuple[str, int] | str = node._get_universe_ip_port(universe)
+        self._dst: tuple[str, int] = node._get_universe_ip_port(universe)
