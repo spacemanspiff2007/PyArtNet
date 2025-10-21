@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import logging
-from asyncio import Task, create_task, sleep
+from asyncio import Task, create_task, current_task, sleep
 from time import monotonic
 from traceback import format_exc
 from typing import Any, Callable, Coroutine, Final
@@ -40,16 +40,17 @@ class SimpleBackgroundTask:
         return None
 
     def cancel(self) -> None:
-        if self.task is None:
+        if (task := self.task) is None:
             return None
 
-        self.task.cancel()
         self.task = None
+        task.cancel()
+        return None
 
     async def coro_wrap(self) -> None:
         log.debug(f'Started {self.name}')
         task = self.task
-        assert task is not None
+        assert task is current_task()
 
         try:
             await self.coro()
@@ -65,7 +66,7 @@ class ExceptionIgnoringTask(SimpleBackgroundTask):
     async def coro_wrap(self) -> None:
         log.debug(f'Started {self.name}')
         task = self.task
-        assert task is not None
+        assert task is current_task()
 
         wait = 0
 
@@ -80,10 +81,7 @@ class ExceptionIgnoringTask(SimpleBackgroundTask):
 
                     # simple sleep logic with an increasing timeout
                     time_to_exception = monotonic() - start
-                    if time_to_exception < 16 or time_to_exception < wait:
-                        wait = max(2, wait * 2)
-                    else:
-                        wait = 0
+                    wait = max(2, wait * 2) if time_to_exception < 16 or time_to_exception < wait else 0
 
                     log.debug(f'Retry in {wait:d} seconds')
         finally:
