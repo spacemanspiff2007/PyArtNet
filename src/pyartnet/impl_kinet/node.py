@@ -13,8 +13,7 @@ from pyartnet.errors import InvalidUniverseAddressError
 
 
 # -----------------------------------------------------------------------------
-# Documentation for KiNet Protocol:
-# todo: find links
+# Documentation for KiNet Protocol is unclear
 # -----------------------------------------------------------------------------
 
 KINET_PORT: Final = 6038

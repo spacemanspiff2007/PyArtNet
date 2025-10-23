@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import logging
 import socket
 from asyncio import sleep
 from time import monotonic
@@ -16,9 +15,6 @@ from .output_correction import OutputCorrection
 
 if TYPE_CHECKING:
     import pyartnet
-
-
-log = logging.getLogger('pyartnet.ArtNetNode')
 
 
 UNIVERSE_TYPE = TypeVar('UNIVERSE_TYPE', bound='pyartnet.base.BaseUniverse')
