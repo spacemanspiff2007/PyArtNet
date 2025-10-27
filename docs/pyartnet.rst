@@ -16,6 +16,12 @@ Getting Started
     # hide: start
     from helper import MockedSocket
     MockedSocket().mock()
+
+    import pyartnet.base.network as network_module
+    from ipaddress import IPv4Address
+    async def get_ip(*args, **kwargs):
+            return IPv4Address('127.0.0.1')
+    network_module.get_ip = get_ip
     # hide: stop
 
     import asyncio
@@ -64,6 +70,12 @@ If no channel name is specified during creation the default name will be built w
     from helper import MockedSocket
     MockedSocket().mock()
 
+    import pyartnet.base.network as network_module
+    from ipaddress import IPv4Address
+    async def get_ip(*args, **kwargs):
+            return IPv4Address('127.0.0.1')
+    network_module.get_ip = get_ip
+
     import asyncio
     from pyartnet import ArtNetNode
 
@@ -106,6 +118,12 @@ Channel properties can be set when creating the channel through :meth:`BaseUnive
     # hide: start
     from helper import MockedSocket
     MockedSocket().mock()
+
+    import pyartnet.base.network as network_module
+    from ipaddress import IPv4Address
+    async def get_ip(*args, **kwargs):
+            return IPv4Address('127.0.0.1')
+    network_module.get_ip = get_ip
 
     import asyncio
     from pyartnet import ArtNetNode
@@ -155,6 +173,12 @@ Example
     # hide: start
     from helper import MockedSocket
     MockedSocket().mock()
+
+    import pyartnet.base.network as network_module
+    from ipaddress import IPv4Address
+    async def get_ip(*args, **kwargs):
+            return IPv4Address('127.0.0.1')
+    network_module.get_ip = get_ip
 
     import asyncio
 
