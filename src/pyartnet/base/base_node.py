@@ -1,16 +1,15 @@
 from __future__ import annotations
 
-import socket
 from asyncio import sleep
 from time import monotonic
 from typing import TYPE_CHECKING, Final, Generic, TypeVar
 
 from typing_extensions import Self
 
+from pyartnet.base.background_task import ExceptionIgnoringTask, SimpleBackgroundTask
+from pyartnet.base.network import MulticastNetworkTarget, UnicastNetworkTarget
+from pyartnet.base.output_correction import OutputCorrection
 from pyartnet.errors import DuplicateUniverseError, UniverseNotFoundError
-
-from .background_task import ExceptionIgnoringTask, SimpleBackgroundTask
-from .output_correction import OutputCorrection
 
 
 if TYPE_CHECKING:
@@ -22,47 +21,39 @@ UNIVERSE_TYPE = TypeVar('UNIVERSE_TYPE', bound='pyartnet.base.BaseUniverse')
 
 # noinspection PyProtectedMember
 class BaseNode(OutputCorrection, Generic[UNIVERSE_TYPE]):
-    def __init__(self, ip: str, port: int, *,
+    def __init__(self, network: UnicastNetworkTarget | MulticastNetworkTarget, *,
+                 name: str | None = None,
                  max_fps: int = 25,
-                 refresh_every: float = 2, start_refresh_task: bool = True,
-                 source_address: tuple[str, int] | None = None) -> None:
+                 refresh_every: float = 2, start_refresh_task: bool = True) -> None:
         super().__init__()
 
-        # Destination
-        self._ip: Final = ip
-        self._port: Final = port
-        self._dst: Final = (self._ip, self._port)
-
-        # socket setup
-        self._socket: Final = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
-        self._socket.setblocking(False)  # nonblocking for true asyncio
-
-        # option to set source port/ip
-        if source_address is not None:
-            self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            self._socket.bind(source_address)
-
-        # Name used for the Tasks (e.g. in error msg)
-        name: Final = f'{self._ip:s}:{self._port}'
+        self._network: Final = network
+        self._socket: Final = network.create_socket()
+        self._name: Final = name if name is not None else f'{self.__class__.__name__}-{id(self):x}'
 
         # refresh task
         self._refresh_every: float = max(0.1, refresh_every)
-        self._refresh_task: Final = ExceptionIgnoringTask(self._periodic_refresh_worker, f'Refresh task {name:s}')
+        self._refresh_task: Final = ExceptionIgnoringTask(self._periodic_refresh_worker, f'Refresh task {self._name:s}')
         if start_refresh_task:
             self._refresh_task.start()
 
         # fade task
         self._process_every: float = 1 / max(1, max_fps)
-        self._process_task: Final = SimpleBackgroundTask(self._process_values_task, f'Process task {name:s}')
+        self._process_task: Final = SimpleBackgroundTask(self._process_values_task, f'Process task {self._name:s}')
         self._process_jobs: list[pyartnet.base.ChannelBoundFade] = []
 
         # packet data
         self._packet_base: bytearray | bytes = bytearray()
-        self._last_send: float = 0
 
         # containing universes
         self._universes: tuple[UNIVERSE_TYPE, ...] = ()
         self._universe_map: dict[int, UNIVERSE_TYPE] = {}
+
+    def __repr__(self) -> str:
+        universe_str = '-' if not self._universes else ','.join(str(u._universe) for u in self._universes)
+        network = str(self._network).replace('NetworkTarget', '')
+        return (f'<{self.__class__.__name__:s} name={self._name:s} network={network!s} '
+                f'universe{"s" if len(self._universes) != 1 else ""}={universe_str:s}>')
 
     def _apply_output_correction(self) -> None:
         for u in self._universes:
@@ -77,12 +68,9 @@ class BaseNode(OutputCorrection, Generic[UNIVERSE_TYPE]):
     def _send_synchronization(self) -> None:
         pass
 
-    def _send_data(self, data: bytearray | bytes, dst: tuple[str, int] | str | None = None) -> int:
-
-        ret = self._socket.sendto(self._packet_base + data, self._dst if dst is None else dst)
-
-        self._last_send = monotonic()
-        return ret
+    def _send_data(self, data: bytearray | bytes, dst: tuple[str, int] | str | None = None) -> None:
+        self._socket.sendto(self._packet_base + data, dst)
+        return None
 
     async def _process_values_task(self) -> None:
         # wait a little, so we can schedule multiple tasks/updates, and they all start together

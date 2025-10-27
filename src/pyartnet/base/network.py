@@ -4,7 +4,7 @@ import socket
 from asyncio import get_running_loop
 from ipaddress import AddressValueError, IPv4Address, IPv6Address
 from socket import AF_INET, AF_INET6, AF_UNSPEC, SOCK_DGRAM
-from typing import Final, Literal
+from typing import Final, Literal, override
 
 from typing_extensions import Self
 
@@ -85,7 +85,7 @@ async def get_ip(host: str, port: int, ip_version: USE_IP_VERSION) -> IPv4Addres
     return IPv6Address(resolved_ip)
 
 
-class NetworkInfoBase:
+class NetworkTargetBase:
     def __init__(self, *, ip_v6: bool = False) -> None:
         self.ip_v6: Final = ip_v6
 
@@ -104,7 +104,7 @@ class NetworkInfoBase:
         return ip
 
 
-class UnicastNetworkInfo(NetworkInfoBase):
+class UnicastNetworkTarget(NetworkTargetBase):
     def __init__(self, dst: tuple[str, int], src: tuple[str, int] | None = None, *, ip_v6: bool = False) -> None:
         super().__init__(ip_v6=ip_v6)
         self.dst: Final = dst
@@ -115,6 +115,7 @@ class UnicastNetworkInfo(NetworkInfoBase):
         src = f'{self.src[0]:s}:{self.src[1]:d}' if self.src is not None else 'None'
         return f'{self.__class__.__name__:s}(dst={ip:s}:{port:d}, source={src:s})'
 
+    @override
     def create_socket(self) -> socket.socket:
         sock: Final = super().create_socket()
 
@@ -153,7 +154,7 @@ class UnicastNetworkInfo(NetworkInfoBase):
         return cls(dst=(hostname, port), src=source, ip_v6=dst_ip.version == 6)
 
 
-class MulticastNetworkInfo(NetworkInfoBase):
+class MulticastNetworkTarget(NetworkTargetBase):
     def __init__(self, src: tuple[str, int], *, ip_v6: bool = False) -> None:
         super().__init__(ip_v6=ip_v6)
         self.src: Final = src
@@ -161,6 +162,7 @@ class MulticastNetworkInfo(NetworkInfoBase):
     def __repr__(self) -> str:
         return f'{self.__class__.__name__:s}(source={self.src[0]:s} ipv6={self.ip_v6})'
 
+    @override
     def create_socket(self) -> socket.socket:
         sock: Final = super().create_socket()
 

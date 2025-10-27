@@ -5,10 +5,11 @@ from binascii import a2b_hex
 from unittest.mock import call
 
 from pyartnet import ArtNetNode
+from pyartnet.base.network import UnicastNetworkTarget
 
 
 async def test_artnet() -> None:
-    arnet = ArtNetNode('ip', 9999999, start_refresh_task=True)
+    arnet = ArtNetNode(UnicastNetworkTarget(('ip', 9999999)), start_refresh_task=True)
     channel = arnet.add_universe(1).add_channel(1, 10)
     channel.set_values(range(1, 11))
 
@@ -27,7 +28,7 @@ async def test_artnet() -> None:
 async def test_artnet_with_sync(caplog) -> None:
     caplog.set_level(logging.DEBUG)
 
-    artnet = ArtNetNode('ip', 9999999, start_refresh_task=False)
+    artnet = ArtNetNode(UnicastNetworkTarget(('ip', 9999999)), name='device1', start_refresh_task=False)
     artnet.set_synchronous_mode(True)
 
     channel = artnet.add_universe(1).add_channel(1, 10)
@@ -48,9 +49,9 @@ async def test_artnet_with_sync(caplog) -> None:
 
     assert caplog.record_tuples == [
         ('pyartnet.Universe', 10, 'Added channel "1/10": start: 1, stop: 10'),
-         ('pyartnet.Task', 10, 'Started Process task ip:9999999'),
+         ('pyartnet.Task', 10, 'Started Process task device1'),
         ('pyartnet.ArtNetNode', 10, '                                       Sq    Univ  Len   1   2   3   4   5     6   7   8   9   10 '),  # noqa: E501
         ('pyartnet.ArtNetNode', 10, 'Packet to ip: 4172742D4E6574000050000E 01 00 0001 000a   001 002 003 004 005   006 007 008 009 010'),  # noqa: E501
         ('pyartnet.ArtNetNode', 10, 'Sync   to ip: 4172742D4E6574000052000E 00 00'),
-        ('pyartnet.Task', 10, 'Stopped Process task ip:9999999'),
+        ('pyartnet.Task', 10, 'Stopped Process task device1'),
     ]

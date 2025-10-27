@@ -1,6 +1,6 @@
 import pytest
 
-from pyartnet.base._network import get_ip, validate_source_ip
+from pyartnet.base.network import get_ip, validate_source_ip
 
 
 async def test_hostname() -> None:

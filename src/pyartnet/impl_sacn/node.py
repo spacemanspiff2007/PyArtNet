@@ -1,15 +1,15 @@
 from __future__ import annotations
 
 import logging
-from ipaddress import IPv6Address
 from logging import DEBUG as LVL_DEBUG
 from typing import Final
 from uuid import uuid4
 
-from typing_extensions import Self, override
+from typing_extensions import override
 
 import pyartnet.impl_sacn.universe
 from pyartnet.base import BaseNode, SequenceCounter
+from pyartnet.base.network import MulticastNetworkTarget, UnicastNetworkTarget
 from pyartnet.errors import InvalidCidError, InvalidUniverseAddressError
 
 
@@ -36,18 +36,16 @@ ACN_SDT_MULTICAST_PORT: Final = 5568
 
 
 class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
-    def __init__(self, ip: str, port: int = ACN_SDT_MULTICAST_PORT, *,
+    def __init__(self, network: UnicastNetworkTarget | MulticastNetworkTarget, *,
+                 name: str | None = None,
                  max_fps: int = 25,
                  refresh_every: float = 2, start_refresh_task: bool = True,
-                 source_address: tuple[str, int] | None = None,
 
                  # sACN E1.31 specific fields
                  cid: bytes | None = None, source_name: str | None = None
                  ) -> None:
-        super().__init__(ip=ip, port=port,
-                         max_fps=max_fps,
-                         refresh_every=refresh_every, start_refresh_task=start_refresh_task,
-                         source_address=source_address)
+        super().__init__(network, name=name, max_fps=max_fps, refresh_every=refresh_every,
+                         start_refresh_task=start_refresh_task)
 
         # CID Field
         if cid is not None:
@@ -61,7 +59,7 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
         if source_name is None:
             source_name = 'PyArtNet'
         source_name_byte = source_name.encode('utf-8').ljust(64, b'\x00')
-        if len(source_name_byte) > 64:
+        if len(source_name_byte) != 64:
             msg = 'Source name too long!'
             raise ValueError(msg)
         self._source_name_byte : bytes = source_name_byte
@@ -86,7 +84,7 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
         # See Spec 6.2.4 E1.31 Data Packet: Synchronization Address
         self._sync_address: int = 0
         # See spec 9.3 Allocation of Multicast Addresses
-        self._sync_dst: tuple[str, int] = self._dst
+        self._sync_dst: tuple[str, int] = ('NOT_SET', 0)
         # See spec 6.3.2 E1.31 Synchronization Packet: Sequence Number
         self._sync_sequence_number: Final = SequenceCounter()
 
@@ -148,34 +146,17 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
         return int(nr)
 
     def _get_universe_ip_port(self, universe: int) -> tuple[str, int]:
-        if not self._multicast:
-            return self._dst
+        if isinstance(network := self._network, UnicastNetworkTarget):
+            return network.dst
 
         u = self._validate_universe_nr(universe)
 
         # IPv6 multicast address
-        if ':' in self._ip:
-            IPv6Address(self._ip)  # validate IP
-            return f'FF18::8300:{u:04X}', ACN_SDT_MULTICAST_PORT
+        if network.ip_v6:
+            return network.validate_ip(f'FF18::8300:{u:04X}'), ACN_SDT_MULTICAST_PORT
 
         # IPv4 multicast address
-        return f'239.255.{u // 255:d}.{u % 255:d}', ACN_SDT_MULTICAST_PORT
-
-    def set_multicast_mode(self, enabled: bool) -> Self:
-        """Either send packets to the node directly or through multicast.
-        :param enabled: If True multicast is enabled
-        """
-        self._multicast = enabled
-
-        # update all universe destinations
-        for universe in self._universes:
-            universe._dst = self._get_universe_ip_port(universe._universe)
-
-        # update sync package destination
-        if self._sync_address:
-            self._sync_dst = self._get_universe_ip_port(self._sync_address)
-
-        return self
+        return network.validate_ip(f'239.255.{u // 255:d}.{u % 255:d}'), ACN_SDT_MULTICAST_PORT
 
     @override
     def set_synchronous_mode(self, enabled: bool, synchronization_address: int = 0) -> None:    # type: ignore [override]
@@ -188,16 +169,18 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
                                         same for all nodes that should be synchronized.
         """
         if enabled:
-            self._sync_address = sync_address = self._validate_universe_nr(synchronization_address)
+            sync_address = self._validate_universe_nr(synchronization_address)
             self._sync_dst = self._get_universe_ip_port(sync_address)
+            self._sync_address = sync_address
+            return None
 
-        else:
-            if synchronization_address != 0:
-                msg = 'synchronization_address must be 0 when disabling synchronous mode!'
-                raise ValueError(msg)
+        if synchronization_address != 0:
+            msg = 'synchronization_address must be 0 when disabling synchronous mode!'
+            raise ValueError(msg)
 
-            self._sync_address = 0
-            self._sync_dst = self._dst
+        self._sync_address = 0
+        return None
+
 
     @override
     def _send_synchronization(self) -> None:

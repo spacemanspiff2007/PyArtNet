@@ -6,7 +6,7 @@ from unittest.mock import Mock
 
 from pytest import MonkeyPatch
 
-import pyartnet
+import pyartnet.base.network as network_module
 
 
 if TYPE_CHECKING:
@@ -19,15 +19,26 @@ class MockedSocket:
         self.mp = MonkeyPatch()
 
     def mock(self):
-        m_socket_obj = Mock(['sendto', 'setblocking'], name='socket_obj')
+        m_socket_obj = Mock(['sendto', 'setblocking', 'setsockopt', 'bind'], name='socket_obj')
         m_socket_obj.sendto = m_sendto = Mock(name='socket_obj.sendto')
 
-        m = Mock(['socket', 'AF_INET', 'SOCK_DGRAM'], name='Mock socket package')
-        m.socket = Mock([], return_value=m_socket_obj, name='Mock socket obj')
-        m.AF_INET = socket.AF_INET
-        m.SOCK_DGRAM = socket.AF_INET
+        module_names = [
+            name for name in dir(socket)
+            if name.startswith(('AF_', 'SOCK_', 'SOL_', 'IPPROTO_', 'IP_', 'SO_',)) or
+               name in ('socket', 'gethostname', 'inet_pton')
+        ]
 
-        self.mp.setattr(pyartnet.base.base_node, 'socket', m)
+        m = Mock(module_names, name='Mock socket package'
+        )
+        m.gethostname = socket.gethostname
+        m.socket = Mock([], return_value=m_socket_obj, name='Mock socket obj')
+
+        # Copy constants
+        for name in dir(socket):
+            if name.startswith(('AF_', 'SOCK_', 'SOL_', 'IPPROTO_', 'IP_', 'SO_')):
+                setattr(m, name, getattr(socket, name))
+
+        self.mp.setattr(network_module, 'socket', m)
         return m_sendto
 
     def undo(self) -> None:

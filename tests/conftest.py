@@ -8,6 +8,7 @@ import pytest
 from tests.helper import MockedSocket
 
 from pyartnet.base import BaseNode, BaseUniverse
+from pyartnet.base.network import NetworkTargetBase, UnicastNetworkTarget
 
 
 if TYPE_CHECKING:
@@ -21,8 +22,8 @@ STEP_MS = 15
 class TestingNode(BaseNode):
     __test__ = False    # prevent this from being collected by pytest
 
-    def __init__(self, ip: str, port: int) -> None:
-        super().__init__(ip, port, max_fps=1_000 // STEP_MS, start_refresh_task=False)
+    def __init__(self, network: NetworkTargetBase) -> None:
+        super().__init__(network, max_fps=1_000 // STEP_MS, start_refresh_task=False)
         self.data = []
 
     def _send_universe(self, id: int, byte_size: int,
@@ -51,13 +52,13 @@ def patched_socket(monkeypatch):
 
 
 def test_patched_socket(patched_socket) -> None:
-    node = TestingNode('IP', 9999)
+    node = TestingNode(UnicastNetworkTarget(dst=('IP', 9999)))
     assert node._socket.sendto is patched_socket
 
 
 @pytest.fixture
 def node():
-    return TestingNode('IP', 9999)
+    return TestingNode(UnicastNetworkTarget(dst=('IP', 9999)))
 
 
 @pytest.fixture

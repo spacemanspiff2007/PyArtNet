@@ -7,6 +7,7 @@ from tests.conftest import TestingNode
 
 from pyartnet import ArtNetNode, KiNetNode, SacnNode
 from pyartnet.base import BaseNode
+from pyartnet.base.network import UnicastNetworkTarget
 from pyartnet.errors import InvalidUniverseAddressError
 
 
@@ -17,12 +18,10 @@ def test_same_cls_signature(c) -> None:
 
     for name, base_parameter in sig_base.parameters.items():
         assert name in sig_obj.parameters
+        # network parameter can be different
+        if name == 'network':
+            continue
         obj_parameter = sig_obj.parameters[name]
-
-        # some ports have a default which we ignore here
-        if name == 'port':
-            obj_parameter = obj_parameter.replace(default=inspect.Parameter.empty)
-
         assert obj_parameter == base_parameter
 
 
@@ -30,7 +29,7 @@ def test_same_cls_signature(c) -> None:
 async def test_set_funcs(node: TestingNode, caplog, cls) -> None:
     caplog.set_level(logging.DEBUG)
 
-    n = cls('ip', 9999)
+    n = cls(UnicastNetworkTarget(('ip', 9999999), ip_v6=False))
     u = n.add_universe(1)
     c = u.add_channel(1, 1)
 
@@ -44,7 +43,7 @@ async def test_set_funcs(node: TestingNode, caplog, cls) -> None:
 @pytest.mark.parametrize('cls', [ArtNetNode, SacnNode, KiNetNode])
 async def test_universe_validation(node: TestingNode, cls) -> None:
 
-    n = cls('ip', 9999)
+    n = cls(UnicastNetworkTarget(('ip', 9999999), ip_v6=False))
     with pytest.raises(TypeError):
         n.add_universe(1.3)
 

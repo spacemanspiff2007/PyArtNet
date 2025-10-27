@@ -1,3 +1,4 @@
+import re
 from time import monotonic
 
 import pytest
@@ -5,7 +6,31 @@ from tests.conftest import STEP_MS, TestingNode
 
 from pyartnet.base import BaseUniverse
 from pyartnet.base.channel import Channel
+from pyartnet.base.network import MulticastNetworkTarget, UnicastNetworkTarget
 from pyartnet.errors import DuplicateUniverseError
+
+
+def test_repr(node: TestingNode) -> None:
+
+    re_id = re.compile(r'(name=TestingNode-)[0-f]+')
+
+    def _repr(obj: object) -> str:
+        return re_id.sub(r'\g<1>123456', str(obj))
+
+    # Unicast
+    node = TestingNode(UnicastNetworkTarget(dst=('IP', 9999)))
+    assert _repr(node) == '<TestingNode name=TestingNode-123456 network=Unicast(dst=IP:9999, source=None) universes=->'
+
+    node.add_universe(9)
+    assert _repr(node) == '<TestingNode name=TestingNode-123456 network=Unicast(dst=IP:9999, source=None) universe=9>'
+
+    node.add_universe(2)
+    assert (_repr(node) ==
+            '<TestingNode name=TestingNode-123456 network=Unicast(dst=IP:9999, source=None) universes=2,9>')
+
+    # Multicast
+    node = TestingNode(MulticastNetworkTarget(src=('IP', 99999)))
+    assert _repr(node) == '<TestingNode name=TestingNode-123456 network=Multicast(source=IP ipv6=False) universes=->'
 
 
 def test_universe_add_get(node: TestingNode) -> None:

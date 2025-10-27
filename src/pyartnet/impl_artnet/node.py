@@ -7,6 +7,7 @@ from typing_extensions import Self, override
 
 import pyartnet
 from pyartnet.base import BaseNode
+from pyartnet.base.network import UnicastNetworkTarget
 from pyartnet.base.seq_counter import SequenceCounter
 from pyartnet.errors import InvalidUniverseAddressError
 
@@ -22,18 +23,19 @@ log = logging.getLogger('pyartnet.ArtNetNode')
 
 
 class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
-    def __init__(self, ip: str, port: int = ARTNET_PORT, *,
+    def __init__(self, network: UnicastNetworkTarget, *,
+                 name: str | None = None,
                  max_fps: int = 25,
                  refresh_every: float = 2, start_refresh_task: bool = True,
-                 source_address: tuple[str, int] | None = None,
 
                  # ArtNet specific fields
                  sequence_counter: bool = True
                  ) -> None:
-        super().__init__(ip=ip, port=port,
-                         max_fps=max_fps,
-                         refresh_every=refresh_every, start_refresh_task=start_refresh_task,
-                         source_address=source_address)
+        super().__init__(network, name=name, max_fps=max_fps, refresh_every=refresh_every,
+                         start_refresh_task=start_refresh_task)
+
+        self._dst: Final = network.dst
+        self._ip: Final = self._dst[0]
 
         # ArtNet specific fields
         self._sequence_ctr: Final = SequenceCounter(1) if sequence_counter else SequenceCounter(0, 0)
@@ -64,7 +66,7 @@ class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
         packet[8:10] = byte_size.to_bytes(2, 'big')     # 2       | Number of channels Big Endian
         packet[10: _size] = values                      # 0 - 512 | Channel values
 
-        self._send_data(packet)
+        self._send_data(packet, self._dst)
 
         # log complete packet
         if log.isEnabledFor(logging.DEBUG):
@@ -84,7 +86,8 @@ class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
 
     def __log_artnet_frame(self, p: bytearray | bytes) -> None:
         """Log Artnet Frame"""
-        assert isinstance(p, (bytearray, bytes))
+        if not isinstance(p, (bytearray, bytes)):
+            raise TypeError()
 
         # runs the first time
         if not hasattr(self, '_log_ctr'):
@@ -102,7 +105,6 @@ class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
         pre = bytearray(p[:12]).hex().upper()
 
         # low byte first: 5200 -> 0052
-        a = p[8:10]
         if p[8:10] == b'\x00\x52':
             log.debug(f'Sync   to {self._ip:s}: {pre} {p[12]:02x} {p[13]:02x}')
             return None
@@ -154,6 +156,7 @@ class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
         if show_description:
             log.debug(out_desc)
         log.debug(out)
+        return None
 
     @override
     def set_synchronous_mode(self, enabled: bool) -> Self:
@@ -184,7 +187,7 @@ class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
         packet[4] = 0               # 1 | Aux1
         packet[5] = 0               # 1 | Aux2
 
-        self._send_data(packet)
+        self._send_data(packet, self._dst)
 
         # log complete packet
         if log.isEnabledFor(logging.DEBUG):

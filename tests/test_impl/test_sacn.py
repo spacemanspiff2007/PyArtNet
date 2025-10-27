@@ -6,11 +6,12 @@ from unittest.mock import call
 import pytest
 
 from pyartnet import SacnNode
+from pyartnet.base.network import MulticastNetworkTarget, UnicastNetworkTarget
 
 
 async def test_sacn() -> None:
     sacn = SacnNode(
-        'ip', 9999999,
+        UnicastNetworkTarget(('ip', 9999999), ip_v6=False),
         cid=b'\x41\x68\xf5\x2b\x1a\x7b\x2d\xe1\x17\x12\xe9\xee\x38\x3d\x22\x58',
         source_name='default source name',
         start_refresh_task=True
@@ -37,14 +38,19 @@ async def test_sacn() -> None:
 async def test_sacn_with_sync(caplog, multicast) -> None:
     caplog.set_level(logging.DEBUG)
 
+    if multicast:
+        network = MulticastNetworkTarget(('ip', 9999999), ip_v6=False)
+    else:
+        network = UnicastNetworkTarget(('ip', 9999999), ip_v6=False)
+
     sacn = SacnNode(
-        'ip', 9999999,
+        network,
         cid=b'\x41\x68\xf5\x2b\x1a\x7b\x2d\xe1\x17\x12\xe9\xee\x38\x3d\x22\x58',
         source_name='default source name',
-        start_refresh_task=False
+        start_refresh_task=False,
+        name='device1'
     )
     sacn.set_synchronous_mode(True, 2)
-    sacn.set_multicast_mode(multicast)
 
     channel = sacn.add_universe(1).add_channel(1, 10)
     channel.set_values(range(1, 11))
@@ -72,8 +78,8 @@ async def test_sacn_with_sync(caplog, multicast) -> None:
 
     assert caplog.record_tuples == [
         ('pyartnet.Universe', 10, 'Added channel "1/10": start: 1, stop: 10'),
-        ('pyartnet.Task', 10, 'Started Process task ip:9999999'),
+        ('pyartnet.Task', 10, 'Started Process task device1'),
         ('pyartnet.SacnNode', 10, f'Sending sACN frame to {data_msg:s}: {data:s}'),
         ('pyartnet.SacnNode', 10, f'Sending sACN Synchronization Packet to {sync_msg}: {sync_data:s}'),
-        ('pyartnet.Task', 10, 'Stopped Process task ip:9999999')
+        ('pyartnet.Task', 10, 'Stopped Process task device1')
     ]
