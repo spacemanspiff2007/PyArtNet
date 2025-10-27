@@ -4,9 +4,9 @@ import socket
 from asyncio import get_running_loop
 from ipaddress import AddressValueError, IPv4Address, IPv6Address
 from socket import AF_INET, AF_INET6, AF_UNSPEC, SOCK_DGRAM
-from typing import Final, Literal, override
+from typing import Final, Literal
 
-from typing_extensions import Self
+from typing_extensions import Self, override
 
 
 USE_IP_VERSION: Final = Literal['auto', 'v4', 'v6']
