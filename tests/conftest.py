@@ -23,7 +23,7 @@ class TestingNode(BaseNode):
     __test__ = False    # prevent this from being collected by pytest
 
     def __init__(self, network: NetworkTargetBase) -> None:
-        super().__init__(network, max_fps=1_000 // STEP_MS, start_refresh_task=False)
+        super().__init__(network, max_fps=1_000 // STEP_MS)
         self.data = []
 
     def _send_universe(self, id: int, byte_size: int,

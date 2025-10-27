@@ -7,13 +7,15 @@ from typing import TYPE_CHECKING, Final, Generic, TypeVar
 from typing_extensions import Self
 
 from pyartnet.base.background_task import ExceptionIgnoringTask, SimpleBackgroundTask
-from pyartnet.base.network import MulticastNetworkTarget, UnicastNetworkTarget
 from pyartnet.base.output_correction import OutputCorrection
 from pyartnet.errors import DuplicateUniverseError, UniverseNotFoundError
 
 
 if TYPE_CHECKING:
+    from types import TracebackType
+
     import pyartnet
+    from pyartnet.base.network import MulticastNetworkTarget, UnicastNetworkTarget
 
 
 UNIVERSE_TYPE = TypeVar('UNIVERSE_TYPE', bound='pyartnet.base.BaseUniverse')
@@ -24,7 +26,7 @@ class BaseNode(OutputCorrection, Generic[UNIVERSE_TYPE]):
     def __init__(self, network: UnicastNetworkTarget | MulticastNetworkTarget, *,
                  name: str | None = None,
                  max_fps: int = 25,
-                 refresh_every: float = 2, start_refresh_task: bool = True) -> None:
+                 refresh_every: float = 2) -> None:
         super().__init__()
 
         self._network: Final = network
@@ -34,8 +36,6 @@ class BaseNode(OutputCorrection, Generic[UNIVERSE_TYPE]):
         # refresh task
         self._refresh_every: float = max(0.1, refresh_every)
         self._refresh_task: Final = ExceptionIgnoringTask(self._periodic_refresh_worker, f'Refresh task {self._name:s}')
-        if start_refresh_task:
-            self._refresh_task.start()
 
         # fade task
         self._process_every: float = 1 / max(1, max_fps)
@@ -54,6 +54,10 @@ class BaseNode(OutputCorrection, Generic[UNIVERSE_TYPE]):
         network = str(self._network).replace('NetworkTarget', '')
         return (f'<{self.__class__.__name__:s} name={self._name:s} network={network!s} '
                 f'universe{"s" if len(self._universes) != 1 else ""}={universe_str:s}>')
+
+    @property
+    def name(self) -> str:
+        return self._name
 
     def _apply_output_correction(self) -> None:
         for u in self._universes:
@@ -107,13 +111,13 @@ class BaseNode(OutputCorrection, Generic[UNIVERSE_TYPE]):
 
             await sleep(self._process_every)
 
-    def start_refresh(self) -> None:
+    async def start_refresh(self) -> None:
         """Manually start the refresh task (if not already running)"""
         self._refresh_task.start()
 
-    def stop_refresh(self) -> None:
+    async def stop_refresh(self) -> None:
         """Manually stop the refresh task"""
-        self._refresh_task.cancel()
+        return await self._refresh_task.cancel_wait()
 
     async def _periodic_refresh_worker(self) -> None:
         while True:
@@ -180,3 +184,16 @@ class BaseNode(OutputCorrection, Generic[UNIVERSE_TYPE]):
 
     def __len__(self) -> int:
         return len(self._universes)
+
+    async def __aenter__(self) -> Self:
+        self._refresh_task.start()
+
+        return self
+
+    async def __aexit__(self, exc_type: type[BaseException] | None, exc_val: BaseException | None,
+                  exc_tb: TracebackType | None) -> None:
+
+        self._socket.close()
+        await self._process_task.cancel_wait()
+        await self._refresh_task.cancel_wait()
+        return None

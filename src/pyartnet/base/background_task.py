@@ -1,7 +1,8 @@
 from __future__ import annotations
 
 import logging
-from asyncio import Task, create_task, current_task, sleep
+from asyncio import CancelledError, Task, create_task, current_task, sleep
+from contextlib import suppress
 from time import monotonic
 from traceback import format_exc
 from typing import Any, Callable, Coroutine, Final
@@ -45,6 +46,17 @@ class SimpleBackgroundTask:
 
         self.task = None
         task.cancel()
+        return None
+
+    async def cancel_wait(self) -> None:
+        if (task := self.task) is None:
+            return None
+
+        self.task = None
+        task.cancel()
+
+        with suppress(CancelledError):
+            await task
         return None
 
     async def coro_wrap(self) -> None:

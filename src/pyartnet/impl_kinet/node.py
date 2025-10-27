@@ -5,11 +5,11 @@ from logging import DEBUG as LVL_DEBUG
 from struct import pack as s_pack
 from typing import Final
 
-from typing_extensions import override
+from typing_extensions import Self, override
 
 import pyartnet
 from pyartnet.base import BaseNode
-from pyartnet.base.network import UnicastNetworkTarget
+from pyartnet.base.network import USE_IP_VERSION, UnicastNetworkTarget
 from pyartnet.errors import InvalidUniverseAddressError
 
 
@@ -27,8 +27,7 @@ class KiNetNode(BaseNode['pyartnet.impl_kinet.KiNetUniverse']):
                  name: str | None = None,
                  max_fps: int = 25,
                  refresh_every: float = 2, start_refresh_task: bool = True) -> None:
-        super().__init__(network, name=name, max_fps=max_fps, refresh_every=refresh_every,
-                         start_refresh_task=start_refresh_task)
+        super().__init__(network, name=name, max_fps=max_fps, refresh_every=refresh_every)
 
         self._dst: Final = network.dst
 
@@ -37,6 +36,27 @@ class KiNetNode(BaseNode['pyartnet.impl_kinet.KiNetUniverse']):
         packet.extend(s_pack('>IHH', 0x0401DC4A, 0x0100, 0x0101))   # Magic, version, type
         packet.extend(s_pack('>IBBHI', 0, 0, 0, 0, 0xFFFFFFFF))     # sequence, port, padding, flags, timer
         self._packet_base = bytes(packet)
+
+    @classmethod
+    async def create(cls, hostname: str, port: int = KINET_PORT, *,
+               source_ip: str | None = None, source_port: int = 0, ip_version: USE_IP_VERSION = 'auto',
+               name: str | None = None, max_fps: int = 25, refresh_every: float = 2) -> Self:
+        """Creates a new node. The packages will be sent directly to the node (unicast).
+
+        :param hostname: ip or hostname of the device
+        :param port: port of device
+        :param source_ip: ip of the network interface that shall be used to send data
+        :param source_port: source port
+        :param ip_version: which ip version to use if hostname is a hostname and not an ip address
+        :param name: a custom name of the node
+        :param max_fps: maximum frames per second to send
+        :param refresh_every: refresh interval in seconds
+        """
+
+        network = await UnicastNetworkTarget.create(
+            hostname, port, source_ip=source_ip, source_port=source_port, ip_version=ip_version
+        )
+        return cls(network, name=name, max_fps=max_fps, refresh_every=refresh_every)
 
     @override
     def _send_universe(self, id: int, byte_size: int,

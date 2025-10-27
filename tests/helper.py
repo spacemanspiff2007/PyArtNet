@@ -19,7 +19,7 @@ class MockedSocket:
         self.mp = MonkeyPatch()
 
     def mock(self):
-        m_socket_obj = Mock(['sendto', 'setblocking', 'setsockopt', 'bind'], name='socket_obj')
+        m_socket_obj = Mock(['sendto', 'setblocking', 'setsockopt', 'bind', 'close'], name='socket_obj')
         m_socket_obj.sendto = m_sendto = Mock(name='socket_obj.sendto')
 
         module_names = [

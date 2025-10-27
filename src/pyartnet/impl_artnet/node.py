@@ -7,7 +7,7 @@ from typing_extensions import Self, override
 
 import pyartnet
 from pyartnet.base import BaseNode
-from pyartnet.base.network import UnicastNetworkTarget
+from pyartnet.base.network import USE_IP_VERSION, UnicastNetworkTarget
 from pyartnet.base.seq_counter import SequenceCounter
 from pyartnet.errors import InvalidUniverseAddressError
 
@@ -31,8 +31,7 @@ class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
                  # ArtNet specific fields
                  sequence_counter: bool = True
                  ) -> None:
-        super().__init__(network, name=name, max_fps=max_fps, refresh_every=refresh_every,
-                         start_refresh_task=start_refresh_task)
+        super().__init__(network, name=name, max_fps=max_fps, refresh_every=refresh_every)
 
         self._dst: Final = network.dst
         self._ip: Final = self._dst[0]
@@ -47,6 +46,27 @@ class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
         self._packet_base = bytes(packet)
 
         self._sync_enabled : bool = False
+
+    @classmethod
+    async def create(cls, hostname: str, port: int = ARTNET_PORT, *,
+               source_ip: str | None = None, source_port: int = 0, ip_version: USE_IP_VERSION = 'auto',
+               name: str | None = None, max_fps: int = 25, refresh_every: float = 2) -> Self:
+        """Creates a new node. The packages will be sent directly to the node (unicast).
+
+        :param hostname: ip or hostname of the device
+        :param port: port of device
+        :param source_ip: ip of the network interface that shall be used to send data
+        :param source_port: source port
+        :param ip_version: which ip version to use if hostname is a hostname and not an ip address
+        :param name: a custom name of the node
+        :param max_fps: maximum frames per second to send
+        :param refresh_every: refresh interval in seconds
+        """
+
+        network = await UnicastNetworkTarget.create(
+            hostname, port, source_ip=source_ip, source_port=source_port, ip_version=ip_version
+        )
+        return cls(network, name=name, max_fps=max_fps, refresh_every=refresh_every)
 
     @override
     def _send_universe(self, id: int, byte_size: int, values: bytearray,

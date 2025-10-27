@@ -25,6 +25,30 @@ def test_same_cls_signature(c) -> None:
         assert obj_parameter == base_parameter
 
 
+def test_same_unicast_signature() -> None:
+    classes = (ArtNetNode, KiNetNode, SacnNode)
+
+    cls_base = classes[0]
+    sig_base = inspect.signature(cls_base.create)
+
+    for cls in classes[1:]:
+
+        assert cls.__doc__ == cls_base.__doc__
+
+        sig_obj = inspect.signature(cls.create)
+
+        for name, base_parameter in sig_base.parameters.items():
+            assert name in sig_obj.parameters
+            obj_parameter = sig_obj.parameters[name]
+
+            # some ports have a default which we ignore here
+            if name == 'port':
+                obj_parameter = obj_parameter.replace(default=inspect.Parameter.empty)
+                base_parameter = base_parameter.replace(default=inspect.Parameter.empty)
+
+            assert obj_parameter == base_parameter
+
+
 @pytest.mark.parametrize('cls', [ArtNetNode, SacnNode, KiNetNode])
 async def test_set_funcs(node: TestingNode, caplog, cls) -> None:
     caplog.set_level(logging.DEBUG)

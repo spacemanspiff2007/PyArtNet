@@ -97,3 +97,13 @@ async def test_fade_await(node: TestingNode, universe: BaseUniverse, caplog) -> 
 
     await check_no_wait_time_when_no_fade()
     await node.wait_for_task_finish()
+
+
+async def test_context(node: TestingNode) -> None:
+
+    node._socket.close.assert_not_called()
+
+    async with node:
+        assert node._refresh_task.task is not None
+
+    node._socket.close.assert_called()

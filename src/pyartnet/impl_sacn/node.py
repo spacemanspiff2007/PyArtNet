@@ -5,11 +5,11 @@ from logging import DEBUG as LVL_DEBUG
 from typing import Final
 from uuid import uuid4
 
-from typing_extensions import override
+from typing_extensions import Self, override
 
 import pyartnet.impl_sacn.universe
 from pyartnet.base import BaseNode, SequenceCounter
-from pyartnet.base.network import MulticastNetworkTarget, UnicastNetworkTarget
+from pyartnet.base.network import USE_IP_VERSION, MulticastNetworkTarget, UnicastNetworkTarget
 from pyartnet.errors import InvalidCidError, InvalidUniverseAddressError
 
 
@@ -44,8 +44,7 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
                  # sACN E1.31 specific fields
                  cid: bytes | None = None, source_name: str | None = None
                  ) -> None:
-        super().__init__(network, name=name, max_fps=max_fps, refresh_every=refresh_every,
-                         start_refresh_task=start_refresh_task)
+        super().__init__(network, name=name, max_fps=max_fps, refresh_every=refresh_every)
 
         # CID Field
         if cid is not None:
@@ -131,6 +130,43 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
         if log.isEnabledFor(LVL_DEBUG):
             # log complete packet
             log.debug(f'Sending sACN frame to {_dst_str(universe._dst)}: {(base_packet + packet).hex()}')
+
+    @classmethod
+    async def create(cls, hostname: str, port: int = ACN_SDT_MULTICAST_PORT, *,
+               source_ip: str | None = None, source_port: int = 0, ip_version: USE_IP_VERSION = 'auto',
+               name: str | None = None, max_fps: int = 25, refresh_every: float = 2) -> Self:
+        """Creates a new node. The packages will be sent directly to the node (unicast).
+
+        :param hostname: ip or hostname of the device
+        :param port: port of device
+        :param source_ip: ip of the network interface that shall be used to send data
+        :param source_port: source port
+        :param ip_version: which ip version to use if hostname is a hostname and not an ip address
+        :param name: a custom name of the node
+        :param max_fps: maximum frames per second to send
+        :param refresh_every: refresh interval in seconds
+        """
+
+        network = await UnicastNetworkTarget.create(
+            hostname, port, source_ip=source_ip, source_port=source_port, ip_version=ip_version
+        )
+        return cls(network, name=name, max_fps=max_fps, refresh_every=refresh_every)
+
+    @classmethod
+    async def create_multicast(cls, interface_ip: str, interface_port: int = 0, *,
+               name: str | None = None, max_fps: int = 25, refresh_every: float = 2) -> Self:
+        """Creates a new node. The packages will be sent as multicast.
+
+        :param interface_ip: interface ip of the network interface that shall be used to send data
+        :param interface_port: source port
+        :param name: a custom name of the node
+        :param max_fps: maximum frames per second to send
+        :param refresh_every: refresh interval in seconds
+        """
+
+        network = await MulticastNetworkTarget.create(interface_ip, interface_port)
+        return cls(network, name=name, max_fps=max_fps, refresh_every=refresh_every)
+
 
     @override
     def _create_universe(self, nr: int) -> pyartnet.impl_sacn.SacnUniverse:
