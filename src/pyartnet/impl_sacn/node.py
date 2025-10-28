@@ -152,7 +152,7 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
         return cls(network, name=name, max_fps=max_fps, refresh_every=refresh_every)
 
     @classmethod
-    async def create_multicast(cls, source_ip: str, source_port: int = 0, *,
+    def create_multicast(cls, source_ip: str, source_port: int = 0, *,
                name: str | None = None, max_fps: int = 25, refresh_every: float = 2) -> Self:
         """Creates a new node. The packages will be sent as multicast.
 

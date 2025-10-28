@@ -1,6 +1,6 @@
 import pytest
 
-from pyartnet.base.network import resolve_hostname, validate_ip_address
+from pyartnet.base.network import resolve_hostname, validate_ip_address, validate_port
 
 
 async def test_hostname() -> None:
@@ -11,6 +11,19 @@ async def test_hostname() -> None:
         'Cannot resolve hostname "does_not_exist"! 11001: getaddrinfo failed'
         'Cannot resolve hostname "does_not_exist"! -3: Temporary failure in name resolution'
     )
+
+
+def test_validate_port() -> None:
+    with pytest.raises(ValueError) as e:
+        validate_port(0)
+    assert str(e.value) == 'port must be between 1 and 65535'
+
+    with pytest.raises(ValueError) as e:
+        validate_port(65536)
+    assert str(e.value) == 'port must be between 1 and 65535'
+
+    validate_port(0, allow_0=True)
+    validate_port(65535)
 
 
 async def test_get_ip() -> None:

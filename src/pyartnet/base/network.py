@@ -18,8 +18,8 @@ def validate_port(port: int, *, allow_0: bool = False) -> int:
         raise TypeError(msg)
 
     lower = 0 if allow_0 else 1
-    if not lower < port < 65536:
-        msg = f'port must be between {lower:d} and 65536'
+    if not lower <= port <= 65535:
+        msg = f'port must be between {lower:d} and 65535'
         raise ValueError(msg)
 
     return port
