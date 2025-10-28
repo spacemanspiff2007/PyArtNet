@@ -1,10 +1,11 @@
 from __future__ import annotations
 
 import socket
-from typing import TYPE_CHECKING, override
+from typing import TYPE_CHECKING
 from unittest.mock import Mock
 
 from pytest import MonkeyPatch
+from typing_extensions import override
 
 import pyartnet.base.network as network_module
 from pyartnet.base.network import MulticastNetworkTarget, UnicastNetworkTarget
