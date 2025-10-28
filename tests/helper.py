@@ -53,13 +53,13 @@ class MockedSocket:
         self.undo()
 
 
-class TestingUnicastNetworkTarget(UnicastNetworkTarget):
+class UnicastNetworkTestingTarget(UnicastNetworkTarget):
     @override
     async def is_ip_v6(self) -> bool:
         return False
 
 
-class TestingMulticastNetworkTarget(MulticastNetworkTarget):
+class MulticastTestingNetworkTarget(MulticastNetworkTarget):
     @override
     async def is_ip_v6(self) -> bool:
         return False

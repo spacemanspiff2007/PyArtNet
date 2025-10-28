@@ -4,14 +4,14 @@ from binascii import a2b_hex
 from unittest.mock import call
 
 import pytest
-from tests.helper import TestingMulticastNetworkTarget, TestingUnicastNetworkTarget
+from tests.helper import MulticastTestingNetworkTarget, UnicastNetworkTestingTarget
 
 from pyartnet import SacnNode
 
 
 async def test_sacn() -> None:
     sacn = SacnNode(
-        TestingUnicastNetworkTarget(('ip', 9999999)),
+        UnicastNetworkTestingTarget(('ip', 9999999)),
         cid=b'\x41\x68\xf5\x2b\x1a\x7b\x2d\xe1\x17\x12\xe9\xee\x38\x3d\x22\x58',
         source_name='default source name',
         start_refresh_task=True
@@ -40,9 +40,9 @@ async def test_sacn_with_sync(caplog, multicast) -> None:
     caplog.set_level(logging.DEBUG)
 
     if multicast:
-        network = TestingMulticastNetworkTarget(('ip', 9999999))
+        network = MulticastTestingNetworkTarget(('ip', 9999999))
     else:
-        network = TestingUnicastNetworkTarget(('ip', 9999999))
+        network = UnicastNetworkTestingTarget(('ip', 9999999))
 
     sacn = SacnNode(
         network,

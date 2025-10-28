@@ -27,13 +27,13 @@ async def test_get_ip() -> None:
     assert obj.version == 6
 
     # hostname gets resolved
-    (obj, ) = await resolve_hostname('localhost', 0, mode='v4')
-    assert str(obj) == '127.0.0.1'
-    assert obj.version == 4
+    objs = await resolve_hostname('localhost', 0, mode='v4')
+    assert str(objs[0]) == '127.0.0.1'
+    assert objs[0].version == 4
 
-    (obj, ) = await resolve_hostname('localhost', 0, mode='v6')
-    assert str(obj) == '::1'
-    assert obj.version == 6
+    objs = await resolve_hostname('localhost', 0, mode='v6')
+    assert str(objs[0]) == '::1'
+    assert objs[0].version == 6
 
-    obj = await resolve_hostname('localhost', 0, mode='auto')
-    assert str(obj[0]) in ('::1', '127.0.0.1')
+    objs = await resolve_hostname('localhost', 0, mode='auto')
+    assert str(objs[0]) in ('::1', '127.0.0.1')

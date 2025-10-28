@@ -4,7 +4,7 @@ from asyncio import sleep
 
 import pytest
 from tests.conftest import TestingNode
-from tests.helper import TestingUnicastNetworkTarget
+from tests.helper import UnicastNetworkTestingTarget
 
 from pyartnet import ArtNetNode, KiNetNode, SacnNode
 from pyartnet.base import BaseNode
@@ -53,7 +53,7 @@ def test_same_unicast_signature() -> None:
 async def test_set_funcs(node: TestingNode, caplog, cls) -> None:
     caplog.set_level(logging.DEBUG)
 
-    async with cls(TestingUnicastNetworkTarget(('ip', 9999999))) as n:
+    async with cls(UnicastNetworkTestingTarget(('ip', 9999999))) as n:
         u = n.add_universe(1)
         c = u.add_channel(1, 1)
 
@@ -67,7 +67,7 @@ async def test_set_funcs(node: TestingNode, caplog, cls) -> None:
 @pytest.mark.parametrize('cls', [ArtNetNode, SacnNode, KiNetNode])
 async def test_universe_validation(node: TestingNode, cls) -> None:
 
-    n = cls(TestingUnicastNetworkTarget(('ip', 9999999)))
+    n = cls(UnicastNetworkTestingTarget(('ip', 9999999)))
     with pytest.raises(TypeError):
         n.add_universe(1.3)
 

@@ -5,7 +5,7 @@ from asyncio import sleep
 from typing import TYPE_CHECKING
 
 import pytest
-from tests.helper import MockedSocket, TestingUnicastNetworkTarget
+from tests.helper import MockedSocket, UnicastNetworkTestingTarget
 
 from pyartnet.base import BaseNode, BaseUniverse
 
@@ -52,13 +52,13 @@ def patched_socket(monkeypatch):
 
 
 def test_patched_socket(patched_socket) -> None:
-    node = TestingNode(TestingUnicastNetworkTarget(dst=('IP', 9999)))
+    node = TestingNode(UnicastNetworkTestingTarget(dst=('IP', 9999)))
     assert node._socket.sendto is patched_socket
 
 
 @pytest.fixture
 def node():
-    return TestingNode(TestingUnicastNetworkTarget(dst=('IP', 9999)))
+    return TestingNode(UnicastNetworkTestingTarget(dst=('IP', 9999)))
 
 
 @pytest.fixture
