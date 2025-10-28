@@ -6,9 +6,10 @@ from typing import TYPE_CHECKING
 
 import pytest
 from tests.helper import MockedSocket
+from typing_extensions import override
 
 from pyartnet.base import BaseNode, BaseUniverse
-from pyartnet.base.network import NetworkTargetBase, UnicastNetworkTarget
+from pyartnet.base.network import MulticastNetworkTarget, NetworkTargetBase, UnicastNetworkTarget
 
 
 if TYPE_CHECKING:
@@ -17,6 +18,18 @@ if TYPE_CHECKING:
 
 
 STEP_MS = 15
+
+
+class TestingUnicastNetworkTarget(UnicastNetworkTarget):
+    @override
+    async def is_ip_v6(self) -> bool:
+        return False
+
+
+class TestingMulticastNetworkTarget(MulticastNetworkTarget):
+    @override
+    async def is_ip_v6(self) -> bool:
+        return False
 
 
 class TestingNode(BaseNode):
@@ -52,13 +65,13 @@ def patched_socket(monkeypatch):
 
 
 def test_patched_socket(patched_socket) -> None:
-    node = TestingNode(UnicastNetworkTarget(dst=('IP', 9999)))
+    node = TestingNode(TestingUnicastNetworkTarget(dst=('IP', 9999)))
     assert node._socket.sendto is patched_socket
 
 
 @pytest.fixture
 def node():
-    return TestingNode(UnicastNetworkTarget(dst=('IP', 9999)))
+    return TestingNode(TestingUnicastNetworkTarget(dst=('IP', 9999)))
 
 
 @pytest.fixture

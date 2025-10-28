@@ -30,7 +30,7 @@ def test_repr(node: TestingNode) -> None:
 
     # Multicast
     node = TestingNode(MulticastNetworkTarget(src=('IP', 99999)))
-    assert _repr(node) == '<TestingNode name=TestingNode-123456 network=Multicast(source=IP ipv6=False) universes=->'
+    assert _repr(node) == '<TestingNode name=TestingNode-123456 network=Multicast(source=IP) universes=->'
 
 
 def test_universe_add_get(node: TestingNode) -> None:
@@ -100,10 +100,10 @@ async def test_fade_await(node: TestingNode, universe: BaseUniverse, caplog) -> 
 
 
 async def test_context(node: TestingNode) -> None:
-
-    node._socket.close.assert_not_called()
+    assert node._socket is None
 
     async with node:
+        node._socket.close.assert_not_called()
         assert node._refresh_task.task is not None
 
     node._socket.close.assert_called()

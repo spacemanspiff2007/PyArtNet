@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from asyncio import sleep
+from socket import socket
 from time import monotonic
 from typing import TYPE_CHECKING, Final, Generic, TypeVar
 
@@ -30,7 +31,7 @@ class BaseNode(OutputCorrection, Generic[UNIVERSE_TYPE]):
         super().__init__()
 
         self._network: Final = network
-        self._socket: Final = network.create_socket()
+        self._socket: socket | None = None
         self._name: Final = name if name is not None else f'{self.__class__.__name__}-{id(self):x}'
 
         # refresh task
@@ -73,7 +74,11 @@ class BaseNode(OutputCorrection, Generic[UNIVERSE_TYPE]):
         pass
 
     def _send_data(self, data: bytearray | bytes, dst: tuple[str, int] | str | None = None) -> None:
-        self._socket.sendto(self._packet_base + data, dst)
+        if (sock := self._socket) is None:
+            msg = 'Socket is closed!'
+            raise RuntimeError(msg)
+
+        sock.sendto(self._packet_base + data, dst)
         return None
 
     async def _process_values_task(self) -> None:
@@ -186,14 +191,21 @@ class BaseNode(OutputCorrection, Generic[UNIVERSE_TYPE]):
         return len(self._universes)
 
     async def __aenter__(self) -> Self:
-        self._refresh_task.start()
+        if self._socket is not None:
+            return self
 
+        ip_v6 = await self._network.is_ip_v6()
+        self._socket = self._network.create_socket(ip_v6=ip_v6)
+
+        self._refresh_task.start()
         return self
 
     async def __aexit__(self, exc_type: type[BaseException] | None, exc_val: BaseException | None,
                   exc_tb: TracebackType | None) -> None:
+        if (sock := self._socket) is not None:
+            self.socket = None
+            sock.close()
 
-        self._socket.close()
         await self._process_task.cancel_wait()
         await self._refresh_task.cancel_wait()
         return None

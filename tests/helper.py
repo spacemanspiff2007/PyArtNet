@@ -19,24 +19,23 @@ class MockedSocket:
         self.mp = MonkeyPatch()
 
     def mock(self):
-        m_socket_obj = Mock(['sendto', 'setblocking', 'setsockopt', 'bind', 'close'], name='socket_obj')
+        m_socket_obj = Mock(['sendto', 'setblocking', 'setsockopt', 'bind', 'close', 'family'], name='socket_obj')
         m_socket_obj.sendto = m_sendto = Mock(name='socket_obj.sendto')
+        m_socket_obj.family = socket.AF_INET
 
-        module_names = [
+        constant_names = [
             name for name in dir(socket)
             if name.startswith(('AF_', 'SOCK_', 'SOL_', 'IPPROTO_', 'IP_', 'SO_',)) or
-               name in ('socket', 'gethostname', 'inet_pton')
+               name in ('herror', 'gaierror')
         ]
 
-        m = Mock(module_names, name='Mock socket package'
-        )
+        m = Mock(['socket', 'gethostname', 'inet_pton', *constant_names], name='Mock socket package')
         m.gethostname = socket.gethostname
         m.socket = Mock([], return_value=m_socket_obj, name='Mock socket obj')
 
         # Copy constants
-        for name in dir(socket):
-            if name.startswith(('AF_', 'SOCK_', 'SOL_', 'IPPROTO_', 'IP_', 'SO_')):
-                setattr(m, name, getattr(socket, name))
+        for name in constant_names:
+            setattr(m, name, getattr(socket, name))
 
         self.mp.setattr(network_module, 'socket', m)
         return m_sendto

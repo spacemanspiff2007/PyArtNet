@@ -3,11 +3,10 @@ import logging
 from asyncio import sleep
 
 import pytest
-from tests.conftest import TestingNode
+from tests.conftest import TestingNode, TestingUnicastNetworkTarget
 
 from pyartnet import ArtNetNode, KiNetNode, SacnNode
 from pyartnet.base import BaseNode
-from pyartnet.base.network import UnicastNetworkTarget
 from pyartnet.errors import InvalidUniverseAddressError
 
 
@@ -53,21 +52,21 @@ def test_same_unicast_signature() -> None:
 async def test_set_funcs(node: TestingNode, caplog, cls) -> None:
     caplog.set_level(logging.DEBUG)
 
-    n = cls(UnicastNetworkTarget(('ip', 9999999), ip_v6=False))
-    u = n.add_universe(1)
-    c = u.add_channel(1, 1)
+    async with cls(TestingUnicastNetworkTarget(('ip', 9999999))) as n:
+        u = n.add_universe(1)
+        c = u.add_channel(1, 1)
 
-    c.set_values([5])
-    await sleep(0.1)
+        c.set_values([5])
+        await sleep(0.1)
 
-    c.set_fade([250], 700)
-    await c
+        c.set_fade([250], 700)
+        await c
 
 
 @pytest.mark.parametrize('cls', [ArtNetNode, SacnNode, KiNetNode])
 async def test_universe_validation(node: TestingNode, cls) -> None:
 
-    n = cls(UnicastNetworkTarget(('ip', 9999999), ip_v6=False))
+    n = cls(TestingUnicastNetworkTarget(('ip', 9999999)))
     with pytest.raises(TypeError):
         n.add_universe(1.3)
 

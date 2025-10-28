@@ -4,12 +4,13 @@ import logging
 from binascii import a2b_hex
 from unittest.mock import call
 
+from tests.conftest import TestingUnicastNetworkTarget
+
 from pyartnet import ArtNetNode
-from pyartnet.base.network import UnicastNetworkTarget
 
 
 async def test_artnet() -> None:
-    async with ArtNetNode(UnicastNetworkTarget(('ip', 9999999))) as artnet:
+    async with ArtNetNode(TestingUnicastNetworkTarget(('ip', 9999999))) as artnet:
         channel = artnet.add_universe(1).add_channel(1, 10)
         channel.set_values(range(1, 11))
 
@@ -28,7 +29,7 @@ async def test_artnet() -> None:
 async def test_artnet_with_sync(caplog) -> None:
     caplog.set_level(logging.DEBUG)
 
-    async with ArtNetNode(UnicastNetworkTarget(('ip', 9999999)), name='device1') as artnet:
+    async with ArtNetNode(TestingUnicastNetworkTarget(('ip', 9999999)), name='device1') as artnet:
         artnet.set_synchronous_mode(True)
 
         channel = artnet.add_universe(1).add_channel(1, 10)

@@ -29,7 +29,7 @@ Getting Started
 
     async def main():
 
-        async with await ArtNetNode.create('IP', 6454) as node:
+        async with ArtNetNode.create('IP', 6454) as node:
 
             # Create universe 0
             universe = node.add_universe(0)
@@ -82,7 +82,7 @@ If no channel name is specified during creation the default name will be built w
     # hide: stop
 
         # create node/universe
-        async with await ArtNetNode.create('IP', 6454) as node:
+        async with ArtNetNode.create('IP', 6454) as node:
 
             universe = node.add_universe(0)
 
@@ -130,7 +130,7 @@ Channel properties can be set when creating the channel through :meth:`BaseUnive
     # hide: stop
 
         # create node/universe
-        async with await ArtNetNode.create('IP', 6454) as node:
+        async with ArtNetNode.create('IP', 6454) as node:
             universe = node.add_universe(0)
 
             # create a 16bit channel
@@ -185,7 +185,7 @@ Example
         from pyartnet import ArtNetNode, output_correction
 
         # create node/universe/channel
-        async with await ArtNetNode.create('IP', 6454) as node:
+        async with ArtNetNode.create('IP', 6454) as node:
             universe = node.add_universe(0)
             channel = universe.add_channel(start=1, width=3)
 
