@@ -4,7 +4,7 @@ import logging
 from binascii import a2b_hex
 from unittest.mock import call
 
-from tests.conftest import TestingUnicastNetworkTarget
+from tests.helper import TestingUnicastNetworkTarget
 
 from pyartnet import ArtNetNode
 

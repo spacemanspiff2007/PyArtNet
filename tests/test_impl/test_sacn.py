@@ -4,7 +4,7 @@ from binascii import a2b_hex
 from unittest.mock import call
 
 import pytest
-from tests.conftest import TestingMulticastNetworkTarget, TestingUnicastNetworkTarget
+from tests.helper import TestingMulticastNetworkTarget, TestingUnicastNetworkTarget
 
 from pyartnet import SacnNode
 

@@ -1,12 +1,13 @@
 from __future__ import annotations
 
 import socket
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, override
 from unittest.mock import Mock
 
 from pytest import MonkeyPatch
 
 import pyartnet.base.network as network_module
+from pyartnet.base.network import MulticastNetworkTarget, UnicastNetworkTarget
 
 
 if TYPE_CHECKING:
@@ -49,3 +50,15 @@ class MockedSocket:
     def __exit__(self, exc_type: type[BaseException] | None,
                  exc_val: BaseException | None, exc_tb: TracebackType | None) -> None:
         self.undo()
+
+
+class TestingUnicastNetworkTarget(UnicastNetworkTarget):
+    @override
+    async def is_ip_v6(self) -> bool:
+        return False
+
+
+class TestingMulticastNetworkTarget(MulticastNetworkTarget):
+    @override
+    async def is_ip_v6(self) -> bool:
+        return False

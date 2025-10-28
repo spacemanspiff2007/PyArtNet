@@ -5,31 +5,18 @@ from asyncio import sleep
 from typing import TYPE_CHECKING
 
 import pytest
-from tests.helper import MockedSocket
-from typing_extensions import override
+from tests.helper import MockedSocket, TestingUnicastNetworkTarget
 
 from pyartnet.base import BaseNode, BaseUniverse
-from pyartnet.base.network import MulticastNetworkTarget, NetworkTargetBase, UnicastNetworkTarget
 
 
 if TYPE_CHECKING:
     import pyartnet.base.base_node
     from pyartnet.base.base_node import UNIVERSE_TYPE
+    from pyartnet.base.network import NetworkTargetBase
 
 
 STEP_MS = 15
-
-
-class TestingUnicastNetworkTarget(UnicastNetworkTarget):
-    @override
-    async def is_ip_v6(self) -> bool:
-        return False
-
-
-class TestingMulticastNetworkTarget(MulticastNetworkTarget):
-    @override
-    async def is_ip_v6(self) -> bool:
-        return False
 
 
 class TestingNode(BaseNode):

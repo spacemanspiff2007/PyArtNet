@@ -3,7 +3,8 @@ import logging
 from asyncio import sleep
 
 import pytest
-from tests.conftest import TestingNode, TestingUnicastNetworkTarget
+from tests.conftest import TestingNode
+from tests.helper import TestingUnicastNetworkTarget
 
 from pyartnet import ArtNetNode, KiNetNode, SacnNode
 from pyartnet.base import BaseNode

@@ -7,7 +7,10 @@ async def test_hostname() -> None:
     with pytest.raises(ValueError) as e:  # noqa: PT011
         await resolve_hostname('does_not_exist', 0)
 
-    assert str(e.value).startswith('Cannot resolve hostname "does_not_exist"! 11001: getaddrinfo failed')
+    assert str(e.value) in (
+        'Cannot resolve hostname "does_not_exist"! 11001: getaddrinfo failed'
+        'Cannot resolve hostname "does_not_exist"! -3: Temporary failure in name resolution'
+    )
 
 
 async def test_get_ip() -> None:
