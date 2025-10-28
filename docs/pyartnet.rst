@@ -19,9 +19,9 @@ Getting Started
 
     import pyartnet.base.network as network_module
     from ipaddress import IPv4Address
-    async def get_ip(*args, **kwargs):
-            return IPv4Address('127.0.0.1')
-    network_module.get_ip = get_ip
+    async def resolve_hostname(*args, **kwargs):
+            return [IPv4Address('127.0.0.1')]
+    network_module.resolve_hostname = resolve_hostname
     # hide: stop
 
     import asyncio
@@ -71,9 +71,9 @@ If no channel name is specified during creation the default name will be built w
 
     import pyartnet.base.network as network_module
     from ipaddress import IPv4Address
-    async def get_ip(*args, **kwargs):
-            return IPv4Address('127.0.0.1')
-    network_module.get_ip = get_ip
+    async def resolve_hostname(*args, **kwargs):
+            return [IPv4Address('127.0.0.1')]
+    network_module.resolve_hostname = resolve_hostname
 
     import asyncio
     from pyartnet import ArtNetNode
@@ -119,9 +119,9 @@ Channel properties can be set when creating the channel through :meth:`BaseUnive
 
     import pyartnet.base.network as network_module
     from ipaddress import IPv4Address
-    async def get_ip(*args, **kwargs):
-            return IPv4Address('127.0.0.1')
-    network_module.get_ip = get_ip
+    async def resolve_hostname(*args, **kwargs):
+            return [IPv4Address('127.0.0.1')]
+    network_module.resolve_hostname = resolve_hostname
 
     import asyncio
     from pyartnet import ArtNetNode
@@ -173,9 +173,9 @@ Example
 
     import pyartnet.base.network as network_module
     from ipaddress import IPv4Address
-    async def get_ip(*args, **kwargs):
-            return IPv4Address('127.0.0.1')
-    network_module.get_ip = get_ip
+    async def resolve_hostname(*args, **kwargs):
+            return [IPv4Address('127.0.0.1')]
+    network_module.resolve_hostname = resolve_hostname
 
     import asyncio
 
