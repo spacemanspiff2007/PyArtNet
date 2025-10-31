@@ -75,7 +75,7 @@ class BaseNode(OutputCorrection, Generic[UNIVERSE_TYPE]):
 
     def _send_data(self, data: bytearray | bytes, dst: tuple[str, int] | str | None = None) -> None:
         if (sock := self._socket) is None:
-            msg = 'Socket is closed!'
+            msg = 'Socket closed! Did you forget to use "async with"?'
             raise RuntimeError(msg)
 
         sock.sendto(self._packet_base + data, dst)

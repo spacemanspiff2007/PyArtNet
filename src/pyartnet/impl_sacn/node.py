@@ -184,16 +184,20 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
         if isinstance(network := self._network, UnicastNetworkTarget):
             return network.dst
 
-        u = self._validate_universe_nr(universe)
+        self._validate_universe_nr(universe)
 
-        if self._socket.family == AF_INET6:
+        if (sock := self._socket) is None:
+            msg = 'Socket closed! Did you forget to use "async with"?'
+            raise RuntimeError(msg)
+
+        if sock.family == AF_INET6:
             # IPv6 multicast address
-            address = f'FF18::8300:{u:04X}'
+            address = f'FF18::8300:{universe:04X}'
             IPv6Address(address)
             return address, ACN_SDT_MULTICAST_PORT
 
         # IPv4 multicast address
-        address = f'239.255.{u // 255:d}.{u % 255:d}'
+        address = f'239.255.{universe // 255:d}.{universe % 255:d}'
         IPv4Address(address)
         return address, ACN_SDT_MULTICAST_PORT
 

@@ -18,11 +18,13 @@ def test_validate_port() -> None:
         validate_port(0)
     assert str(e.value) == 'port must be between 1 and 65535'
 
+    validate_port(1)
+    validate_port(0, allow_0=True)
+
     with pytest.raises(ValueError) as e:
         validate_port(65536)
     assert str(e.value) == 'port must be between 1 and 65535'
 
-    validate_port(0, allow_0=True)
     validate_port(65535)
 
 
