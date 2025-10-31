@@ -70,21 +70,30 @@ def validate_ip_address(host: str) -> IPv4Address | IPv6Address:
 
 
 class NetworkTargetBase:
+    def __init__(self, *, ip_v6: bool | None = None) -> None:
+        self._ip_v6: bool | None = ip_v6
 
-    def create_socket(self, *, ip_v6: bool) -> socket.socket:
+    def create_socket(self) -> socket.socket:
         # create nonblocking UDP socket
-        sock: Final = socket.socket(AF_INET6 if ip_v6 else AF_INET, SOCK_DGRAM)
+        sock: Final = socket.socket(AF_INET6 if self.ip_v6 else AF_INET, SOCK_DGRAM)
         sock.setblocking(False)
 
         return sock
 
-    async def is_ip_v6(self) -> bool:
+    @property
+    def ip_v6(self) -> bool:
+        if self._ip_v6 is None:
+            msg = 'Host not yet resolved!'
+            raise RuntimeError(msg)
+        return self._ip_v6
+
+    async def resolve_hostname(self) -> None:
         raise NotImplementedError()
 
 
 class UnicastNetworkTarget(NetworkTargetBase):
-    def __init__(self, dst: tuple[str, int], src: tuple[str, int] | None = None) -> None:
-        super().__init__()
+    def __init__(self, dst: tuple[str, int], src: tuple[str, int] | None = None, *, ip_v6: bool | None = None) -> None:
+        super().__init__(ip_v6=ip_v6)
         self.dst: Final = dst
         self.src: Final = src
 
@@ -94,8 +103,8 @@ class UnicastNetworkTarget(NetworkTargetBase):
         return f'{self.__class__.__name__:s}(dst={ip:s}:{port:d}, source={src:s})'
 
     @override
-    def create_socket(self, *, ip_v6: bool) -> socket.socket:
-        sock: Final = super().create_socket(ip_v6=ip_v6)
+    def create_socket(self) -> socket.socket:
+        sock: Final = super().create_socket()
 
         # option to set source port/ip
         if (src := self.src) is not None:
@@ -116,24 +125,29 @@ class UnicastNetworkTarget(NetworkTargetBase):
             validate_port(source_port, allow_0=True)
             source = (source_ip, source_port)
 
-        return cls(dst=(host, port), src=source)
-
-    @override
-    async def is_ip_v6(self) -> bool:
+        # if host is an IP address, determine IP version now
+        ip_v6: bool | None = None
         try:
-            dst_ip = validate_ip_address(self.dst[0])
+            dst_ip = validate_ip_address(host)
         except AddressValueError:
             pass
         else:
-            if self.dst is not None:
+            if source_ip is not None:
                 # destination and source IP version must match
                 try:
-                    dst_ip.__class__(self.dst[0])
+                    dst_ip.__class__(source_ip)
                 except AddressValueError:
-                    msg = f'Source IP "{self.dst[0]}" is not a valid IPv{dst_ip.version}!'
+                    msg = f'Source IP "{source_ip}" is not a valid IPv{dst_ip.version}!'
                     raise ValueError(msg) from None
 
-            return dst_ip.version == 6
+            ip_v6 = dst_ip.version == 6
+
+        return cls(dst=(host, port), src=source, ip_v6=ip_v6)
+
+    @override
+    async def resolve_hostname(self) -> None:
+        if self._ip_v6 is not None:
+            return None
 
         # source ip can be used to set the mode for resolution
         mode: RESOLVE_TO_IP_TYPE = 'auto'
@@ -141,20 +155,21 @@ class UnicastNetworkTarget(NetworkTargetBase):
             mode = 'v6' if validate_ip_address(self.src[0]).version == 6 else 'v4'
 
         info = await resolve_hostname(self.dst[0], self.dst[1], mode=mode)
-        return info[0].version == 6
+        self._ip_v6 = info[0].version == 6
+        return None
 
 
 class MulticastNetworkTarget(NetworkTargetBase):
-    def __init__(self, src: tuple[str, int]) -> None:
-        super().__init__()
+    def __init__(self, src: tuple[str, int], *, ip_v6: bool | None = None) -> None:
+        super().__init__(ip_v6=ip_v6)
         self.src: Final = src
 
     def __repr__(self) -> str:
         return f'{self.__class__.__name__:s}(source={self.src[0]:s})'
 
     @override
-    def create_socket(self, *, ip_v6: bool) -> socket.socket:
-        sock: Final = super().create_socket(ip_v6=ip_v6)
+    def create_socket(self) -> socket.socket:
+        sock: Final = super().create_socket()
 
         # set source port/ip
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -163,18 +178,18 @@ class MulticastNetworkTarget(NetworkTargetBase):
         # setup socket for multicast
         sock.setsockopt(
             socket.IPPROTO_IP,
-            socket.IPV6_MULTICAST_IF if ip_v6 else socket.IP_MULTICAST_IF,
-            socket.inet_pton(AF_INET6 if ip_v6 else AF_INET, self.src[0])
+            socket.IPV6_MULTICAST_IF if self.ip_v6 else socket.IP_MULTICAST_IF,
+            socket.inet_pton(AF_INET6 if self.ip_v6 else AF_INET, self.src[0])
         )
 
         return sock
 
     @classmethod
     def create(cls, source_ip: str, source_port: int = 0) -> Self:
-        validate_ip_address(source_ip)
+        ip_obj = validate_ip_address(source_ip)
         validate_port(source_port, allow_0=True)
-        return cls(src=(source_ip, source_port))
+        return cls(src=(source_ip, source_port), ip_v6=ip_obj.version == 6)
 
     @override
-    async def is_ip_v6(self) -> bool:
-        return validate_ip_address(self.src[0]).version == 6
+    async def resolve_hostname(self) -> None:
+        return None

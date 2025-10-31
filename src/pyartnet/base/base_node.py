@@ -194,8 +194,8 @@ class BaseNode(OutputCorrection, Generic[UNIVERSE_TYPE]):
         if self._socket is not None:
             return self
 
-        ip_v6 = await self._network.is_ip_v6()
-        self._socket = self._network.create_socket(ip_v6=ip_v6)
+        await self._network.resolve_hostname()
+        self._socket = self._network.create_socket()
 
         self._refresh_task.start()
         return self

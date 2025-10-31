@@ -55,11 +55,13 @@ class MockedSocket:
 
 class UnicastNetworkTestingTarget(UnicastNetworkTarget):
     @override
-    async def is_ip_v6(self) -> bool:
-        return False
+    async def resolve_hostname(self) -> None:
+        self._ip_v6 = False
+        return None
 
 
 class MulticastTestingNetworkTarget(MulticastNetworkTarget):
     @override
-    async def is_ip_v6(self) -> bool:
-        return False
+    async def resolve_hostname(self) -> None:
+        self._ip_v6 = False
+        return None
