@@ -6,10 +6,10 @@ from ipaddress import AddressValueError, IPv4Address, IPv6Address
 from socket import AF_INET, AF_INET6, AF_UNSPEC, SOCK_DGRAM
 from typing import Final, Literal
 
-from typing_extensions import Self, override
+from typing_extensions import Self, TypeAlias, override
 
 
-RESOLVE_TO_IP_TYPE: Final = Literal['auto', 'v4', 'v6']
+RESOLVE_TO_IP_TYPE: TypeAlias  = Literal['auto', 'v4', 'v6']
 
 
 def validate_port(port: int, *, allow_0: bool = False) -> int:

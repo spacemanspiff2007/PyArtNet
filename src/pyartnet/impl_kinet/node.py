@@ -26,7 +26,7 @@ class KiNetNode(BaseNode['pyartnet.impl_kinet.KiNetUniverse']):
     def __init__(self, network: UnicastNetworkTarget, *,
                  name: str | None = None,
                  max_fps: int = 25,
-                 refresh_every: float = 2, start_refresh_task: bool = True) -> None:
+                 refresh_every: float = 2) -> None:
         super().__init__(network, name=name, max_fps=max_fps, refresh_every=refresh_every)
 
         self._dst: Final = network.dst

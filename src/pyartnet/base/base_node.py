@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from asyncio import sleep
-from socket import socket
 from time import monotonic
 from typing import TYPE_CHECKING, Final, Generic, TypeVar
 
@@ -13,6 +12,7 @@ from pyartnet.errors import DuplicateUniverseError, UniverseNotFoundError
 
 
 if TYPE_CHECKING:
+    from socket import socket
     from types import TracebackType
 
     import pyartnet
@@ -78,7 +78,7 @@ class BaseNode(OutputCorrection, Generic[UNIVERSE_TYPE]):
             msg = 'Socket closed! Did you forget to use "async with"?'
             raise RuntimeError(msg)
 
-        sock.sendto(self._packet_base + data, dst)
+        sock.sendto(self._packet_base + data, dst)  #type: ignore[arg-type]
         return None
 
     async def _process_values_task(self) -> None:

@@ -26,7 +26,7 @@ class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
     def __init__(self, network: UnicastNetworkTarget, *,
                  name: str | None = None,
                  max_fps: int = 25,
-                 refresh_every: float = 2, start_refresh_task: bool = True,
+                 refresh_every: float = 2,
 
                  # ArtNet specific fields
                  sequence_counter: bool = True

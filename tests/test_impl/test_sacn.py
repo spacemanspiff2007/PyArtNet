@@ -14,7 +14,6 @@ async def test_sacn() -> None:
         UnicastNetworkTestingTarget(('ip', 9999999)),
         cid=b'\x41\x68\xf5\x2b\x1a\x7b\x2d\xe1\x17\x12\xe9\xee\x38\x3d\x22\x58',
         source_name='default source name',
-        start_refresh_task=True
     )
     async with sacn:
 
@@ -48,7 +47,6 @@ async def test_sacn_with_sync(caplog, multicast) -> None:
         network,
         cid=b'\x41\x68\xf5\x2b\x1a\x7b\x2d\xe1\x17\x12\xe9\xee\x38\x3d\x22\x58',
         source_name='default source name',
-        start_refresh_task=False,
         name='device1'
     )
     async with sacn:

@@ -41,7 +41,7 @@ class SacnNode(BaseNode['pyartnet.impl_sacn.SacnUniverse']):
     def __init__(self, network: UnicastNetworkTarget | MulticastNetworkTarget, *,
                  name: str | None = None,
                  max_fps: int = 25,
-                 refresh_every: float = 2, start_refresh_task: bool = True,
+                 refresh_every: float = 2,
 
                  # sACN E1.31 specific fields
                  cid: bytes | None = None, source_name: str | None = None
