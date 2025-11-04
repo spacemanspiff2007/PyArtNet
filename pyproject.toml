@@ -1,6 +1,6 @@
 [project]
 name = "pyartnet"
-version = "1.0.1"
+version = "2.0"
 
 description = "Python wrappers for the Art-Net protocol to send DMX over Ethernet"
 keywords = ["DMX", "Art-Net", "ArtNet", "sACN", "E1.31", "KiNet"]
