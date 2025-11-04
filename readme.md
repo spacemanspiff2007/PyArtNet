@@ -14,6 +14,17 @@ Docs and examples can be found [here](https://pyartnet.readthedocs.io/en/latest/
 
 
 # Changelog
+#### 2.0 (2025-11-04)
+- **Breaking change**:
+  Nodes now need to be run through an async context manager, e.g.:
+    ```python
+    async with ArtNetNode.create('IP') as node:
+        ...
+    ```
+- Added support for transmitting multiple universes in sync
+- Added support for transmitting SACN through the broadcast address
+- ruff and typing fixes
+- used UV
 
 #### 1.0.1 (2023-02-20)
 - Fixed an issue where consecutive fades would not start from the correct value

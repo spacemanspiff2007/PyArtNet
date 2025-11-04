@@ -1,24 +1,50 @@
 name: Tests
 
-on: [push]
+on: [push, pull_request]
 
 jobs:
+  pre-commit:
+    name: pre-commit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - uses: pre-commit/action@v3.0.1
+
   test:
+    needs: pre-commit
     runs-on: ubuntu-latest
     strategy:
       max-parallel: 4
       matrix:
-        python-version: ['3.8', '3.9', '3.10', '3.11']
+        python-version: ['3.8', '3.9', '3.10', '3.11', '3.12', '3.13', '3.14']
 
     steps:
-    - uses: actions/checkout@v3
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v4
+    - uses: actions/checkout@v5
+    - name: Install the latest version of uv and set the python version
+      uses: astral-sh/setup-uv@v7
       with:
         python-version: ${{ matrix.python-version }}
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install tox tox-gh-actions
-    - name: Test with tox
-      run: tox
+        activate-environment: true
+    - name: Install Packages
+      run: uv sync --frozen
+    - name: Test with python ${{ matrix.python-version }}
+      run: uv run --frozen pytest
+
+
+  docs:
+    needs: pre-commit
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v5
+    - name: Install the latest version of uv and set the python version
+      uses: astral-sh/setup-uv@v7
+      with:
+        python-version: '3.12'
+        activate-environment: true
+    - name: Install Packages
+      run: uv sync --frozen
+    - name: Build docs
+      run: uv run --frozen sphinx-build docs build_docs --color -b html -E -W -n --keep-going

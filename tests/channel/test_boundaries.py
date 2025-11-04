@@ -3,11 +3,14 @@ from unittest.mock import Mock
 import pytest
 
 from pyartnet.base.channel import Channel
-from pyartnet.errors import ChannelOutOfUniverseError, \
-    ChannelValueOutOfBoundsError, ValueCountDoesNotMatchChannelWidthError
+from pyartnet.errors import (
+    ChannelOutOfUniverseError,
+    ChannelValueOutOfBoundsError,
+    ValueCountDoesNotMatchChannelWidthError,
+)
 
 
-def test_channel_boundaries():
+def test_channel_boundaries() -> None:
     univ = Mock()
 
     with pytest.raises(ChannelOutOfUniverseError) as r:
@@ -46,8 +49,8 @@ def get_node_universe_mock():
     ('width', 'byte_size', 'invalid', 'valid'),
     ((1, 1, -1, 255), (1, 1, 256, 255), (3, 1, 256, 255),
      (1, 2, -1, 65535), (1, 2, 65536, 65535), (3, 2, 65536, 65535), ))
-def test_set_invalid(width, byte_size, invalid, valid):
-    node, universe = get_node_universe_mock()
+def test_set_invalid(width, byte_size, invalid, valid) -> None:
+    _, universe = get_node_universe_mock()
 
     invalid_values = [0] * (width - 1) + [invalid]
     valid_values = [0] * (width - 1) + [valid]
@@ -67,8 +70,8 @@ def test_set_invalid(width, byte_size, invalid, valid):
     c.set_fade(valid_values, 100)
 
 
-async def test_set_missing():
-    node, universe = get_node_universe_mock()
+async def test_set_missing() -> None:
+    _, universe = get_node_universe_mock()
 
     c = Channel(universe, 1, 1)
     with pytest.raises(ValueCountDoesNotMatchChannelWidthError) as e:

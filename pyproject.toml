@@ -1,0 +1,71 @@
+[project]
+name = "pyartnet"
+version = "1.0.1"
+
+description = "Python wrappers for the Art-Net protocol to send DMX over Ethernet"
+keywords = ["DMX", "Art-Net", "ArtNet", "sACN", "E1.31", "KiNet"]
+readme = "readme.md"
+dependencies = [
+    "typing-extensions"
+]
+requires-python = ">= 3.8"
+
+authors = [
+  {name = "spaceman_spiff"},
+]
+license = "GPL-3.0-or-later"
+
+
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python :: 3.9",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Programming Language :: Python :: 3.14",
+    "Programming Language :: Python :: 3 :: Only",
+    "License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)",
+    "Operating System :: OS Independent",
+]
+
+
+[project.urls]
+Documentation = 'https://pyartnet.readthedocs.io'
+Repository = "https://github.com/spacemanspiff2007/PyArtNet'"
+Issues = "https://github.com/spacemanspiff2007/PyArtNet/issues"
+
+
+[dependency-groups]
+docs = [
+    "sphinx",
+    "sphinx-autodoc-typehints",
+    "sphinx_rtd_theme",
+    "sphinx-exec-code",
+    "pytest"    # needed for monkeypatch
+]
+
+tests = [
+    "pytest",
+    "pytest-asyncio",
+]
+
+dev = [
+    {include-group = "tests"},
+    {include-group = "docs"},
+    "pre-commit",
+    "ruff"
+]
+
+
+[build-system]
+requires = ["uv_build"]
+build-backend = "uv_build"
+
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
+addopts = "-p no:cacheprovider"
+testpaths = ["tests"]
+pythonpath = ["."]

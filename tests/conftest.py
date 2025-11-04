@@ -1,13 +1,20 @@
+from __future__ import annotations
+
 import logging
 from asyncio import sleep
-from typing import List
+from typing import TYPE_CHECKING
 
 import pytest
+from tests.helper import MockedSocket, UnicastNetworkTestingTarget
 
-import pyartnet.base.base_node
 from pyartnet.base import BaseNode, BaseUniverse
-from pyartnet.base.base_node import TYPE_U
-from tests.helper import MockedSocket
+
+
+if TYPE_CHECKING:
+    import pyartnet.base.base_node
+    from pyartnet.base.base_node import UNIVERSE_TYPE
+    from pyartnet.base.network import NetworkTargetBase
+
 
 STEP_MS = 15
 
@@ -15,23 +22,27 @@ STEP_MS = 15
 class TestingNode(BaseNode):
     __test__ = False    # prevent this from being collected by pytest
 
-    def __init__(self, ip: str, port: int):
-        super().__init__(ip, port, max_fps=1_000 // STEP_MS, start_refresh_task=False)
+    def __init__(self, network: NetworkTargetBase) -> None:
+        super().__init__(network, max_fps=1_000 // STEP_MS)
         self.data = []
 
-    def _send_universe(self, id: int, byte_size: int, values: bytearray, universe: 'pyartnet.base.BaseUniverse'):
+    def _send_universe(self, id: int, byte_size: int,
+                       values: bytearray, universe: pyartnet.base.BaseUniverse) -> None:
         self.data.append(values.hex())
 
-    async def sleep_steps(self, steps: int):
+    async def sleep_steps(self, steps: int) -> None:
         # use sleep because await sleep might actually take longer
         for _ in range(steps):
             await sleep(self._process_every)
 
-    async def wait_for_task_finish(self):
+    async def wait_for_task_finish(self) -> None:
         await self
 
-    def _create_universe(self, nr: int) -> TYPE_U:
+    def _create_universe(self, nr: int) -> UNIVERSE_TYPE:
         return BaseUniverse(self, nr)
+
+    def _validate_universe_nr(self, nr: int) -> int:
+        return nr
 
 
 @pytest.fixture(autouse=True)
@@ -40,18 +51,17 @@ def patched_socket(monkeypatch):
         yield sock_sendto
 
 
-def test_patched_socket(patched_socket):
-    node = TestingNode('IP', 9999)
+def test_patched_socket(patched_socket) -> None:
+    node = TestingNode(UnicastNetworkTestingTarget(dst=('IP', 9999)))
     assert node._socket.sendto is patched_socket
 
 
-@pytest.fixture()
+@pytest.fixture
 def node():
-    node = TestingNode('IP', 9999)
-    return node
+    return TestingNode(UnicastNetworkTestingTarget(dst=('IP', 9999)))
 
 
-@pytest.fixture()
+@pytest.fixture
 def universe(node: BaseNode):
     return node.add_universe()
 
@@ -62,7 +72,7 @@ def ensure_no_errors(caplog):
 
     yield None
 
-    log_records: List[logging.LogRecord] = []
+    log_records: list[logging.LogRecord] = []
     name_indent = 0
     level_indent = 0
 

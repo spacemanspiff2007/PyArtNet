@@ -1,20 +1,15 @@
 from pyartnet.base.seq_counter import SequenceCounter
 
 
-def test_seq():
+def test_seq() -> None:
+
     s = SequenceCounter()
-    assert s.value == 0
-    assert s.value == 1
-    assert s.value == 2
-
-    s._ctr = 254
-    assert s.value == 254
-    assert s.value == 255
-    assert s.value == 0
-    assert s.value == 1
+    for _ in range(10):
+        for i in range(256):
+            assert s.value == i
 
 
-def test_seq_artnet():
+def test_seq_artnet() -> None:
     s = SequenceCounter(1)
     assert s.value == 1
     assert s.value == 2
@@ -25,14 +20,14 @@ def test_seq_artnet():
     assert s.value == 1
 
 
-def test_seq_const():
+def test_seq_const() -> None:
     s = SequenceCounter(0, 0)
     assert s.value == 0
     assert s.value == 0
     assert s.value == 0
 
 
-def test_repr():
+def test_repr() -> None:
     s = SequenceCounter()
     assert repr(s) == '<SequenceCounter 0>'
     assert repr(s) == '<SequenceCounter 0>'

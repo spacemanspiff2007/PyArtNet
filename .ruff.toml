@@ -1,0 +1,113 @@
+indent-width = 4
+line-length  = 120
+
+target-version = "py38"
+
+src = [
+    "src",
+    "tests"
+]
+
+
+[lint]
+select = ["ALL"]
+
+ignore = [
+    "D",        # https://docs.astral.sh/ruff/rules/#pydocstyle-d
+    "T20",      # https://docs.astral.sh/ruff/rules/#flake8-print-t20
+    "DTZ",      # https://docs.astral.sh/ruff/rules/#flake8-datetimez-dtz
+    "SLF",      # https://docs.astral.sh/ruff/rules/#flake8-self-slf
+
+    "RET501",   # https://docs.astral.sh/ruff/rules/unnecessary-return-none/#unnecessary-return-none-ret501
+    "TRY400",   # https://docs.astral.sh/ruff/rules/error-instead-of-exception/
+
+    # https://docs.astral.sh/ruff/rules/#flake8-builtins-a
+    "A003",     # Python builtin is shadowed by class attribute {name} from {row}
+
+    # https://docs.astral.sh/ruff/rules/#pyflakes-f
+    "F401",     # {name} imported but unused; consider using importlib.util.find_spec to test for availability
+
+    # https://docs.astral.sh/ruff/rules/#flake8-bandit-s
+    "S311",     # Standard pseudo-random generators are not suitable for cryptographic purposes
+
+    # https://docs.astral.sh/ruff/rules/#flake8-annotations-ann
+    "ANN401",   # Dynamically typed expressions (typing.Any) are disallowed in {name}
+
+    # https://docs.astral.sh/ruff/rules/#flake8-blind-except-ble
+    "BLE001",   # Do not catch blind exception: {name}
+
+    # https://docs.astral.sh/ruff/rules/#flake8-raise-rse
+    "RSE102",   # Unnecessary parentheses on raised exception
+
+    # https://docs.astral.sh/ruff/rules/#flake8-commas-com
+    "COM812",   # Trailing comma missing
+    "COM819",   # Trailing comma prohibited
+
+    # https://docs.astral.sh/ruff/rules/#warning-w_1
+    "PLW0603",  # Using the global statement to update {name} is discouraged
+
+    # https://docs.astral.sh/ruff/rules/#flake8-logging-format-g
+    "G004",     # Logging statement uses f-string
+
+    # https://docs.astral.sh/ruff/rules/#refactor-r
+    "PLR1711",  # Useless return statement at end of function
+
+    # https://docs.astral.sh/ruff/rules/#ruff-specific-rules-ruf
+    "RUF005",  # Consider {expression} instead of concatenation
+
+    # https://docs.astral.sh/ruff/rules/#flake8-pytest-style-pt
+    "PT007",  # Wrong values type in @pytest.mark.parametrize expected {values} of {row}
+]
+
+
+[format]
+quote-style = "single"
+
+
+# https://docs.astral.sh/ruff/settings/#lintflake8-quotes
+[lint.flake8-quotes]
+inline-quotes    = "single"
+multiline-quotes = "single"
+
+
+[lint.flake8-builtins]
+builtins-ignorelist = ["id", "input"]
+
+
+# https://docs.astral.sh/ruff/settings/#lintisort
+[lint.isort]
+lines-after-imports = 2     # https://docs.astral.sh/ruff/settings/#lint_isort_lines-after-imports
+
+
+[lint.per-file-ignores]
+"docs/conf.py" = [
+    "INP001",   # File `conf.py` is part of an implicit namespace package. Add an `__init__.py`.
+    "A001",     # Variable `copyright` is shadowing a Python builtin
+    "PTH118",   # `os.path.join()` should be replaced by `Path` with `/` operator
+    "PTH100",   # `os.path.abspath()` should be replaced by `Path.resolve()`
+]
+
+"tests/*" = [
+    "ANN",  # https://docs.astral.sh/ruff/rules/#flake8-annotations-ann
+
+    # https://docs.astral.sh/ruff/rules/#flake8-bandit-s
+    "S101",     # Use of assert detected
+
+    # https://docs.astral.sh/ruff/rules/#refactor-r
+    "PLR2004",  # Magic value used in comparison, consider replacing {value} with a constant variable
+    "PLR0913",  # Too many arguments in function definition ({c_args} > {max_args})
+
+    # https://docs.astral.sh/ruff/rules/#flake8-boolean-trap-fbt
+    "FBT003",  # Boolean positional value in function call
+
+    # https://docs.astral.sh/ruff/rules/#flake8-unused-arguments-arg
+    "ARG001",  # Unused function argument {name}
+    "ARG002",  # Unused method argument {name}
+    "ARG003",  # Unused class method argument: {name}
+    "ARG004",  # Unused static method argument: {name}
+    "ARG005",  # Unused lambda argument: {name}
+]
+
+"src/pyartnet/*" = [
+    "PLR2004"   # Magic value used in comparison, consider replacing `0.01` with a constant variable
+]

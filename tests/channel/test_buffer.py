@@ -1,10 +1,12 @@
-from typing import Iterable, Optional
+from __future__ import annotations
+
+from typing import Iterable
 from unittest.mock import Mock
 
 from pyartnet.base.channel import Channel
 
 
-def to_buf(c: Channel, v: Iterable[int], buf: Optional[bytearray] = None) -> bytearray:
+def to_buf(c: Channel, v: Iterable[int], buf: bytearray | None = None) -> bytearray:
     c.set_values(v)
     assert c.get_values() == list(v)
 
@@ -14,7 +16,7 @@ def to_buf(c: Channel, v: Iterable[int], buf: Optional[bytearray] = None) -> byt
     return buf
 
 
-def test_channel_1b_values_single():
+def test_channel_1b_values_single() -> None:
     universe = Mock()
     universe.output_correction = None
 
@@ -34,7 +36,7 @@ def test_channel_1b_values_single():
     assert buf == b'\xf0\x00\xff\x00\x0f'
 
 
-def test_channel_1b_values_multiple():
+def test_channel_1b_values_multiple() -> None:
     universe = Mock()
     universe.output_correction = None
 
@@ -46,7 +48,7 @@ def test_channel_1b_values_multiple():
     assert to_buf(c, [128, 0, 255]) == b'\x00\x00\x80\x00\xff'
 
 
-def test_channel_2b_values_single():
+def test_channel_2b_values_single() -> None:
     universe = Mock()
     universe.output_correction = None
 

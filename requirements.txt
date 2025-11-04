@@ -1,5 +1,0 @@
-pytest          >=7.2,      < 7.3
-pytest-asyncio  >=0.20.3,   < 0.21
-
-# linter
-pre-commit  >= 3.0,    < 3.1

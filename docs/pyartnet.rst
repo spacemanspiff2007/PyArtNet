@@ -16,33 +16,39 @@ Getting Started
     # hide: start
     from helper import MockedSocket
     MockedSocket().mock()
+
+    import pyartnet.base.network as network_module
+    from ipaddress import IPv4Address
+    async def resolve_hostname(*args, **kwargs):
+            return [IPv4Address('127.0.0.1')]
+    network_module.resolve_hostname = resolve_hostname
     # hide: stop
 
     import asyncio
     from pyartnet import ArtNetNode
 
     async def main():
-        # Run this code in your async function
-        node = ArtNetNode('IP', 6454)
 
-        # Create universe 0
-        universe = node.add_universe(0)
+        async with ArtNetNode.create('IP', 6454) as node:
 
-        # Add a channel to the universe which consists of 3 values
-        # Default size of a value is 8Bit (0..255) so this would fill
-        # the DMX values 1..3 of the universe
-        channel = universe.add_channel(start=1, width=3)
+            # Create universe 0
+            universe = node.add_universe(0)
 
-        # Fade channel to 255,0,0 in 5s
-        # The fade will automatically run in the background
-        channel.add_fade([255,0,0], 1000)
+            # Add a channel to the universe which consists of 3 values
+            # Default size of a value is 8Bit (0..255) so this would fill
+            # the DMX values 1..3 of the universe
+            channel = universe.add_channel(start=1, width=3)
 
-        # this can be used to wait till the fade is complete
-        await channel
+            # Fade channel to 255,0,0 in 5s
+            # The fade will automatically run in the background
+            channel.add_fade([255,0,0], 1000)
 
-        # hide: start
-        node.stop_refresh()
-        # hide: stop
+            # this can be used to wait till the fade is complete
+            await channel
+
+            # hide: start
+            node.stop_refresh()
+            # hide: stop
 
     asyncio.run(main())
 
@@ -63,6 +69,12 @@ If no channel name is specified during creation the default name will be built w
     from helper import MockedSocket
     MockedSocket().mock()
 
+    import pyartnet.base.network as network_module
+    from ipaddress import IPv4Address
+    async def resolve_hostname(*args, **kwargs):
+            return [IPv4Address('127.0.0.1')]
+    network_module.resolve_hostname = resolve_hostname
+
     import asyncio
     from pyartnet import ArtNetNode
 
@@ -70,23 +82,24 @@ If no channel name is specified during creation the default name will be built w
     # hide: stop
 
         # create node/universe
-        node = ArtNetNode('IP', 6454)
-        universe = node.add_universe(0)
+        async with ArtNetNode.create('IP', 6454) as node:
 
-        # create the channel
-        channel = universe.add_channel(start=1, width=3)
+            universe = node.add_universe(0)
 
-        # after creation this would also work (default name)
-        channel = universe['1/3']
-        channel = universe.get_channel('1/3')
+            # create the channel
+            channel = universe.add_channel(start=1, width=3)
+
+            # after creation this would also work (default name)
+            channel = universe['1/3']
+            channel = universe.get_channel('1/3')
 
 
-        # it's possible to name the channel during creation
-        universe.add_channel(start=4, width=3, channel_name='Dimmer1')
+            # it's possible to name the channel during creation
+            universe.add_channel(start=4, width=3, channel_name='Dimmer1')
 
-        # access is then by name
-        channel = universe['Dimmer1']
-        channel = universe.get_channel('Dimmer1')
+            # access is then by name
+            channel = universe['Dimmer1']
+            channel = universe.get_channel('Dimmer1')
 
     # hide: start
     asyncio.run(main())
@@ -104,6 +117,12 @@ Channel properties can be set when creating the channel through :meth:`BaseUnive
     from helper import MockedSocket
     MockedSocket().mock()
 
+    import pyartnet.base.network as network_module
+    from ipaddress import IPv4Address
+    async def resolve_hostname(*args, **kwargs):
+            return [IPv4Address('127.0.0.1')]
+    network_module.resolve_hostname = resolve_hostname
+
     import asyncio
     from pyartnet import ArtNetNode
 
@@ -111,11 +130,11 @@ Channel properties can be set when creating the channel through :meth:`BaseUnive
     # hide: stop
 
         # create node/universe
-        node = ArtNetNode('IP', 6454)
-        universe = node.add_universe(0)
+        async with ArtNetNode.create('IP', 6454) as node:
+            universe = node.add_universe(0)
 
-        # create a 16bit channel
-        channel = universe.add_channel(start=1, width=3, byte_size=2)
+            # create a 16bit channel
+            channel = universe.add_channel(start=1, width=3, byte_size=2)
 
     # hide: start
     asyncio.run(main())
@@ -152,26 +171,33 @@ Example
     from helper import MockedSocket
     MockedSocket().mock()
 
+    import pyartnet.base.network as network_module
+    from ipaddress import IPv4Address
+    async def resolve_hostname(*args, **kwargs):
+            return [IPv4Address('127.0.0.1')]
+    network_module.resolve_hostname = resolve_hostname
+
     import asyncio
 
     async def main():
     # hide: stop
+
         from pyartnet import ArtNetNode, output_correction
 
         # create node/universe/channel
-        node = ArtNetNode('IP', 6454)
-        universe = node.add_universe(0)
-        channel = universe.add_channel(start=1, width=3)
+        async with ArtNetNode.create('IP', 6454) as node:
+            universe = node.add_universe(0)
+            channel = universe.add_channel(start=1, width=3)
 
-        # set quadratic correction for the whole universe to quadratic
-        universe.set_output_correction(output_correction.quadratic)
+            # set quadratic correction for the whole universe to quadratic
+            universe.set_output_correction(output_correction.quadratic)
 
-        # Explicitly set output for this channel to linear
-        channel.set_output_correction(output_correction.linear)
+            # Explicitly set output for this channel to linear
+            channel.set_output_correction(output_correction.linear)
 
-        # Remove output correction for the channel.
-        # The channel will now use the correction from the universe again
-        channel.set_output_correction(None)
+            # Remove output correction for the channel.
+            # The channel will now use the correction from the universe again
+            channel.set_output_correction(None)
 
 
     # hide: start

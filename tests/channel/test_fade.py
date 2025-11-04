@@ -1,12 +1,13 @@
 import asyncio
 from time import monotonic
 
-from pyartnet.base import BaseUniverse
-from pyartnet.base.channel import Channel
 from tests.conftest import STEP_MS, TestingNode
 
+from pyartnet.base import BaseUniverse
+from pyartnet.base.channel import Channel
 
-async def test_channel_await(node: TestingNode, universe: BaseUniverse, caplog):
+
+async def test_channel_await(node: TestingNode, universe: BaseUniverse, caplog) -> None:
     a = Channel(universe, 1, 1)
     assert a.get_values() == [0]
 
@@ -19,7 +20,7 @@ async def test_channel_await(node: TestingNode, universe: BaseUniverse, caplog):
     assert stop - start >= 0.2
 
 
-async def test_single_step(node: TestingNode, universe: BaseUniverse, caplog):
+async def test_single_step(node: TestingNode, universe: BaseUniverse, caplog) -> None:
     caplog.set_level(0)
 
     a = Channel(universe, 1, 1)
@@ -41,7 +42,7 @@ async def test_single_step(node: TestingNode, universe: BaseUniverse, caplog):
     assert node.data == ['ff']
 
 
-async def test_single_fade(node: TestingNode, universe: BaseUniverse, caplog):
+async def test_single_fade(node: TestingNode, universe: BaseUniverse, caplog) -> None:
     caplog.set_level(0)
 
     a = Channel(universe, 1, 1)
@@ -63,7 +64,7 @@ async def test_single_fade(node: TestingNode, universe: BaseUniverse, caplog):
     assert node.data == ['01', '02']
 
 
-async def test_tripple_fade(node: TestingNode, universe: BaseUniverse, caplog):
+async def test_tripple_fade(node: TestingNode, universe: BaseUniverse, caplog) -> None:
     caplog.set_level(0)
 
     a = Channel(universe, 1, 3)
@@ -87,13 +88,13 @@ async def test_tripple_fade(node: TestingNode, universe: BaseUniverse, caplog):
     assert node.data == ['010203', '020406', '030609']
 
 
-async def test_fade_await(node: TestingNode, universe: BaseUniverse, caplog):
+async def test_fade_await(node: TestingNode, universe: BaseUniverse, caplog) -> None:
     caplog.set_level(0)
 
     channel = Channel(universe, 1, 1)
     assert channel.get_values() == [0]
 
-    async def check_no_wait_time_when_no_fade():
+    async def check_no_wait_time_when_no_fade() -> None:
         start = monotonic()
         for _ in range(1000):
             assert not await channel
@@ -128,7 +129,7 @@ async def test_fade_await(node: TestingNode, universe: BaseUniverse, caplog):
     await node.wait_for_task_finish()
 
 
-async def test_up_down_fade(node: TestingNode, universe: BaseUniverse, caplog):
+async def test_up_down_fade(node: TestingNode, universe: BaseUniverse, caplog) -> None:
     caplog.set_level(0)
 
     a = Channel(universe, 1, 1)

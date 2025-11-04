@@ -1,80 +1,87 @@
-import logging
-import socket
+from __future__ import annotations
+
 from asyncio import sleep
 from time import monotonic
-from typing import Dict, Final, Generic, List, Optional, Tuple, TypeVar, Union
+from typing import TYPE_CHECKING, Final, Generic, TypeVar
 
-import pyartnet
+from typing_extensions import Self
 
-from ..errors import DuplicateUniverseError, UniverseNotFoundError
-from .background_task import ExceptionIgnoringTask, SimpleBackgroundTask
-from .output_correction import OutputCorrection
-
-log = logging.getLogger('pyartnet.ArtNetNode')
+from pyartnet.base.background_task import ExceptionIgnoringTask, SimpleBackgroundTask
+from pyartnet.base.output_correction import OutputCorrection
+from pyartnet.errors import DuplicateUniverseError, UniverseNotFoundError
 
 
-TYPE_U = TypeVar('TYPE_U', bound='pyartnet.base.BaseUniverse')
+if TYPE_CHECKING:
+    from socket import socket
+    from types import TracebackType
+
+    import pyartnet
+    from pyartnet.base.network import MulticastNetworkTarget, UnicastNetworkTarget
+
+
+UNIVERSE_TYPE = TypeVar('UNIVERSE_TYPE', bound='pyartnet.base.BaseUniverse')
 
 
 # noinspection PyProtectedMember
-class BaseNode(Generic[TYPE_U], OutputCorrection):
-    def __init__(self, ip: str, port: int, *,
+class BaseNode(OutputCorrection, Generic[UNIVERSE_TYPE]):
+    def __init__(self, network: UnicastNetworkTarget | MulticastNetworkTarget, *,
+                 name: str | None = None,
                  max_fps: int = 25,
-                 refresh_every: Union[int, float, None] = 2, start_refresh_task: bool = True,
-                 source_address: Optional[Tuple[str, int]] = None):
+                 refresh_every: float = 2) -> None:
         super().__init__()
 
-        # Destination
-        self._ip: Final = ip
-        self._port: Final = port
-        self._dst: Final = (self._ip, self._port)
-
-        # socket setup
-        self._socket: Final = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
-        self._socket.setblocking(False)  # nonblocking for true asyncio
-
-        # option to set source port/ip
-        if source_address is not None:
-            self._socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-            self._socket.bind(source_address)
-
-        # Name used for the Tasks (e.g. in error msg)
-        name: Final = f'{self._ip:s}:{self._port}'
+        self._network: Final = network
+        self._socket: socket | None = None
+        self._name: Final = name if name is not None else f'{self.__class__.__name__}-{id(self):x}'
 
         # refresh task
         self._refresh_every: float = max(0.1, refresh_every)
-        self._refresh_task: Final = ExceptionIgnoringTask(self._periodic_refresh_worker, f'Process task {name:s}')
-        if start_refresh_task:
-            self._refresh_task.start()
+        self._refresh_task: Final = ExceptionIgnoringTask(self._periodic_refresh_worker, f'Refresh task {self._name:s}')
 
         # fade task
         self._process_every: float = 1 / max(1, max_fps)
-        self._process_task: Final = SimpleBackgroundTask(self._process_values_task, f'Refresh task {name:s}')
-        self._process_jobs: List['pyartnet.base.ChannelBoundFade'] = []
+        self._process_task: Final = SimpleBackgroundTask(self._process_values_task, f'Process task {self._name:s}')
+        self._process_jobs: list[pyartnet.base.ChannelBoundFade] = []
 
         # packet data
-        self._packet_base: Union[bytearray, bytes] = bytearray()
-        self._last_send: float = 0
+        self._packet_base: bytearray | bytes = bytearray()
 
         # containing universes
-        self._universes: Tuple[TYPE_U, ...] = ()
-        self._universe_map: Dict[int, TYPE_U] = {}
+        self._universes: tuple[UNIVERSE_TYPE, ...] = ()
+        self._universe_map: dict[int, UNIVERSE_TYPE] = {}
 
-    def _apply_output_correction(self):
+    def __repr__(self) -> str:
+        universe_str = '-' if not self._universes else ','.join(str(u._universe) for u in self._universes)
+        network = str(self._network).replace('NetworkTarget', '')
+        return (f'<{self.__class__.__name__:s} name={self._name:s} network={network!s} '
+                f'universe{"s" if len(self._universes) != 1 else ""}={universe_str:s}>')
+
+    @property
+    def name(self) -> str:
+        return self._name
+
+    def _apply_output_correction(self) -> None:
         for u in self._universes:
             u._apply_output_correction()
 
-    def _send_universe(self, id: int, byte_size: int, values: bytearray, universe: TYPE_U):
+    def _send_universe(self, id: int, byte_size: int, values: bytearray, universe: UNIVERSE_TYPE) -> None:
         raise NotImplementedError()
 
-    def _send_data(self, data: Union[bytearray, bytes]) -> int:
+    def set_synchronous_mode(self, enabled: bool) -> Self:
+        raise NotImplementedError()
 
-        ret = self._socket.sendto(self._packet_base + data, self._dst)
+    def _send_synchronization(self) -> None:
+        pass
 
-        self._last_send = monotonic()
-        return ret
+    def _send_data(self, data: bytearray | bytes, dst: tuple[str, int] | str | None = None) -> None:
+        if (sock := self._socket) is None:
+            msg = 'Socket closed! Did you forget to use "async with"?'
+            raise RuntimeError(msg)
 
-    async def _process_values_task(self):
+        sock.sendto(self._packet_base + data, dst)  #type: ignore[arg-type]
+        return None
+
+    async def _process_values_task(self) -> None:
         # wait a little, so we can schedule multiple tasks/updates, and they all start together
         await sleep(0.01)
 
@@ -103,17 +110,21 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
                     self._process_jobs.remove(job)
                     job.fade_complete()
 
+            # send synchronization only if we actually sent something
+            if not idle_ct:
+                self._send_synchronization()
+
             await sleep(self._process_every)
 
-    def start_refresh(self):
+    async def start_refresh(self) -> None:
         """Manually start the refresh task (if not already running)"""
         self._refresh_task.start()
 
-    def stop_refresh(self):
+    async def stop_refresh(self) -> None:
         """Manually stop the refresh task"""
-        self._refresh_task.cancel()
+        return await self._refresh_task.cancel_wait()
 
-    async def _periodic_refresh_worker(self):
+    async def _periodic_refresh_worker(self) -> None:
         while True:
             # sync the refresh messages
             next_refresh = monotonic()
@@ -128,33 +139,33 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
             for u in self._universes:
                 u.send_data()
 
-    def get_universe(self, nr: int) -> TYPE_U:
+            self._send_synchronization()
+
+    def get_universe(self, nr: int) -> UNIVERSE_TYPE:
         """Get universe by number
 
         :param nr: universe nr
         :return: The universe
         """
-        if not isinstance(nr, int) or not nr >= 0:
-            raise ValueError('BaseUniverse must be an int >= 0!')
-        nr = int(nr)
+        nr = self._validate_universe_nr(nr)
 
         try:
             return self._universe_map[nr]
         except KeyError:
-            raise UniverseNotFoundError(f'BaseUniverse {nr:d} not found!') from None
+            msg = f'BaseUniverse {nr:d} not found!'
+            raise UniverseNotFoundError(msg) from None
 
-    def add_universe(self, nr: int = 0) -> TYPE_U:
+    def add_universe(self, nr: int = 0) -> UNIVERSE_TYPE:
         """Creates a new universe and adds it to the parent node
 
         :param nr: universe nr
         :return: The universe
         """
-        if not isinstance(nr, int) or not nr >= 0:
-            raise ValueError('BaseUniverse must be an int >= 0!')
-        nr = int(nr)
+        nr = self._validate_universe_nr(nr)
 
         if nr in self._universe_map:
-            raise DuplicateUniverseError(f'BaseUniverse {nr:d} does already exist!')
+            msg = f'BaseUniverse {nr:d} does already exist!'
+            raise DuplicateUniverseError(msg)
 
         # add to data
         self._universe_map[nr] = universe = self._create_universe(nr)
@@ -162,7 +173,10 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
 
         return universe
 
-    def _create_universe(self, nr: int) -> TYPE_U:
+    def _create_universe(self, nr: int) -> UNIVERSE_TYPE:
+        raise NotImplementedError()
+
+    def _validate_universe_nr(self, nr: int) -> int:
         raise NotImplementedError()
 
     def __await__(self):
@@ -170,8 +184,28 @@ class BaseNode(Generic[TYPE_U], OutputCorrection):
             for job in self._process_jobs:
                 yield from job.channel.__await__()
 
-    def __getitem__(self, nr: int) -> TYPE_U:
+    def __getitem__(self, nr: int) -> UNIVERSE_TYPE:
         return self.get_universe(nr)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._universes)
+
+    async def __aenter__(self) -> Self:
+        if self._socket is not None:
+            return self
+
+        await self._network.resolve_hostname()
+        self._socket = self._network.create_socket()
+
+        self._refresh_task.start()
+        return self
+
+    async def __aexit__(self, exc_type: type[BaseException] | None, exc_val: BaseException | None,
+                  exc_tb: TracebackType | None) -> None:
+        if (sock := self._socket) is not None:
+            self.socket = None
+            sock.close()
+
+        await self._process_task.cancel_wait()
+        await self._refresh_task.cancel_wait()
+        return None

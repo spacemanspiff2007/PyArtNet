@@ -2,6 +2,7 @@ import os
 import re
 import sys
 
+
 RTD_BUILD = os.environ.get('READTHEDOCS') == 'True'
 
 # Configuration file for the Sphinx documentation builder.
@@ -14,7 +15,7 @@ RTD_BUILD = os.environ.get('READTHEDOCS') == 'True'
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
 project = 'PyArtNet'
-copyright = '2023, spacemanspiff2007'
+copyright = '2025, spacemanspiff2007'
 author = 'spacemanspiff2007'
 
 
@@ -36,7 +37,6 @@ exclude_patterns = []
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#options-for-html-output
 
 html_theme = 'sphinx_rtd_theme'
-html_static_path = ['_static']
 
 
 # -- Options for exec code -------------------------------------------------
@@ -69,4 +69,7 @@ nitpick_ignore_regex = [
 if not RTD_BUILD:
     nitpick_ignore_regex.append(
         (re.compile(r'py:data|py:class'), re.compile(r'typing\..+'))
+    )
+    nitpick_ignore_regex.append(
+        (re.compile(r'py:class'), re.compile(r'collections\.abc\..+'))
     )

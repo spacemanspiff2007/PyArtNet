@@ -1,72 +1,110 @@
+from __future__ import annotations
+
 import logging
-from typing import Final, Optional, Tuple, Union
+from typing import Final
+
+from typing_extensions import Self, override
 
 import pyartnet
 from pyartnet.base import BaseNode
+from pyartnet.base.network import UnicastNetworkTarget
 from pyartnet.base.seq_counter import SequenceCounter
 from pyartnet.errors import InvalidUniverseAddressError
+
 
 # -----------------------------------------------------------------------------
 # Documentation for ArtNet Protocol:
 # https://artisticlicence.com/support-and-resources/art-net-4/
 # -----------------------------------------------------------------------------
 
+ARTNET_PORT: Final = 6454
+
 log = logging.getLogger('pyartnet.ArtNetNode')
 
 
 class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
-    def __init__(self, ip: str, port: int, *,
+    def __init__(self, network: UnicastNetworkTarget, *,
+                 name: str | None = None,
                  max_fps: int = 25,
-                 refresh_every: Union[int, float, None] = 2, start_refresh_task: bool = True,
-                 source_address: Optional[Tuple[str, int]] = None,
+                 refresh_every: float = 2,
 
                  # ArtNet specific fields
                  sequence_counter: bool = True
-                 ):
-        super().__init__(ip=ip, port=port,
-                         max_fps=max_fps,
-                         refresh_every=refresh_every, start_refresh_task=start_refresh_task,
-                         source_address=source_address)
+                 ) -> None:
+        super().__init__(network, name=name, max_fps=max_fps, refresh_every=refresh_every)
+
+        self._dst: Final = network.dst
+        self._ip: Final = self._dst[0]
 
         # ArtNet specific fields
         self._sequence_ctr: Final = SequenceCounter(1) if sequence_counter else SequenceCounter(0, 0)
 
         # build base packet
         packet = bytearray()
-        packet.extend(map(ord, "Art-Net"))
+        packet.extend(map(ord, 'Art-Net'))
         packet.append(0x00)          # Null terminate Art-Net
-        packet.extend([0x00, 0x50])  # Opcode ArtDMX 0x5000 (Little endian)
-        packet.extend([0x00, 0x0e])  # Protocol version 14
         self._packet_base = bytes(packet)
 
+        self._sync_enabled : bool = False
+
+    @classmethod
+    def create(cls, host: str, port: int = ARTNET_PORT, *,
+               source_ip: str | None = None, source_port: int = 0,
+               name: str | None = None, max_fps: int = 25, refresh_every: float = 2) -> Self:
+        """Creates a new node. The packages will be sent directly to the node (unicast).
+
+        :param host: ip or hostname of the device
+        :param port: port of device
+        :param source_ip: ip of the network interface that shall be used to send data
+        :param source_port: source port
+        :param name: a custom name of the node
+        :param max_fps: maximum frames per second to send
+        :param refresh_every: refresh interval in seconds
+        """
+
+        network = UnicastNetworkTarget.create(host, port, source_ip=source_ip, source_port=source_port)
+        return cls(network, name=name, max_fps=max_fps, refresh_every=refresh_every)
+
+    @override
     def _send_universe(self, id: int, byte_size: int, values: bytearray,
-                       universe: 'pyartnet.impl_artnet.ArtNetUniverse'):
+                       universe: pyartnet.impl_artnet.ArtNetUniverse) -> None:
 
         # pre allocate the bytearray
-        _size = 6 + byte_size
+        _size = 10 + byte_size
         packet = bytearray(_size)
 
-        packet[0] = self._sequence_ctr.value                    # 1 | Sequence,
-        packet[1] = 0x00                                        # 1 | Physical input port (not used)
-        packet[2:4] = id.to_bytes(2, byteorder='little')        # 2 | Universe
+        packet[0:2] = (0x00, 0x50)                      # 2 | Opcode ArtDMX 0x5000 (Little Endian)
+        packet[2:4] = (0x00, 0x0e)                      # 2 | Protocol version 14  (Little Endian)
 
-        packet[4:6] = byte_size.to_bytes(2, 'big')              # 2       | Number of channels Big Endian
-        packet[6: _size] = values                               # 0 - 512 | Channel values
+        packet[4] = self._sequence_ctr.value            # 1 | Sequence,
+        packet[5] = 0x00                                # 1 | Physical input port (not used)
+        packet[6:8] = id.to_bytes(2, 'little')          # 2 | Universe (Little endian)
 
-        self._send_data(packet)
+        packet[8:10] = byte_size.to_bytes(2, 'big')     # 2       | Number of channels Big Endian
+        packet[10: _size] = values                      # 0 - 512 | Channel values
+
+        self._send_data(packet, self._dst)
 
         # log complete packet
         if log.isEnabledFor(logging.DEBUG):
             self.__log_artnet_frame(self._packet_base + packet)
 
-    def _create_universe(self, nr: int) -> 'pyartnet.impl_artnet.ArtNetUniverse':
-        if nr >= 32_768:
-            raise InvalidUniverseAddressError()
-        return pyartnet.impl_artnet.ArtNetUniverse(self, nr)
+    @override
+    def _create_universe(self, nr: int) -> pyartnet.impl_artnet.ArtNetUniverse:
+        return pyartnet.impl_artnet.ArtNetUniverse(self, self._validate_universe_nr(nr))
 
-    def __log_artnet_frame(self, p: Union[bytearray, bytes]):
+    @override
+    def _validate_universe_nr(self, nr: int) -> int:
+        if not isinstance(nr, int):
+            raise TypeError()
+        if not 0 <= nr <= 32_768:
+            raise InvalidUniverseAddressError()
+        return int(nr)
+
+    def __log_artnet_frame(self, p: bytearray | bytes) -> None:
         """Log Artnet Frame"""
-        assert isinstance(p, (bytearray, bytes))
+        if not isinstance(p, (bytearray, bytes)):
+            raise TypeError()
 
         # runs the first time
         if not hasattr(self, '_log_ctr'):
@@ -81,8 +119,14 @@ class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
         host_fmt = ' ' * (36 + len(self._ip))
         out_desc = '{:s} {:2s} {:2s} {:4s} {:4s}'.format(host_fmt, 'Sq', '', 'Univ', ' Len')
 
-        _max_channel = p[16] << 8 | p[17]
         pre = bytearray(p[:12]).hex().upper()
+
+        # low byte first: 5200 -> 0052
+        if p[8:10] == b'\x00\x52':
+            log.debug(f'Sync   to {self._ip:s}: {pre} {p[12]:02x} {p[13]:02x}')
+            return None
+
+        _max_channel = p[16] << 8 | p[17]
         out = f'Packet to {self._ip:s}: {pre} {p[12]:02x} {p[13]:02x} {p[13]:02x}{p[14]:02x} {_max_channel:04x}'
 
         # check what to print
@@ -129,3 +173,39 @@ class ArtNetNode(BaseNode['pyartnet.impl_artnet.ArtNetUniverse']):
         if show_description:
             log.debug(out_desc)
         log.debug(out)
+        return None
+
+    @override
+    def set_synchronous_mode(self, enabled: bool) -> Self:
+        """Enable or disable synchronous mode for this node. In synchronous mode multiple universes are sent to the
+        node and then a synchronization packet is sent to make the node output all universes at the same time.
+        This prevents tearing in multi universe panels.
+
+        :param enabled: Enable or disable synchronous mode
+        """
+        if self._refresh_every > 3.5:
+            msg = 'ArtNet synchronization requires refresh_every <= 3.5s'
+            raise ValueError(msg)
+
+        self._sync_enabled = enabled
+        return self
+
+    @override
+    def _send_synchronization(self) -> None:
+        if not self._sync_enabled:
+            return
+
+        # pre allocate the bytearray
+        packet = bytearray(6)
+
+        packet[0:2] = (0x00, 0x52)  # 2 | Opcode ArtSync 0x5200 (Little Endian)
+        packet[2:4] = (0x00, 0x0e)  # 2 | Protocol Version 14   (Little Endian)
+
+        packet[4] = 0               # 1 | Aux1
+        packet[5] = 0               # 1 | Aux2
+
+        self._send_data(packet, self._dst)
+
+        # log complete packet
+        if log.isEnabledFor(logging.DEBUG):
+            self.__log_artnet_frame(self._packet_base + packet)
