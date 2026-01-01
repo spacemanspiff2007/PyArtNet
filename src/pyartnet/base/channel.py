@@ -157,7 +157,7 @@ class Channel(OutputCorrection):
     def add_fade(self, values: Collection[int | FadeBase], duration_ms: int,
                  fade_class: type[FadeBase] = LinearFade) -> Self:
         warnings.warn(
-            f'{self.set_fade.__name__:s} is deprecated, use {self.set_fade.__name__:s} instead',
+            f'{self.add_fade.__name__:s} is deprecated, use {self.set_fade.__name__:s} instead',
             DeprecationWarning, stacklevel=2
         )
         return self.set_fade(values, duration_ms, fade_class)
